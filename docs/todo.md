@@ -77,6 +77,7 @@
 - Regressionstests fuer Settings-Fallback ergaenzen: `GET /api/settings/*/model_<id>_*` darf ohne expliziten Override keinen `400` mehr liefern.
 - Live-Refresh absichern: automatisches Nachladen im aktiven Chat gegen Duplikate/Race-Conditions mit API- und UI-Tests validieren.
 - Typdiagnostik absichern: Pylance-Warnungen in Kernpfaden (`app/chat/service.py`, Repositories, API-Routen) als Regression-Check aufnehmen.
+- Settings-Selbstheilung nachziehen: Audit-/Telemetry-Hinweise fuer automatisch reparierte `model.base_directories` im Monitoring sichtbar machen und klare Auto-Commit-Richtlinie fuer Read-Pfade dokumentieren.
 - Composer-Anhaenge ausbauen: echte Upload-API fuer Dateien und Bilder statt Draft-Platzhalter integrieren.
 - Sichere Zugangsverwaltung fuer lokale Entwicklung dokumentieren (nicht versionierte Secret-Datei / Passwortmanager statt Klartext in `docs`).
 - Public-Release-Checkliste ergaenzen: vor jedem oeffentlichen Push automatisierten Secret-Scan und `.gitignore`-Validierung ausfuehren.
@@ -106,6 +107,7 @@
 - Kaskadenloeschung fuer KnowledgeDocument, Chunks und Embeddings absichern und testen.
 - Pytest-Konfiguration harmonisieren: `asyncio_mode`-Warnung entfernen (Plugin sauber installieren oder Config ohne Plugin kompatibel machen).
 - SQLAlchemy-Session-/Connection-Lifecycle in Integrationstests haerten, damit keine Pool-GC-Warnungen mehr auftreten.
+- Aktuelle Restwarnung konkret beheben: `SAWarning non-checked-in connection` aus Integrationstestpfaden (derzeit auffaellig im custom-loader-Flow) durch sauberen Session-/Connection-Abschluss eliminieren.
 - Virtuelle Nachrichtenliste fuer sehr lange Chats einfuehren.
 - Reverse-Proxy-Beispiel fuer Internetbetrieb (TLS, Host-Weitergabe, CORS-Origins) als lauffaehige Deploy-Vorlage dokumentieren.
 - Nutzerpraesenz weiterentwickeln: Heartbeat-Polling durch push-basierte Presence-Events (WebSocket/SSE) ersetzen.

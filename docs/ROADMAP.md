@@ -19,6 +19,8 @@
 - Nach Settings-Fallback-Hardening fuer `model_<id>_*`: End-to-End-Tests fuer modell-spezifische Prompt-/Parameterauflosung ueber mehrere Benutzerkonten ausbauen.
 - Modellpfade mit Path-Traversal-Schutz und Basisverzeichnis-Pruefung haerten.
 - Nach Modellpfad-Haertung: bestehende `ModelConfig`-Datensaetze per Migrations-/Health-Check auf unerlaubte Pfade pruefen und bereinigen.
+- Nach umgestellter Startup-Repair-Strategie fuer invalide Settings: optionalen Admin-Repair-Trigger (on-demand) und einen strukturierten Reparaturreport fuer Betrieb/Support ergaenzen.
+- Nach erfolgreichem Volltestlauf (`43 passed`): verbleibende SQLAlchemy-Connection-Lifecycle-Warnung (`non-checked-in connection`) in Integrationstests systematisch beheben.
 - Nach Polling-Deduplikation: Fokus-/Idle-basierte Polling-Intervalle dynamisch staffeln, um Last unter aktiver Nutzung weiter zu optimieren.
 - Nach TanStack-Query-Konsolidierung: Cache-Invalidierung und Mutation-Flows fuer Einstellungen/Chataktionen weiter standardisieren.
 - Nach zentralen Settings-Query-Helfern: verbleibende Chat-Mutationen schrittweise in denselben einheitlichen Invalidation-/Optimistic-Update-Pfad ueberfuehren.

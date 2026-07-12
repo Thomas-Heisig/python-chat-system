@@ -121,6 +121,29 @@ type TrainingSettingsDraft = {
   autoRegisterModel: boolean;
 };
 
+type ChatSettingsDraft = {
+  temperature: string;
+  maxNewTokens: string;
+  topP: string;
+  topK: string;
+  repetitionPenalty: string;
+  doSample: boolean;
+  seed: string;
+  contextLimitTokens: string;
+  contextSafetyMarginTokens: string;
+};
+
+type KnowledgeSettingsDraft = {
+  topK: string;
+  minScoreRatio: string;
+  minAbsoluteScore: string;
+  minScoreGap: string;
+};
+
+type LogsSettingsDraft = {
+  logLevel: "DEBUG" | "INFO" | "WARNING" | "ERROR";
+};
+
 const CONVERSATION_VISIBILITY_SETTING_KEY = "conversation_visibility_map";
 const CONVERSATION_AI_PARTICIPATION_SETTING_KEY = "conversation_ai_participation_map";
 const AI_INTENT_MARKERS_SETTING_KEY = "ai_intent_markers";
@@ -234,6 +257,29 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
     autoStartQueue: true,
     autoEvaluate: true,
     autoRegisterModel: false,
+  });
+  const [chatSettingsPending, setChatSettingsPending] = useState(false);
+  const [chatSettings, setChatSettings] = useState<ChatSettingsDraft>({
+    temperature: "0.3",
+    maxNewTokens: "512",
+    topP: "0.9",
+    topK: "40",
+    repetitionPenalty: "1.1",
+    doSample: true,
+    seed: "42",
+    contextLimitTokens: "8192",
+    contextSafetyMarginTokens: "128",
+  });
+  const [knowledgeSettingsPending, setKnowledgeSettingsPending] = useState(false);
+  const [knowledgeSettings, setKnowledgeSettings] = useState<KnowledgeSettingsDraft>({
+    topK: "6",
+    minScoreRatio: "0.5",
+    minAbsoluteScore: "1000",
+    minScoreGap: "400",
+  });
+  const [logsSettingsPending, setLogsSettingsPending] = useState(false);
+  const [logsSettings, setLogsSettings] = useState<LogsSettingsDraft>({
+    logLevel: "INFO",
   });
   const [trainingPreflightPending, setTrainingPreflightPending] = useState(false);
   const [trainingPreflightResult, setTrainingPreflightResult] = useState<TrainingPreflightResult | null>(null);
@@ -767,6 +813,168 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       pushToast("error", "Training-Einstellungen konnten nicht gespeichert werden.");
     } finally {
       setTrainingSettingsPending(false);
+    }
+  };
+
+  const loadChatSettings = async () => {
+    const [
+      temperatureValue,
+      maxTokensValue,
+      topPValue,
+      topKValue,
+      repetitionPenaltyValue,
+      doSampleValue,
+      seedValue,
+      contextLimitValue,
+      contextSafetyMarginValue,
+    ] = await Promise.all([
+      getSettingCached("chat", "temperature", currentUser.id),
+      getSettingCached("chat", "max_new_tokens", currentUser.id),
+      getSettingCached("chat", "top_p", currentUser.id),
+      getSettingCached("chat", "top_k", currentUser.id),
+      getSettingCached("chat", "repetition_penalty", currentUser.id),
+      getSettingCached("chat", "do_sample", currentUser.id),
+      getSettingCached("chat", "seed", currentUser.id),
+      getSettingCached("chat", "context_limit_tokens", currentUser.id),
+      getSettingCached("chat", "context_safety_margin_tokens", currentUser.id),
+    ]);
+
+    setChatSettings({
+      temperature: String(typeof temperatureValue === "number" ? temperatureValue : 0.3),
+      maxNewTokens: String(typeof maxTokensValue === "number" ? maxTokensValue : 512),
+      topP: String(typeof topPValue === "number" ? topPValue : 0.9),
+      topK: String(typeof topKValue === "number" ? topKValue : 40),
+      repetitionPenalty: String(typeof repetitionPenaltyValue === "number" ? repetitionPenaltyValue : 1.1),
+      doSample: typeof doSampleValue === "boolean" ? doSampleValue : true,
+      seed: String(typeof seedValue === "number" ? seedValue : 42),
+      contextLimitTokens: String(typeof contextLimitValue === "number" ? contextLimitValue : 8192),
+      contextSafetyMarginTokens: String(typeof contextSafetyMarginValue === "number" ? contextSafetyMarginValue : 128),
+    });
+  };
+
+  const handleSaveChatSettings = async (profile: ChatSettingsDraft) => {
+    setChatSettingsPending(true);
+    try {
+      const temperatureNumber = Number(profile.temperature);
+      const maxTokensNumber = Number(profile.maxNewTokens);
+      const topPNumber = Number(profile.topP);
+      const topKNumber = Number(profile.topK);
+      const repetitionPenaltyNumber = Number(profile.repetitionPenalty);
+      const seedNumber = Number(profile.seed);
+      const contextLimitNumber = Number(profile.contextLimitTokens);
+      const contextSafetyMarginNumber = Number(profile.contextSafetyMarginTokens);
+
+      await Promise.all([
+        updateSettingWithCache("chat", "temperature", Number.isFinite(temperatureNumber) ? Math.min(2, Math.max(0, temperatureNumber)) : 0.3, currentUser.id),
+        updateSettingWithCache("chat", "max_new_tokens", Number.isFinite(maxTokensNumber) ? Math.max(1, Math.round(maxTokensNumber)) : 512, currentUser.id),
+        updateSettingWithCache("chat", "top_p", Number.isFinite(topPNumber) ? Math.min(1, Math.max(0.01, topPNumber)) : 0.9, currentUser.id),
+        updateSettingWithCache("chat", "top_k", Number.isFinite(topKNumber) ? Math.max(0, Math.round(topKNumber)) : 40, currentUser.id),
+        updateSettingWithCache(
+          "chat",
+          "repetition_penalty",
+          Number.isFinite(repetitionPenaltyNumber) ? Math.min(2, Math.max(0.5, repetitionPenaltyNumber)) : 1.1,
+          currentUser.id,
+        ),
+        updateSettingWithCache("chat", "do_sample", profile.doSample, currentUser.id),
+        updateSettingWithCache("chat", "seed", Number.isFinite(seedNumber) ? Math.max(0, Math.round(seedNumber)) : 42, currentUser.id),
+        updateSettingWithCache(
+          "chat",
+          "context_limit_tokens",
+          Number.isFinite(contextLimitNumber) ? Math.max(512, Math.round(contextLimitNumber)) : 8192,
+          currentUser.id,
+        ),
+        updateSettingWithCache(
+          "chat",
+          "context_safety_margin_tokens",
+          Number.isFinite(contextSafetyMarginNumber) ? Math.max(0, Math.round(contextSafetyMarginNumber)) : 128,
+          currentUser.id,
+        ),
+      ]);
+
+      await loadChatSettings();
+      pushToast("success", "Chat-Einstellungen gespeichert.");
+    } catch (error) {
+      pushToast("error", `Chat-Einstellungen konnten nicht gespeichert werden: ${extractErrorMessage(error)}`);
+    } finally {
+      setChatSettingsPending(false);
+    }
+  };
+
+  const loadKnowledgeSettings = async () => {
+    const [topKValue, minScoreRatioValue, minAbsoluteScoreValue, minScoreGapValue] = await Promise.all([
+      getSettingCached("knowledge", "top_k", currentUser.id),
+      getSettingCached("knowledge", "min_score_ratio", currentUser.id),
+      getSettingCached("knowledge", "min_absolute_score", currentUser.id),
+      getSettingCached("knowledge", "min_score_gap", currentUser.id),
+    ]);
+
+    setKnowledgeSettings({
+      topK: String(typeof topKValue === "number" ? topKValue : 6),
+      minScoreRatio: String(typeof minScoreRatioValue === "number" ? minScoreRatioValue : 0.5),
+      minAbsoluteScore: String(typeof minAbsoluteScoreValue === "number" ? minAbsoluteScoreValue : 1000),
+      minScoreGap: String(typeof minScoreGapValue === "number" ? minScoreGapValue : 400),
+    });
+  };
+
+  const handleSaveKnowledgeSettings = async (profile: KnowledgeSettingsDraft) => {
+    setKnowledgeSettingsPending(true);
+    try {
+      const topKNumber = Number(profile.topK);
+      const minScoreRatioNumber = Number(profile.minScoreRatio);
+      const minAbsoluteScoreNumber = Number(profile.minAbsoluteScore);
+      const minScoreGapNumber = Number(profile.minScoreGap);
+
+      await Promise.all([
+        updateSettingWithCache("knowledge", "top_k", Number.isFinite(topKNumber) ? Math.max(1, Math.round(topKNumber)) : 6, currentUser.id),
+        updateSettingWithCache(
+          "knowledge",
+          "min_score_ratio",
+          Number.isFinite(minScoreRatioNumber) ? Math.min(1, Math.max(0, minScoreRatioNumber)) : 0.5,
+          currentUser.id,
+        ),
+        updateSettingWithCache(
+          "knowledge",
+          "min_absolute_score",
+          Number.isFinite(minAbsoluteScoreNumber) ? Math.max(0, Math.round(minAbsoluteScoreNumber)) : 1000,
+          currentUser.id,
+        ),
+        updateSettingWithCache(
+          "knowledge",
+          "min_score_gap",
+          Number.isFinite(minScoreGapNumber) ? Math.max(0, Math.round(minScoreGapNumber)) : 400,
+          currentUser.id,
+        ),
+      ]);
+
+      await loadKnowledgeSettings();
+      pushToast("success", "Wissens-Retrieval-Einstellungen gespeichert.");
+    } catch (error) {
+      pushToast("error", `Wissens-Einstellungen konnten nicht gespeichert werden: ${extractErrorMessage(error)}`);
+    } finally {
+      setKnowledgeSettingsPending(false);
+    }
+  };
+
+  const loadLogsSettings = async () => {
+    const value = await getSettingCached("system", "log_level", currentUser.id);
+    const normalized = typeof value === "string" ? value.trim().toUpperCase() : "INFO";
+    const logLevel: LogsSettingsDraft["logLevel"] =
+      normalized === "DEBUG" || normalized === "INFO" || normalized === "WARNING" || normalized === "ERROR"
+        ? normalized
+        : "INFO";
+    setLogsSettings({ logLevel });
+  };
+
+  const handleSaveLogsSettings = async (profile: LogsSettingsDraft) => {
+    setLogsSettingsPending(true);
+    try {
+      await updateSettingWithCache("system", "log_level", profile.logLevel, currentUser.id);
+      setLogsSettings(profile);
+      pushToast("success", "Log-Einstellungen gespeichert.");
+    } catch (error) {
+      pushToast("error", `Log-Einstellungen konnten nicht gespeichert werden: ${extractErrorMessage(error)}`);
+    } finally {
+      setLogsSettingsPending(false);
     }
   };
 
@@ -1357,6 +1565,9 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
         await loadModelDirectories();
         await Promise.all([
           loadGeneralSettings(),
+          loadChatSettings(),
+          loadKnowledgeSettings(),
+          loadLogsSettings(),
           loadConversationTree(),
           loadConversationVisibilityMap(),
           loadConversationAiParticipationMap(),
@@ -2114,10 +2325,16 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
               modelDirectoryPending={modelDirectoryPending}
               modelProfilePending={modelProfilePending}
               generalSettingsPending={generalSettingsPending}
+              chatSettingsPending={chatSettingsPending}
+              knowledgeSettingsPending={knowledgeSettingsPending}
+              logsSettingsPending={logsSettingsPending}
               trainingSettingsPending={trainingSettingsPending}
               modelDirectories={modelDirectories}
               modelProfile={modelProfile}
               generalSettings={generalSettings}
+              chatSettings={chatSettings}
+              knowledgeSettings={knowledgeSettings}
+              logsSettings={logsSettings}
               trainingSettings={trainingSettings}
               trainingPreflightPending={trainingPreflightPending}
               trainingPreflightResult={trainingPreflightResult}
@@ -2134,6 +2351,9 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
               onSaveModelDirectories={handleSaveModelDirectories}
               onSaveModelProfile={handleSaveModelProfile}
               onSaveGeneralSettings={handleSaveGeneralSettings}
+              onSaveChatSettings={handleSaveChatSettings}
+              onSaveKnowledgeSettings={handleSaveKnowledgeSettings}
+              onSaveLogsSettings={handleSaveLogsSettings}
               onSaveTrainingSettings={handleSaveTrainingSettings}
               onCreateTrainingDataset={handleCreateTrainingDataset}
               onRegisterTrainingDatasetFile={handleRegisterTrainingDatasetFile}

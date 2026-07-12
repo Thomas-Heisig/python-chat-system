@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Coroutine, Sequence, TypeVar, cast
@@ -11,12 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db_models.model_config import ModelConfig
 from app.settings.service import SettingsService
+from tests.integration.async_utils import run_async
 
 T = TypeVar("T")
 
 
 def _run(coro: Coroutine[Any, Any, T]) -> T:
-	return asyncio.run(coro)
+	return run_async(coro)
 
 
 def _with_session(fn: Callable[[AsyncSession], Coroutine[Any, Any, T]]) -> T:

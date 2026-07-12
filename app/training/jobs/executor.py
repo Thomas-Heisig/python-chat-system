@@ -14,7 +14,6 @@ from app.training.trainers.base import TrainingCancelledError
 
 class TrainingJobExecutor:
     def __init__(self, trainer_registry: TrainerRegistry | None = None) -> None:
-        self._session_maker = get_session_maker()
         self._trainers = trainer_registry or TrainerRegistry()
 
     async def run(self, job_id: int) -> None:
@@ -78,7 +77,8 @@ class TrainingJobExecutor:
             )
 
     async def _load_context(self, job_id: int) -> tuple[TrainingRunContext | None, dict[str, object]]:
-        async with self._session_maker() as session:
+        session_maker = get_session_maker()
+        async with session_maker() as session:
             job_repo = TrainingJobRepository(session)
             dataset_repo = TrainingDatasetRepository(session)
 
@@ -124,7 +124,8 @@ class TrainingJobExecutor:
             return context, dataset_payload
 
     async def _patch_runtime(self, job_id: int, **payload: object) -> None:
-        async with self._session_maker() as session:
+        session_maker = get_session_maker()
+        async with session_maker() as session:
             repo = TrainingJobRepository(session)
             job = await repo.get_by_id_any(job_id=job_id)
             if job is None:
@@ -171,7 +172,8 @@ class TrainingJobExecutor:
             await session.commit()
 
     async def _set_result(self, job_id: int, *, metrics: dict[str, float], saved_info: dict[str, object]) -> None:
-        async with self._session_maker() as session:
+        session_maker = get_session_maker()
+        async with session_maker() as session:
             repo = TrainingJobRepository(session)
             job = await repo.get_by_id_any(job_id=job_id)
             if job is None:
@@ -183,7 +185,8 @@ class TrainingJobExecutor:
             await session.commit()
 
     async def _cancel_requested(self, job_id: int) -> bool:
-        async with self._session_maker() as session:
+        session_maker = get_session_maker()
+        async with session_maker() as session:
             repo = TrainingJobRepository(session)
             return await repo.is_cancel_requested(job_id=job_id)
 

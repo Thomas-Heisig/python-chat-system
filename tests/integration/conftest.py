@@ -1,15 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-
-
-def _run(coro):
-    return asyncio.run(coro)
-
 
 def _reset_model_manager_state() -> None:
     from app.models.manager import model_manager
@@ -37,10 +31,7 @@ def app_client(tmp_path: Path, monkeypatch):
     db_connection._engine = None
     db_session._session_maker = None
 
-    from app.startup import initialize_runtime
-
     _reset_model_manager_state()
-    _run(initialize_runtime(run_model_scan=False))
 
     from app.main import app
 
@@ -48,8 +39,6 @@ def app_client(tmp_path: Path, monkeypatch):
         yield client
 
     _reset_model_manager_state()
-    engine = db_connection.get_engine()
-    _run(engine.dispose())
     db_connection._engine = None
     db_session._session_maker = None
     get_config.cache_clear()

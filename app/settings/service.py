@@ -2,13 +2,13 @@ import json
 from typing import TypeAlias
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.exceptions import InvalidSettingError
 from app.core.config import get_config
 from app.core.events import event_bus
 from app.database.repositories.settings_repository import SettingsRepository
 from app.settings.cache import SettingsCache
 from app.settings.defaults import DEFAULT_SETTINGS
 from app.settings.validator import validate_setting
-
 
 CandidateScope: TypeAlias = tuple[int | None, int | None]
 
@@ -56,8 +56,12 @@ class SettingsService:
         for c_user, c_team in candidates:
             item = await self.repo.get_setting(category, key, user_id=c_user, team_id=c_team)
             if item is not None:
-                value = json.loads(item.value_json)
-                value = validate_setting(category, key, value)
+                try:
+                    value = json.loads(item.value_json)
+                    value = validate_setting(category, key, value)
+                except (json.JSONDecodeError, InvalidSettingError):
+                    continue
+
                 self.cache.set(category, key, value, user_id, team_id)
                 return value
 
@@ -65,8 +69,12 @@ class SettingsService:
             for c_user, c_team in candidates:
                 item = await self.repo.get_setting(category, normalized_key, user_id=c_user, team_id=c_team)
                 if item is not None:
-                    value = json.loads(item.value_json)
-                    value = validate_setting(category, key, value)
+                    try:
+                        value = json.loads(item.value_json)
+                        value = validate_setting(category, key, value)
+                    except (json.JSONDecodeError, InvalidSettingError):
+                        continue
+
                     self.cache.set(category, key, value, user_id, team_id)
                     return value
 

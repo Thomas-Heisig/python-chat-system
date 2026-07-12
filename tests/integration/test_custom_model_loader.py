@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 from typing import Any, Callable, Coroutine, TypeVar, cast
@@ -11,12 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db_models.model_config import ModelConfig
 from app.models.metadata import infer_model_capabilities
 from app.settings.service import SettingsService
+from tests.integration.async_utils import run_async
 
 T = TypeVar("T")
 
 
 def _run(coro: Coroutine[Any, Any, T]) -> T:
-    return asyncio.run(coro)
+    return run_async(coro)
 
 
 def _with_session(fn: Callable[[AsyncSession], Coroutine[Any, Any, T]]) -> T:
@@ -28,39 +28,6 @@ def _with_session(fn: Callable[[AsyncSession], Coroutine[Any, Any, T]]) -> T:
             return await fn(session)
 
     return _run(_runner())
-
-
-async def _seed_custom_model(session: AsyncSession, model_dir: Path) -> int:
-    settings = SettingsService(session)
-    await settings.update("model", "base_directories", [str(model_dir.parent)])
-    await session.commit()
-
-    capabilities = infer_model_capabilities(name=model_dir.name, model_path=model_dir)
-    model = ModelConfig(
-        name=model_dir.name,
-        model_path=str(model_dir.resolve(strict=False)),
-        backend=str(capabilities.get("backend") or "custom_pytorch"),
-        model_format=str(capabilities.get("model_format") or "custom_safetensors"),
-        model_type=str(capabilities.get("task_type") or "any_to_any"),
-        metadata_json=json.dumps(capabilities),
-        is_available=True,
-        is_active=False,
-        load_status="unloaded",
-    )
-    session.add(model)
-    await session.commit()
-    await session.refresh(model)
-    return model.id
-
-
-async def _read_model_metadata(session: AsyncSession, model_id: int) -> dict[str, object]:
-    row = (await session.execute(select(ModelConfig).where(ModelConfig.id == model_id))).scalar_one()
-    if not row.metadata_json:
-        return {}
-    payload = json.loads(row.metadata_json)
-    if not isinstance(payload, dict):
-        return {}
-    return cast(dict[str, object], payload)
 
 
 async def _seed_legacy_duplicate_models(session: AsyncSession, model_dir: Path) -> tuple[int, int]:
@@ -131,12 +98,25 @@ def test_custom_loader_trust_and_peft_compatibility(app_client: Any, tmp_path: P
         encoding="utf-8",
     )
 
-    model_id = _with_session(lambda session: _seed_custom_model(session, model_dir))
+    update_base_dirs = app_client.post(
+        "/api/settings",
+        json={
+            "category": "model",
+            "key": "base_directories",
+            "value": [str(model_dir.parent)],
+        },
+    )
+    assert update_base_dirs.status_code == 200
 
-    models_response = app_client.get("/api/models")
-    assert models_response.status_code == 200
-    items = models_response.json()["items"]
-    current = next(item for item in items if item["id"] == model_id)
+    initial_scan = app_client.post("/api/models/scan")
+    assert initial_scan.status_code == 200
+
+    initial_models = app_client.get("/api/models")
+    assert initial_models.status_code == 200
+    initial_items = initial_models.json()["items"]
+    current = next(item for item in initial_items if Path(item["model_path"]).resolve(strict=False) == model_dir.resolve(strict=False))
+    model_id = int(current["id"])
+
     assert current["model_format"] == "custom_safetensors"
     assert current["task_type"] == "any_to_any"
     assert current["requires_custom_code"] is True
@@ -167,8 +147,11 @@ def test_custom_loader_trust_and_peft_compatibility(app_client: Any, tmp_path: P
     assert activation_response.status_code == 200
     assert activation_response.json()["active_model_id"] == model_id
 
-    metadata = _with_session(lambda session: _read_model_metadata(session, model_id))
-    assert metadata.get("custom_code_trusted") is True
+    models_after_activation = app_client.get("/api/models")
+    assert models_after_activation.status_code == 200
+    active_items = models_after_activation.json()["items"]
+    active_current = next(item for item in active_items if item["id"] == model_id)
+    assert active_current["custom_code_trusted"] is True
 
 
 def test_scan_cleans_up_legacy_file_vs_directory_rows(app_client: Any, tmp_path: Path) -> None:

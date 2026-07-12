@@ -7,7 +7,6 @@ from app.training.jobs.executor import TrainingJobExecutor
 
 class TrainingWorker:
     def __init__(self, poll_interval_seconds: float = 1.5) -> None:
-        self._session_maker = get_session_maker()
         self._poll_interval_seconds = poll_interval_seconds
         self._executor = TrainingJobExecutor()
         self._stop_event = asyncio.Event()
@@ -43,13 +42,15 @@ class TrainingWorker:
             await self._executor.run(job_id)
 
     async def _recover_interrupted_jobs(self) -> None:
-        async with self._session_maker() as session:
+        session_maker = get_session_maker()
+        async with session_maker() as session:
             repo = TrainingJobRepository(session)
             await repo.recover_interrupted_jobs()
             await session.commit()
 
     async def _claim_next_job_id(self) -> int | None:
-        async with self._session_maker() as session:
+        session_maker = get_session_maker()
+        async with session_maker() as session:
             repo = TrainingJobRepository(session)
             await repo.cancel_pending_queued()
             job = await repo.claim_next_queued()

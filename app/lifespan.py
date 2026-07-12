@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.bootstrap import bootstrap
+from app.database.connection import get_engine
 from app.startup import initialize_runtime
 from app.training.jobs.worker import training_worker
 
@@ -14,3 +15,4 @@ async def app_lifespan(_: FastAPI):
         yield
     finally:
         await training_worker.stop()
+        await get_engine().dispose()

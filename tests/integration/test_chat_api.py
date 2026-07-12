@@ -2,12 +2,53 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
+
+from app.database.session import get_session_maker
+from app.db_models.model_config import ModelConfig
+from tests.integration.async_utils import run_async
+
+
+def _run(coro):
+	return run_async(coro)
+
+
+def _create_user(app_client, username: str) -> int:
+	response = app_client.post(
+		"/api/auth/register",
+		json={"username": username, "password": "Test#2026"},
+	)
+	assert response.status_code == 200
+	return int(response.json()["user"]["id"])
+
+
+def _create_model(model_name: str, model_path: str) -> int:
+	async def _insert_model() -> int:
+		session_maker = get_session_maker()
+		async with session_maker() as session:
+			model = ModelConfig(
+				name=model_name,
+				model_path=model_path,
+				backend="transformers",
+				model_type="text_generation",
+				model_format="transformers_safetensors",
+				is_available=True,
+				is_active=False,
+				load_status="unloaded",
+			)
+			session.add(model)
+			await session.flush()
+			await session.commit()
+			return int(model.id)
+
+	return _run(_insert_model())
 
 
 def test_post_user_only_message_persists_and_is_listed(app_client):
+	user_id = _create_user(app_client, "chat-api-user-only")
 	create_response = app_client.post(
 		"/api/messages/user-only",
-		json={"user_id": 1, "message": "Hallo Team"},
+		json={"user_id": user_id, "message": "Hallo Team"},
 	)
 	assert create_response.status_code == 200
 
@@ -17,7 +58,7 @@ def test_post_user_only_message_persists_and_is_listed(app_client):
 
 	list_response = app_client.get(
 		"/api/messages",
-		params={"conversation_id": conversation_id, "user_id": 1, "limit": 10},
+		params={"conversation_id": conversation_id, "user_id": user_id, "limit": 10},
 	)
 	assert list_response.status_code == 200
 
@@ -28,6 +69,7 @@ def test_post_user_only_message_persists_and_is_listed(app_client):
 
 
 def test_chat_stream_returns_standardized_error_envelope_for_missing_conversation(app_client):
+	user_id = _create_user(app_client, "chat-api-stream-error")
 	from app.models.manager import model_manager
 
 	class _HealthyBackend:
@@ -44,7 +86,7 @@ def test_chat_stream_returns_standardized_error_envelope_for_missing_conversatio
 		"POST",
 		"/api/chat/generate",
 		json={
-			"user_id": 1,
+			"user_id": user_id,
 			"conversation_id": 999999,
 			"message": "test",
 			"stream": True,
@@ -69,10 +111,11 @@ def test_chat_stream_returns_standardized_error_envelope_for_missing_conversatio
 
 
 def test_chat_context_usage_returns_server_computed_breakdown(app_client):
-	seed_response = app_client.get("/api/workspace/sources", params={"user_id": 1})
+	user_id = _create_user(app_client, "chat-api-context-usage")
+	seed_response = app_client.get("/api/workspace/sources", params={"user_id": user_id})
 	assert seed_response.status_code == 200
 
-	response = app_client.get("/api/chat/context-usage", params={"user_id": 1})
+	response = app_client.get("/api/chat/context-usage", params={"user_id": user_id})
 	assert response.status_code == 200
 
 	payload = response.json()
@@ -104,8 +147,10 @@ def test_chat_context_usage_returns_server_computed_breakdown(app_client):
 	assert external_data["selected_count"] >= 0
 
 
-def test_chat_generate_applies_model_scoped_prompt_and_generation_settings(app_client):
+def test_chat_generate_applies_model_scoped_prompt_and_generation_settings(app_client, tmp_path: Path):
+	user_id = _create_user(app_client, "chat-api-model-scoped")
 	from app.models.manager import model_manager
+	model_id = _create_model("chat-api-model", str((tmp_path / "chat-api-model.safetensors").resolve(strict=False)))
 
 	class _CapturingBackend:
 		def __init__(self):
@@ -125,18 +170,18 @@ def test_chat_generate_applies_model_scoped_prompt_and_generation_settings(app_c
 
 	backend = _CapturingBackend()
 	model_manager.active_backend = backend
-	model_manager.active_model_id = 77
+	model_manager.active_model_id = model_id
 
 	for category, key, value in [
-		("prompt", "model_77_system_prompt", "Antwort nur in JSON."),
-		("chat", "model_77_temperature", 0.0),
-		("chat", "model_77_max_new_tokens", 1234),
-		("chat", "model_77_top_k", 6),
-		("chat", "model_77_top_p", 0.85),
-		("chat", "model_77_repetition_penalty", 1.1),
-		("chat", "model_77_do_sample", False),
-		("chat", "model_77_seed", 99),
-		("chat", "model_77_stop_sequences", ["<end_of_turn>", "<eos>"]),
+		("prompt", f"model_{model_id}_system_prompt", "Antwort nur in JSON."),
+		("chat", f"model_{model_id}_temperature", 0.0),
+		("chat", f"model_{model_id}_max_new_tokens", 1234),
+		("chat", f"model_{model_id}_top_k", 6),
+		("chat", f"model_{model_id}_top_p", 0.85),
+		("chat", f"model_{model_id}_repetition_penalty", 1.1),
+		("chat", f"model_{model_id}_do_sample", False),
+		("chat", f"model_{model_id}_seed", 99),
+		("chat", f"model_{model_id}_stop_sequences", ["<end_of_turn>", "<eos>"]),
 	]:
 		update_response = app_client.post(
 			"/api/settings",
@@ -144,7 +189,7 @@ def test_chat_generate_applies_model_scoped_prompt_and_generation_settings(app_c
 				"category": category,
 				"key": key,
 				"value": value,
-				"user_id": 1,
+				"user_id": user_id,
 			},
 		)
 		assert update_response.status_code == 200
@@ -152,9 +197,9 @@ def test_chat_generate_applies_model_scoped_prompt_and_generation_settings(app_c
 	response = app_client.post(
 		"/api/chat/generate",
 		json={
-			"user_id": 1,
+			"user_id": user_id,
 			"message": "Bitte Status liefern",
-			"model_id": 77,
+			"model_id": model_id,
 			"stream": False,
 		},
 	)
@@ -177,6 +222,7 @@ def test_prompt_diagnostics_endpoint_is_disabled_by_default(app_client):
 
 
 def test_prompt_diagnostics_endpoint_returns_recent_entries_in_local_mode(app_client):
+	user_id = _create_user(app_client, "chat-api-diagnostics")
 	from app.models.manager import model_manager
 
 	class _CapturingBackend:
@@ -200,14 +246,14 @@ def test_prompt_diagnostics_endpoint_returns_recent_entries_in_local_mode(app_cl
 		generate_response = app_client.post(
 			"/api/chat/generate",
 			json={
-				"user_id": 1,
+				"user_id": user_id,
 				"message": "Bitte antworte kurz.",
 				"stream": False,
 			},
 		)
 		assert generate_response.status_code == 200
 
-		diagnostics_response = app_client.get("/api/chat/diagnostics/prompts", params={"user_id": 1, "limit": 5})
+		diagnostics_response = app_client.get("/api/chat/diagnostics/prompts", params={"user_id": user_id, "limit": 5})
 		assert diagnostics_response.status_code == 200
 
 		payload = diagnostics_response.json()
@@ -215,7 +261,7 @@ def test_prompt_diagnostics_endpoint_returns_recent_entries_in_local_mode(app_cl
 		assert isinstance(payload.get("items"), list)
 		assert payload["items"]
 		entry = payload["items"][-1]
-		assert entry.get("user_id") == 1
+		assert entry.get("user_id") == user_id
 		assert entry.get("chat_template_source") == "tokenizer_config"
 		assert isinstance(payload.get("dependencies"), dict)
 		assert "onnxruntime_installed" in payload["dependencies"]

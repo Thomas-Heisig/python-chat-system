@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import importlib
 import json
 from pathlib import Path
@@ -11,12 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db_models.model_config import ModelConfig
 from app.settings.service import SettingsService
+from tests.integration.async_utils import run_async
 
 T = TypeVar("T")
 
 
 def _run(coro: Coroutine[Any, Any, T]) -> T:
-    return asyncio.run(coro)
+    return run_async(coro)
 
 
 def _with_session(fn: Callable[[AsyncSession], Coroutine[Any, Any, T]]) -> T:
@@ -35,6 +35,7 @@ async def _seed_models_and_settings(
     *,
     root: Path,
     dataset_path: Path,
+    user_id: int,
 ) -> tuple[ModelConfig, ModelConfig, int]:
     settings = SettingsService(session)
     await settings.update("model", "base_directories", [str(root)])
@@ -79,7 +80,7 @@ async def _seed_models_and_settings(
 
     dataset_repo = TrainingDatasetRepository(session)
     dataset = await dataset_repo.create(
-        user_id=1,
+        user_id=user_id,
         name="tiny-e2e",
         description=None,
         project_id=None,
@@ -101,6 +102,13 @@ def test_training_end_to_end_trainer_switch_compatibility_and_peft_job(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
+    register_response = app_client.post(
+        "/api/auth/register",
+        json={"username": "training-e2e-user", "password": "Test#2026"},
+    )
+    assert register_response.status_code == 200
+    user_id = int(register_response.json()["user"]["id"])
+
     root = tmp_path / "models"
     root.mkdir(parents=True, exist_ok=True)
 
@@ -119,7 +127,7 @@ def test_training_end_to_end_trainer_switch_compatibility_and_peft_job(
     )
 
     transformers_model, gguf_model, dataset_id = _with_session(
-        lambda session: _seed_models_and_settings(session, root=root, dataset_path=dataset_path)
+        lambda session: _seed_models_and_settings(session, root=root, dataset_path=dataset_path, user_id=user_id)
     )
 
     compatibility_reference = app_client.get("/api/training/compatibility", params={"trainer_name": "reference"})
@@ -142,7 +150,11 @@ def test_training_end_to_end_trainer_switch_compatibility_and_peft_job(
     class _FakeAutoTokenizer:
         @staticmethod
         def from_pretrained(*_args: object, **_kwargs: object) -> object:
-            return object()
+            class _Tokenizer:
+                def __len__(self) -> int:
+                    return 32000
+
+            return _Tokenizer()
 
     class _FakeConfig:
         model_type = "qwen3"
@@ -174,7 +186,7 @@ def test_training_end_to_end_trainer_switch_compatibility_and_peft_job(
     preflight = app_client.post(
         "/api/training/preflight",
         json={
-            "user_id": 1,
+            "user_id": user_id,
             "dataset_id": dataset_id,
             "base_model_id": transformers_model.name,
             "trainer_name": "peft_lora",
@@ -190,7 +202,7 @@ def test_training_end_to_end_trainer_switch_compatibility_and_peft_job(
     submit = app_client.post(
         "/api/training/jobs",
         json={
-            "user_id": 1,
+            "user_id": user_id,
             "dataset_id": dataset_id,
             "base_model_id": transformers_model.name,
             "trainer_name": "peft_lora",

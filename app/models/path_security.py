@@ -13,10 +13,7 @@ def _allowed_base_directories() -> list[str]:
     if configured:
         entries = [item.strip() for item in configured.split(os.pathsep) if item.strip()]
         return [str(Path(item).expanduser().resolve(strict=False)) for item in entries]
-    return [
-        str((Path.cwd() / "model-directories").resolve(strict=False)),
-        str(Path(r"F:\KI\models").resolve(strict=False)),
-    ]
+    return []
 
 
 def _is_safe_local_path_input(raw: str) -> bool:
@@ -31,7 +28,12 @@ def normalize_base_directories(raw_directories: object) -> list[str]:
     if not isinstance(raw_directories, list):
         return []
 
-    allowed = {item.casefold(): item for item in _allowed_base_directories()}
+    allowed_bases = _allowed_base_directories()
+    allowed: dict[str, str] = {}
+    for item in allowed_bases:
+        resolved_allowed = str(Path(item).expanduser().resolve(strict=False))
+        allowed[resolved_allowed.casefold()] = resolved_allowed
+
     normalized: list[str] = []
     seen: set[str] = set()
     for entry in raw_directories:
@@ -40,10 +42,16 @@ def normalize_base_directories(raw_directories: object) -> list[str]:
         text = entry.strip()
         if not _is_safe_local_path_input(text):
             continue
-        allowed_path = allowed.get(text.casefold())
-        if allowed_path is None:
-            continue
-        resolved = allowed_path
+
+        resolved_input = str(Path(text).expanduser().resolve(strict=False))
+        if allowed:
+            allowed_path = allowed.get(resolved_input.casefold())
+            if allowed_path is None:
+                continue
+            resolved = allowed_path
+        else:
+            resolved = resolved_input
+
         if resolved in seen:
             continue
         seen.add(resolved)
@@ -75,9 +83,6 @@ def validate_model_path_against_allowed_bases(model_path: str, allowed_base_dire
     raw = str(model_path).strip()
     if not _is_safe_local_path_input(raw):
         return False, "path_empty"
-
-    if has_path_traversal(raw):
-        return False, "path_traversal"
 
     path = Path(raw)
     if not path.exists():

@@ -44,6 +44,29 @@ type GeneralSettingsDraft = {
   timezone: string;
 };
 
+type ChatSettingsDraft = {
+  temperature: string;
+  maxNewTokens: string;
+  topP: string;
+  topK: string;
+  repetitionPenalty: string;
+  doSample: boolean;
+  seed: string;
+  contextLimitTokens: string;
+  contextSafetyMarginTokens: string;
+};
+
+type KnowledgeSettingsDraft = {
+  topK: string;
+  minScoreRatio: string;
+  minAbsoluteScore: string;
+  minScoreGap: string;
+};
+
+type LogsSettingsDraft = {
+  logLevel: "DEBUG" | "INFO" | "WARNING" | "ERROR";
+};
+
 type WorkspacePageProps = {
   view: "Suche" | "Projekte" | "Bibliothek" | "Termine" | "Plugins" | "Einstellungen" | "Chats";
   projects: WorkspaceProject[];
@@ -56,11 +79,17 @@ type WorkspacePageProps = {
   modelDirectoryPending: boolean;
   modelProfilePending: boolean;
   generalSettingsPending: boolean;
+  chatSettingsPending: boolean;
+  knowledgeSettingsPending: boolean;
+  logsSettingsPending: boolean;
   trainingSettingsPending: boolean;
   trainingPreflightPending: boolean;
   modelDirectories: string[];
   modelProfile: ModelProfileDraft;
   generalSettings: GeneralSettingsDraft;
+  chatSettings: ChatSettingsDraft;
+  knowledgeSettings: KnowledgeSettingsDraft;
+  logsSettings: LogsSettingsDraft;
   trainingSettings: TrainingSettingsDraft;
   trainingPreflightResult: TrainingPreflightResult | null;
   trainingDatasetFiles: TrainingDatasetFileEntry[];
@@ -76,6 +105,9 @@ type WorkspacePageProps = {
   onSaveModelDirectories: (directories: string[]) => Promise<void>;
   onSaveModelProfile: (profile: ModelProfileDraft) => Promise<void>;
   onSaveGeneralSettings: (profile: GeneralSettingsDraft) => Promise<void>;
+  onSaveChatSettings: (profile: ChatSettingsDraft) => Promise<void>;
+  onSaveKnowledgeSettings: (profile: KnowledgeSettingsDraft) => Promise<void>;
+  onSaveLogsSettings: (profile: LogsSettingsDraft) => Promise<void>;
   onSaveTrainingSettings: (profile: TrainingSettingsDraft) => Promise<void>;
   onCreateTrainingDataset: (name: string, projectId: number | null) => Promise<void>;
   onRegisterTrainingDatasetFile: (name: string, fileName: string, validationFileName: string | undefined, projectId: number | null) => Promise<void>;
@@ -142,11 +174,17 @@ export function WorkspacePage({
   modelDirectoryPending,
   modelProfilePending,
   generalSettingsPending,
+  chatSettingsPending,
+  knowledgeSettingsPending,
+  logsSettingsPending,
   trainingSettingsPending,
   trainingPreflightPending,
   modelDirectories,
   modelProfile,
   generalSettings,
+  chatSettings,
+  knowledgeSettings,
+  logsSettings,
   trainingSettings,
   trainingPreflightResult,
   trainingDatasetFiles,
@@ -162,6 +200,9 @@ export function WorkspacePage({
   onSaveModelDirectories,
   onSaveModelProfile,
   onSaveGeneralSettings,
+  onSaveChatSettings,
+  onSaveKnowledgeSettings,
+  onSaveLogsSettings,
   onSaveTrainingSettings,
   onCreateTrainingDataset,
   onRegisterTrainingDatasetFile,
@@ -186,6 +227,9 @@ export function WorkspacePage({
   const [newDirectory, setNewDirectory] = useState("");
   const [profileDraft, setProfileDraft] = useState<ModelProfileDraft>(modelProfile);
   const [generalDraft, setGeneralDraft] = useState<GeneralSettingsDraft>(generalSettings);
+  const [chatDraft, setChatDraft] = useState<ChatSettingsDraft>(chatSettings);
+  const [knowledgeDraft, setKnowledgeDraft] = useState<KnowledgeSettingsDraft>(knowledgeSettings);
+  const [logsDraft, setLogsDraft] = useState<LogsSettingsDraft>(logsSettings);
   const [trainingDraft, setTrainingDraft] = useState<TrainingSettingsDraft>(trainingSettings);
   const [newDatasetName, setNewDatasetName] = useState("");
   const [newDatasetProjectId, setNewDatasetProjectId] = useState<string>("");
@@ -240,6 +284,18 @@ export function WorkspacePage({
   useEffect(() => {
     setGeneralDraft(generalSettings);
   }, [generalSettings]);
+
+  useEffect(() => {
+    setChatDraft(chatSettings);
+  }, [chatSettings]);
+
+  useEffect(() => {
+    setKnowledgeDraft(knowledgeSettings);
+  }, [knowledgeSettings]);
+
+  useEffect(() => {
+    setLogsDraft(logsSettings);
+  }, [logsSettings]);
 
   const generalSettingsDirty =
     generalDraft.language !== generalSettings.language ||
@@ -1030,6 +1086,106 @@ export function WorkspacePage({
               </article>
             ) : null}
 
+            {activeSettingsGroup === "Chat" ? (
+              <article className="page-card model-settings-card">
+                <div className="model-settings-card__header">
+                  <strong>Chat-Einstellungen</strong>
+                  <div className="model-settings-card__actions">
+                    <button
+                      type="button"
+                      className="action-btn action-btn--primary"
+                      disabled={chatSettingsPending}
+                      onClick={() => {
+                        void onSaveChatSettings(chatDraft);
+                      }}
+                    >
+                      Speichern
+                    </button>
+                  </div>
+                </div>
+
+                <span>Globale Standardwerte fuer Antwortstil, Sampling und Kontextbudget.</span>
+
+                <div className="model-profile-grid">
+                  <label className="model-profile-field"><span>Temperatur</span><input className="model-dir-input" type="number" min="0" max="2" step="0.1" value={chatDraft.temperature} onChange={(event) => setChatDraft((current) => ({ ...current, temperature: event.target.value }))} disabled={chatSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Max New Tokens</span><input className="model-dir-input" type="number" min="1" step="1" value={chatDraft.maxNewTokens} onChange={(event) => setChatDraft((current) => ({ ...current, maxNewTokens: event.target.value }))} disabled={chatSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Top-P</span><input className="model-dir-input" type="number" min="0.01" max="1" step="0.01" value={chatDraft.topP} onChange={(event) => setChatDraft((current) => ({ ...current, topP: event.target.value }))} disabled={chatSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Top-K</span><input className="model-dir-input" type="number" min="0" step="1" value={chatDraft.topK} onChange={(event) => setChatDraft((current) => ({ ...current, topK: event.target.value }))} disabled={chatSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Repetition Penalty</span><input className="model-dir-input" type="number" min="0.5" max="2" step="0.01" value={chatDraft.repetitionPenalty} onChange={(event) => setChatDraft((current) => ({ ...current, repetitionPenalty: event.target.value }))} disabled={chatSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Seed</span><input className="model-dir-input" type="number" min="0" step="1" value={chatDraft.seed} onChange={(event) => setChatDraft((current) => ({ ...current, seed: event.target.value }))} disabled={chatSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Context Limit Tokens</span><input className="model-dir-input" type="number" min="512" step="1" value={chatDraft.contextLimitTokens} onChange={(event) => setChatDraft((current) => ({ ...current, contextLimitTokens: event.target.value }))} disabled={chatSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Safety Margin Tokens</span><input className="model-dir-input" type="number" min="0" step="1" value={chatDraft.contextSafetyMarginTokens} onChange={(event) => setChatDraft((current) => ({ ...current, contextSafetyMarginTokens: event.target.value }))} disabled={chatSettingsPending} /></label>
+                  <label className="model-radio-wrap model-profile-toggle">
+                    <input type="checkbox" checked={chatDraft.doSample} onChange={(event) => setChatDraft((current) => ({ ...current, doSample: event.target.checked }))} disabled={chatSettingsPending} />
+                    do_sample
+                  </label>
+                </div>
+              </article>
+            ) : null}
+
+            {activeSettingsGroup === "Wissen" ? (
+              <article className="page-card model-settings-card">
+                <div className="model-settings-card__header">
+                  <strong>Wissen / Retrieval</strong>
+                  <div className="model-settings-card__actions">
+                    <button
+                      type="button"
+                      className="action-btn action-btn--primary"
+                      disabled={knowledgeSettingsPending}
+                      onClick={() => {
+                        void onSaveKnowledgeSettings(knowledgeDraft);
+                      }}
+                    >
+                      Speichern
+                    </button>
+                  </div>
+                </div>
+
+                <span>Steuert die Quelleauswahl und Relevanzgrenzen fuer externen Kontext.</span>
+
+                <div className="model-profile-grid">
+                  <label className="model-profile-field"><span>Top-K</span><input className="model-dir-input" type="number" min="1" step="1" value={knowledgeDraft.topK} onChange={(event) => setKnowledgeDraft((current) => ({ ...current, topK: event.target.value }))} disabled={knowledgeSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Min Score Ratio</span><input className="model-dir-input" type="number" min="0" max="1" step="0.01" value={knowledgeDraft.minScoreRatio} onChange={(event) => setKnowledgeDraft((current) => ({ ...current, minScoreRatio: event.target.value }))} disabled={knowledgeSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Min Absolute Score</span><input className="model-dir-input" type="number" min="0" step="1" value={knowledgeDraft.minAbsoluteScore} onChange={(event) => setKnowledgeDraft((current) => ({ ...current, minAbsoluteScore: event.target.value }))} disabled={knowledgeSettingsPending} /></label>
+                  <label className="model-profile-field"><span>Min Score Gap</span><input className="model-dir-input" type="number" min="0" step="1" value={knowledgeDraft.minScoreGap} onChange={(event) => setKnowledgeDraft((current) => ({ ...current, minScoreGap: event.target.value }))} disabled={knowledgeSettingsPending} /></label>
+                </div>
+              </article>
+            ) : null}
+
+            {activeSettingsGroup === "Logs" ? (
+              <article className="page-card model-settings-card">
+                <div className="model-settings-card__header">
+                  <strong>Logs</strong>
+                  <div className="model-settings-card__actions">
+                    <button
+                      type="button"
+                      className="action-btn action-btn--primary"
+                      disabled={logsSettingsPending}
+                      onClick={() => {
+                        void onSaveLogsSettings(logsDraft);
+                      }}
+                    >
+                      Speichern
+                    </button>
+                  </div>
+                </div>
+
+                <span>Legt das globale Backend-Loglevel fest.</span>
+
+                <div className="model-profile-grid">
+                  <label className="model-profile-field">
+                    <span>Log Level</span>
+                    <select className="model-dir-input" value={logsDraft.logLevel} onChange={(event) => setLogsDraft({ logLevel: (event.target.value as LogsSettingsDraft["logLevel"]) })} disabled={logsSettingsPending}>
+                      <option value="DEBUG">DEBUG</option>
+                      <option value="INFO">INFO</option>
+                      <option value="WARNING">WARNING</option>
+                      <option value="ERROR">ERROR</option>
+                    </select>
+                  </label>
+                </div>
+              </article>
+            ) : null}
+
             {activeSettingsGroup === "Training" ? (
               <article className="page-card model-settings-card">
                 <div className="model-settings-card__header">
@@ -1744,6 +1900,9 @@ export function WorkspacePage({
             {activeSettingsGroup !== "Modelle" &&
             activeSettingsGroup !== "Modellverzeichnisse" &&
             activeSettingsGroup !== "Training" &&
+            activeSettingsGroup !== "Chat" &&
+            activeSettingsGroup !== "Wissen" &&
+            activeSettingsGroup !== "Logs" &&
             activeSettingsGroup !== "Prompts" &&
             activeSettingsGroup !== "Benutzer" ? (
               <article className="page-card">

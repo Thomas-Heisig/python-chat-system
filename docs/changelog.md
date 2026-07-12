@@ -8,6 +8,10 @@
 - Logo-Integration im System-UI umgesetzt: Login-Screen, Header, Sidebar und Browser-Icon nutzen jetzt `frontend/public/kernschmiede-logo.svg`.
 - Technische Namensmigration vervollstaendigt: `APP_NAME`, Python-Projektname und Frontend-Paketname auf `kernschmiede` angepasst (inkl. lockfile).
 - Logo ohne Verlauf vereinheitlicht (flache Farbgebung) fuer `docs/assets/kernschmiede-logo.svg` und `frontend/public/kernschmiede-logo.svg`.
+- Settings-Architektur auf Startup-Repair umgestellt: invalide persistierte Settings werden jetzt im Initialisierungsprozess repariert (`app/settings/repair.py`), waehrend der Read-Pfad (`SettingsService.get`) wieder strikt read-only ist.
+- Startup erweitert: vor Modellscan wird eine dedizierte Settings-Reparatur ausgefuehrt und bei fehlender `MODEL_ALLOWED_BASE_DIRS` eine explizite Betriebswarnung geloggt.
+- Modellpfadpruefung auf Boundary-first-Semantik angepasst: rohe `..`-Segmente werden nicht mehr pauschal verworfen, entscheidend ist die aufgeloeste Pfadgrenze gegen die Allow-List.
+- Integrations- und Unit-Tests aktualisiert: Read-Only-Fallback fuer invalide Settings, expliziter Startup-Repair-Job sowie angepasste Traversal-Semantik sind abgedeckt.
 
 ## 0.1.13 - 2026-07-12
 
@@ -101,6 +105,17 @@ Hinweis: Dieser Changelog enthaelt nur tatsaechlich umgesetzte und lokal verifiz
 - Settings-Validierung erweitert: `system.language` (de/en), `system.theme` (system/light/dark) und IANA-Zeitzonenpruefung fuer `system.timezone` sind serverseitig abgesichert.
 - Frontend-Einstellungen erweitert: neue UI-Karte `Allgemein` mit Speichern-Flow, inklusive unmittelbarer Theme-Anwendung (light/dark/system) und Dokument-Metadaten fuer Sprache/Zeitzone.
 - KI-Selbstwissen erweitert: Chat-Service haengt allgemeine Benutzereinstellungen (Sprache, Theme, Zeitzone) an den effektiven System-Prompt an, damit diese Vorgaben bei Antworten beruecksichtigt werden.
+- Startup-Fix fuer `model.base_directories`: Lifespan-Initialisierung faellt bei ungueltigen persistierten Settings nicht mehr hart aus, sondern nutzt sichere Fallbacks.
+- Settings-Read-Pfad gehaertet: invalides JSON/ungueltige gespeicherte Werte werden bei `SettingsService.get(...)` uebersprungen, sodass gueltige Scope-Kandidaten oder Defaults weiter greifen.
+- Pfadnormalisierung korrigiert: `normalize_base_directories(...)` vergleicht jetzt aufgeloeste Pfade statt roher Strings, damit relative Defaultpfade wie `./model-directories` korrekt akzeptiert werden.
+- Neue Regression abgesichert: Integrationstest deckt den Fall "persistiertes invalides model.base_directories" ab und prueft den erfolgreichen Fallback auf gueltige Werte.
+- Selbstheilung fuer Settings aktiviert: erkannte invalide persistierte Werte werden bei `SettingsService.get(...)` jetzt automatisch auf den aufgeloesten, validierten Wert zurueckgeschrieben (inkl. Commit) statt nur transient als Fallback genutzt zu werden.
+- Selbstheilung gehaertet: Read-Repair greift nur noch bei bekannten Settings-Fehlern (`InvalidSettingError`, JSON-Decode) und behandelt keine allgemeinen Programm-/DB-Fehler als reparierbare Settings.
+- Selbstheilungs-Audit ergaenzt: strukturierte Logs enthalten jetzt Schluessel, Scope, redigierten Altwert, Ersatzwert und Validierungsgrund; sensible Schluesselwerte werden maskiert.
+- Scope-Sicherheit verifiziert: User-spezifische invalide Settings werden nur im selben Scope repariert; globale Settings bleiben unveraendert.
+- Pytest-Konfig-Warnung entfernt: veraltete Option `asyncio_mode` aus `pyproject.toml` entfernt.
+- Integrationssuiten gehaertet: mehrere Tests verwenden jetzt echte registrierte Benutzer statt harter `user_id=1`, um FK-Randfaelle in isolierten Testdatenbanken zu vermeiden.
+- Voller Backend-Regressionlauf erfolgreich: `43 passed, 1 warning`.
 - Punkt-2-Stabilisierung abgeschlossen: Frontend-Themeauflosung ist jetzt in Test- und Laufzeitumgebungen robust gegen fehlendes `matchMedia` (JSDOM/Legacy-Browser), inkl. abgesichertem System-Theme-Listener.
 - Settings-Integrationstests gehaertet: user-scoped Settings-Updates legen in Tests vorab echte Benutzer an, wodurch FK-Verletzungen sauber vermieden und Scope-Verhalten realistisch geprueft werden.
 - Chat-Selbstwissen-Bugfix: fehlender `asyncio`-Import in `app/chat/service.py` behoben; dadurch werden `system.language`, `system.theme` und `system.timezone` wieder korrekt asynchron geladen statt auf Fallbackwerte zurueckzufallen.

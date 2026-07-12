@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from importlib import import_module
 import json
+import logging
+import os
 from typing import cast
 
 from sqlalchemy import select
@@ -14,7 +16,11 @@ from app.models.path_security import normalize_base_directories, validate_runtim
 from app.models.registry import ModelRegistry
 from app.models.scanner import ModelScanner
 from app.settings.seed import seed_default_settings
+from app.settings.repair import repair_invalid_settings
 from app.settings.service import SettingsService
+
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_metadata(value: str | None) -> dict[str, object]:
@@ -39,6 +45,8 @@ async def initialize_runtime(run_model_scan: bool = True) -> dict[str, int]:
     session_maker = get_session_maker()
     async with session_maker() as session:
         await seed_default_settings(session)
+        await _warn_if_model_allow_list_not_configured()
+        await repair_invalid_settings(session)
         scan_stats = {"discovered": 0, "inserted": 0, "updated": 0}
 
         if run_model_scan:
@@ -48,6 +56,16 @@ async def initialize_runtime(run_model_scan: bool = True) -> dict[str, int]:
 
         await session.commit()
         return scan_stats
+
+
+async def _warn_if_model_allow_list_not_configured() -> None:
+    configured = os.getenv("MODEL_ALLOWED_BASE_DIRS", "").strip()
+    if configured:
+        return
+
+    logger.warning(
+        "MODEL_ALLOWED_BASE_DIRS is not configured; model base directory policy is permissive for local paths."
+    )
 
 
 async def _scan_and_sync_models(session: AsyncSession) -> dict[str, int]:
