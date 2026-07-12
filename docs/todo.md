@@ -86,6 +86,7 @@
 - Security-Regressionstests ergaenzen: SSRF-Blocklisten (private IPs/localhost), Error-Redaction und sichere HTML-Extraktion im Dataset-Import automatisiert testen.
 - Workflow-Hygiene-Check ergaenzen: Badge-Links, Workflow-Dateien und Repo-Actions-Status muessen konsistent bleiben.
 - Actions-Monitoring erweitern: bei Workflow-Fehlern automatischen Check einbauen, ob Berechtigungen/Trigger zur Badge-Anzeige passen (insb. Release Drafter, Dependency Review, CodeQL).
+- README-Workflow-Badges periodisch abgleichen: neue oder umbenannte Workflows (`.github/workflows/*.yml`) sofort in der Badge-Zeile nachziehen.
 - Security-Tests erweitern: URL-Allowlist/Port-Blockade fuer Trainings-Import und redigierte Streaming-Fehlerantworten als feste Regressionstests aufnehmen.
 - Admin-Aenderungen nachvollziehbar machen: Audit-Log (Akteur, Zielnutzer, Feld, Zeit) fuer Benutzer-Updates einfuehren.
 - Audit-Log im UI nutzbar machen: Admin-Ansicht fuer Benutzer-Aenderungshistorie (Filter nach Nutzer/Aktion/Zeit) ergaenzen.

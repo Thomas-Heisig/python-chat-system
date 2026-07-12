@@ -4,6 +4,7 @@
 [![CodeQL](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/codeql.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/codeql.yml)
 [![Dependency Review](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/dependency-review.yml)
 [![Release Drafter](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/release.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/release.yml)
+[![Stale](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/stale.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/stale.yml)
 
 Modulares Python-Chatsystem mit FastAPI, SQLAlchemy und austauschbaren Modell-Backends.
 

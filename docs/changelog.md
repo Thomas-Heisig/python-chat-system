@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.11 - 2026-07-12
+
+- README-Badges vervollstaendigt: fehlender Badge fuer den aktiven Stale-Workflow (`stale.yml`) ergaenzt.
+
 ## 0.1.10 - 2026-07-12
 
 - GitHub-Workflow-Badges stabilisiert: `.github/workflows/release.yml` auf `contents: write` umgestellt, damit Release Drafter Draft-Releases erstellen darf.
