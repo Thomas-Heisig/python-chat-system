@@ -1,0 +1,5 @@
+tools:
+  files.read: true
+  files.write: false
+  database.query: false
+  system.exec: false

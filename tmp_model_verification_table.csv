@@ -1,0 +1,47 @@
+"Name","Format","Aufgabe","Backend","Loaderstatus","Inferenzfaehigkeit","PEFT-Trainierbarkeit","Nichtverfuegbarkeitsgrund"
+"1_Pooling","transformers","text_generation","transformers","verfuegbar","ja","nein",
+"4M-7_B_CC12M","transformers_safetensors","text_generation","transformers","verfuegbar","ja","ja",
+"bert-base-german-cased","transformers_safetensors","feature_extraction","transformers","verfuegbar","ja","nein",
+"bge-reranker-v2-m3","transformers_safetensors","reranking","transformers","verfuegbar","ja","nein",
+"faster-whisper-large-v3","transformers","speech_to_text","whisper","verfuegbar","ja","nein",
+"gemma-2-2b-it-q4_k_m","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"gemma-2-2b-it-Q4_K_M-GGUF","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"gemma-3-270m-it.Q8_0","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"gemma-3-270M-Model-Router","transformers_safetensors","text_generation","transformers","verfuegbar","ja","ja",
+"gemma-4-E2B_q4_0-it","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"gemma-4-E2B-it-mmproj","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"gemma-4-E2B-it-qat-q4_0-gguf","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"gemma3-270m-it-router-q8_0","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"gemma3-270m-it-router-Q8_0-GGUF","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"granite-embedding-small-english-r2","transformers_safetensors","embedding","transformers","verfuegbar","ja","nein",
+"jina-reranker-v2-base-multilingual","transformers_safetensors","reranking","transformers","verfuegbar","ja","nein",
+"kalm-reranker-v1-nano-q8_0","gguf","reranking","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"KaLM-Reranker-V1-Nano-Q8_0-GGUF","gguf","reranking","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"kitten-tts-mini-0.8","onnx","text_to_speech","onnxruntime","verfuegbar","ja","nein",
+"Kokoro-82M","pytorch","text_to_speech","unknown","nicht_gefunden","nein","nein","Kein kompatibler Loader registriert."
+"mistral-7b-instruct-v0.1-GGUF","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"mistral-7b-instruct-v0.1.Q4_K_M","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"mms-tts-deu","transformers_safetensors","text_to_speech","transformers","verfuegbar","ja","nein",
+"moonshine-base-de","transformers_safetensors","speech_to_text","transformers","verfuegbar","ja","nein",
+"moonshine-tiny","transformers_safetensors","speech_to_text","transformers","verfuegbar","ja","nein",
+"native-base-model","transformers_safetensors","text_generation","transformers","verfuegbar","ja","ja",
+"onnx","onnx","feature_extraction","transformers","eingeschraenkt","nein","nein","onnxruntime ist nicht installiert."
+"onnx-test-model","onnx","text_generation","transformers","eingeschraenkt","nein","nein","onnxruntime ist nicht installiert."
+"Phi-3-mini-4k-instruct-gguf","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"Phi-3-mini-4k-instruct-q4","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"Qwen3-Embedding-0.6B-f16","gguf","embedding","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"Qwen3-Embedding-0.6B-GGUF","gguf","embedding","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"Qwen3-TTS-12Hz-0.6B-CustomVoice","transformers_safetensors","text_to_speech","transformers","verfuegbar","ja","nein",
+"Qwen3.5-2B","transformers_safetensors","text_generation","transformers","verfuegbar","ja","ja",
+"router-model","transformers_safetensors","text_generation","transformers","verfuegbar","ja","ja",
+"sd-controlnet-canny","transformers_safetensors","text_generation","transformers","verfuegbar","ja","ja",
+"silero-vad-v5","onnx","voice_activity_detection","onnxruntime","verfuegbar","ja","nein",
+"slim-summary-tiny-tool","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"SmolLM2-1.7B-Instruct","transformers_safetensors","text_generation","transformers","verfuegbar","ja","ja",
+"SmolVLM2-2.2B-Instruct","transformers_safetensors","vision_text_generation","transformers","nicht_gefunden","nein","nein","Kein kompatibler Loader registriert."
+"speech_tokenizer","transformers_safetensors","text_generation","transformers","verfuegbar","ja","ja",
+"Supra-A2A-Nano-Exp","unknown","text_generation","unknown","nicht_gefunden","nein","nein","Kein kompatibler Loader registriert."
+"tiny-summary","gguf","text_generation","llama_cpp","eingeschraenkt","nein","nein","llama-cpp-python ist nicht installiert."
+"trocr-small-printed","transformers_safetensors","ocr","transformers","verfuegbar","ja","nein",
+"ultravox-gemma-2-9b-it","transformers_safetensors","vision_text_generation","transformers","nicht_gefunden","nein","nein","Kein kompatibler Loader registriert."
+"Voxtral-Mini-4B-Realtime-2602-ONNX","onnx","speech_to_text","onnxruntime","verfuegbar","ja","nein",

@@ -1,0 +1,7 @@
+scan:
+  recursive: true
+  include_extensions:
+    - gguf
+  include_hint_files:
+    - config.json
+    - tokenizer.json
