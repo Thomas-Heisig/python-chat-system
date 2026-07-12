@@ -622,18 +622,29 @@ async def _run_preflight(
                     )
                 )
 
-            vocab_size = len(tokenizer)
-            for field in ("pad_token_id", "eos_token_id", "bos_token_id"):
-                token_id = getattr(cfg, field, None)
-                if token_id is None:
-                    continue
-                if not isinstance(token_id, int) or not 0 <= token_id < vocab_size:
-                    errors.append(
-                        _issue(
-                            "training.invalid_special_token_id",
-                            f"{field}={token_id} liegt ausserhalb des Tokenizer-Vokabulars (0..{max(0, vocab_size - 1)}).",
-                        )
+            try:
+                vocab_size = len(tokenizer)
+            except Exception:
+                vocab_size = None
+                warnings.append(
+                    _issue(
+                        "training.tokenizer_vocab_size_unknown",
+                        "Tokenizer-Vokabulargroesse konnte nicht bestimmt werden; Special-Token-Range-Checks wurden uebersprungen.",
                     )
+                )
+
+            if isinstance(vocab_size, int) and vocab_size > 0:
+                for field in ("pad_token_id", "eos_token_id", "bos_token_id"):
+                    token_id = getattr(cfg, field, None)
+                    if token_id is None:
+                        continue
+                    if not isinstance(token_id, int) or not 0 <= token_id < vocab_size:
+                        errors.append(
+                            _issue(
+                                "training.invalid_special_token_id",
+                                f"{field}={token_id} liegt ausserhalb des Tokenizer-Vokabulars (0..{max(0, vocab_size - 1)}).",
+                            )
+                        )
         except Exception as exc:
             errors.append(
                 _issue(

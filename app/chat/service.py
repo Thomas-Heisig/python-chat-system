@@ -386,6 +386,14 @@ class ChatService:
                 return max(0, min(100, int(digits)))
         return 0
 
+    async def _persistable_model_id(self, model_id: int | None) -> int | None:
+        if model_id is None:
+            return None
+        row = (
+            await self.session.execute(select(ModelConfig.id).where(ModelConfig.id == model_id).limit(1))
+        ).scalar_one_or_none()
+        return model_id if row is not None else None
+
     async def _select_retrieval_sources(
         self,
         user_id: int,
@@ -935,11 +943,13 @@ class ChatService:
             metadata_json=json.dumps(user_metadata, ensure_ascii=True, separators=(",", ":")),
         )
 
+        persisted_model_id = await self._persistable_model_id(selected_model_id)
+
         await self.message_repo.add_message(
             conversation_id=conversation_id,
             role="assistant",
             content=response_text,
-            model_id=selected_model_id,
+            model_id=persisted_model_id,
         )
         await self.session.commit()
 
@@ -1122,7 +1132,7 @@ class ChatService:
                         "event": "token",
                         "data": {"token": chunk},
                     }
-        except Exception as exc:
+        except Exception:
             await self.session.rollback()
             yield {
                 "event": "error",
@@ -1147,7 +1157,7 @@ class ChatService:
                 conversation_id=conversation_id,
                 role="assistant",
                 content=output,
-                model_id=selected_model_id,
+                model_id=await self._persistable_model_id(selected_model_id),
                 metadata_json=assistant_metadata,
             )
             assistant_message_id = assistant_message.id
