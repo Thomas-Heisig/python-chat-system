@@ -15,8 +15,6 @@ updates:
     labels:
       - "dependencies"
       - "backend"
-    reviewers:
-      - "Thomas-Heisig"
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
@@ -43,8 +41,6 @@ updates:
     labels:
       - "dependencies"
       - "frontend"
-    reviewers:
-      - "Thomas-Heisig"
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
@@ -70,8 +66,6 @@ updates:
     labels:
       - "dependencies"
       - "ci"
-    reviewers:
-      - "Thomas-Heisig"
     commit-message:
       prefix: "ci"
       include: "scope"

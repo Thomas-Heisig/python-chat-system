@@ -6,6 +6,8 @@
 - Neues Projektlogo als SVG hinzugefuegt und in README eingebunden: `docs/assets/kernschmiede-logo.svg`.
 - Branding-bezogene Meta-Dokumente angepasst (`.github/CONTRIBUTING.md`, `.github/CODEOWNERS`).
 - Logo-Integration im System-UI umgesetzt: Login-Screen, Header, Sidebar und Browser-Icon nutzen jetzt `frontend/public/kernschmiede-logo.svg`.
+- Technische Namensmigration vervollstaendigt: `APP_NAME`, Python-Projektname und Frontend-Paketname auf `kernschmiede` angepasst (inkl. lockfile).
+- Logo ohne Verlauf vereinheitlicht (flache Farbgebung) fuer `docs/assets/kernschmiede-logo.svg` und `frontend/public/kernschmiede-logo.svg`.
 
 ## 0.1.13 - 2026-07-12
 
