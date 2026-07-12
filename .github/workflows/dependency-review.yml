@@ -2,12 +2,16 @@ name: Dependency Review
 
 on:
   pull_request:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   dependency-review:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -15,3 +19,10 @@ jobs:
 
       - name: Dependency Review
         uses: actions/dependency-review-action@v5
+
+  badge-status:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Badge status placeholder
+        run: echo "Dependency Review is executed on pull_request events."

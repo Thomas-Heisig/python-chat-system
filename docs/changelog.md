@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.10 - 2026-07-12
+
+- GitHub-Workflow-Badges stabilisiert: `.github/workflows/release.yml` auf `contents: write` umgestellt, damit Release Drafter Draft-Releases erstellen darf.
+- Dependency-Review-Badge stabilisiert: Workflow reagiert weiterhin auf PRs, erzeugt auf `main`/manuellen Runs aber einen erfolgreichen Status-Job fuer konsistente Badge-Anzeige.
+- CodeQL-Workflow-Badge mit aktivierter GitHub-Default-Setup-Analyse entkoppelt: `.github/workflows/codeql.yml` liefert jetzt konfliktfreien Status, waehrend die eigentliche Code-Scanning-Analyse ueber den dynamischen Default-Setup-Run laeuft.
+
 ## 0.1.9 - 2026-07-12
 
 - CodeQL-Alert #8 (`py/full-ssrf`) gehaertet: Trainings-URL-Import nutzt jetzt Host-Allowlist plus kanonisierte URL-Bildung und blockiert nicht erlaubte Hosts/Ports/Path-Traversal.
