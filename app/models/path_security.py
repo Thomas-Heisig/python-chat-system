@@ -31,7 +31,6 @@ def normalize_base_directories(raw_directories: object) -> list[str]:
     if not isinstance(raw_directories, list):
         return []
 
-    allowed = {item.casefold(): item for item in _allowed_base_directories()}
     normalized: list[str] = []
     seen: set[str] = set()
     for entry in raw_directories:
@@ -40,10 +39,9 @@ def normalize_base_directories(raw_directories: object) -> list[str]:
         text = entry.strip()
         if not _is_safe_local_path_input(text):
             continue
-        allowed_path = allowed.get(text.casefold())
-        if allowed_path is None:
+        if has_path_traversal(text):
             continue
-        resolved = allowed_path
+        resolved = str(Path(text).expanduser().resolve(strict=False))
         if resolved in seen:
             continue
         seen.add(resolved)

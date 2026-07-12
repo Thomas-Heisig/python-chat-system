@@ -9,6 +9,7 @@ from app.database.base import Base
 from app.database.connection import get_engine
 from app.database.session import get_session_maker
 from app.db_models.model_config import ModelConfig
+from app.database.repositories.user_repository import UserRepository
 from app.models.manager import model_manager
 from app.models.path_security import normalize_base_directories, validate_runtime_model_paths
 from app.models.registry import ModelRegistry
@@ -39,6 +40,7 @@ async def initialize_runtime(run_model_scan: bool = True) -> dict[str, int]:
     session_maker = get_session_maker()
     async with session_maker() as session:
         await seed_default_settings(session)
+        await UserRepository(session).ensure_default_user(user_id=1)
         scan_stats = {"discovered": 0, "inserted": 0, "updated": 0}
 
         if run_model_scan:
