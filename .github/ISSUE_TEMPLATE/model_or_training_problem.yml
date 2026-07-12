@@ -1,0 +1,73 @@
+name: Model or training problem
+description: Report model loading, GPU/CUDA, dataset, or training issues
+labels:
+  - bug
+  - training
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      placeholder: Short description of the model or training issue
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Model loading or activation
+        - GPU or CUDA runtime
+        - Dataset import or validation
+        - Training job lifecycle
+        - Trainer compatibility
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model name and source
+      placeholder: e.g. TheBloke/model.gguf from Hugging Face
+  - type: input
+    id: backend
+    attributes:
+      label: Backend and format
+      placeholder: e.g. llama.cpp + GGUF, transformers + safetensors
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware
+      placeholder: CPU, GPU, RAM, VRAM, CUDA version, driver version
+  - type: textarea
+    id: dataset
+    attributes:
+      label: Dataset details
+      placeholder: Format, size, number of examples, sensitive data removed
+  - type: textarea
+    id: training
+    attributes:
+      label: Training details
+      placeholder: Trainer, hyperparameters, preflight result, job status, last successful step
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs and errors
+      description: Remove secrets, tokens, private paths, and personal data.
+      render: shell
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        Security-related findings (for example SSRF, path traversal, credential exposure) must be reported privately via Security Advisories, not as a public issue.

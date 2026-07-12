@@ -1,42 +1,128 @@
 name-template: "v$RESOLVED_VERSION"
 tag-template: "v$RESOLVED_VERSION"
 
+exclude-labels:
+  - "skip-changelog"
+  - "duplicate"
+  - "invalid"
+  - "wontfix"
+
 categories:
+  - title: "Breaking Changes"
+    labels:
+      - "breaking-change"
+      - "major"
   - title: "Features"
     labels:
-      - "enhancement"
       - "feature"
+      - "enhancement"
   - title: "Bug Fixes"
     labels:
       - "bug"
       - "fix"
+  - title: "Security"
+    labels:
+      - "security"
+  - title: "Performance"
+    labels:
+      - "performance"
+  - title: "Refactoring"
+    labels:
+      - "refactor"
   - title: "Dependencies"
     labels:
       - "dependencies"
+  - title: "Tests"
+    labels:
+      - "tests"
   - title: "Documentation"
     labels:
       - "documentation"
+  - title: "Maintenance"
+    labels:
+      - "maintenance"
+      - "chore"
+      - "ci"
 
-change-template: "- $TITLE (#$NUMBER)"
+change-template: "- $TITLE (#$NUMBER) by @$AUTHOR"
 change-title-escapes: "<*_&"
 
 version-resolver:
   major:
     labels:
       - "major"
+      - "breaking-change"
   minor:
     labels:
-      - "enhancement"
+      - "minor"
       - "feature"
+      - "enhancement"
   patch:
     labels:
+      - "patch"
       - "bug"
       - "fix"
+      - "security"
+      - "performance"
+      - "refactor"
       - "dependencies"
+      - "tests"
       - "documentation"
+      - "maintenance"
+      - "chore"
+      - "ci"
   default: patch
+
+autolabeler:
+  - label: "documentation"
+    files:
+      - "*.md"
+      - "docs/**/*"
+      - ".github/CONTRIBUTING.md"
+      - ".github/SECURITY.md"
+      - ".github/SUPPORT.md"
+      - ".github/CODE_OF_CONDUCT.md"
+
+  - label: "ci"
+    files:
+      - ".github/workflows/**/*"
+      - ".github/dependabot.yml"
+      - ".github/release-drafter.yml"
+
+  - label: "tests"
+    files:
+      - "tests/**/*"
+      - "frontend/**/*.test.*"
+      - "frontend/**/*.spec.*"
+
+  - label: "dependencies"
+    files:
+      - "requirements.txt"
+      - "requirements-dev.txt"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+    branch:
+      - "/dependabot\\/.+/"
+
+  - label: "frontend"
+    files:
+      - "frontend/**/*"
+
+  - label: "backend"
+    files:
+      - "app/**/*"
+      - "start.py"
+
+  - label: "training"
+    files:
+      - "app/training/**/*"
+      - "docs/training-workbench.md"
 
 template: |
   ## Changes
 
   $CHANGES
+
+  ## Upgrade Notes
+
+  Review dependency, configuration, and migration impact before deploying.

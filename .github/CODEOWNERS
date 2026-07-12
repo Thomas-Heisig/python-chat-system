@@ -1,11 +1,51 @@
-# Default owners for all files
+# Kernschmiede - Code Ownership
+
+# Default owner for the whole repository
 * @Thomas-Heisig
 
-# Backend
-app/** @Thomas-Heisig
+# Community and governance files
+/.github/CODEOWNERS @Thomas-Heisig
+/.github/CODE_OF_CONDUCT.md @Thomas-Heisig
+/.github/CONTRIBUTING.md @Thomas-Heisig
+/.github/PULL_REQUEST_TEMPLATE.md @Thomas-Heisig
+/.github/SECURITY.md @Thomas-Heisig
+/.github/SUPPORT.md @Thomas-Heisig
+/.github/ISSUE_TEMPLATE/** @Thomas-Heisig
 
-# Frontend
-frontend/** @Thomas-Heisig
+# Automation
+/.github/workflows/** @Thomas-Heisig
+/.github/dependabot.yml @Thomas-Heisig
+/.github/release-drafter.yml @Thomas-Heisig
 
-# Documentation
-docs/** @Thomas-Heisig
+# Application and runtime
+/app/** @Thomas-Heisig
+/frontend/** @Thomas-Heisig
+/scripts/** @Thomas-Heisig
+/tests/** @Thomas-Heisig
+
+# Security-sensitive paths
+/app/core/security.py @Thomas-Heisig
+/app/models/path_security.py @Thomas-Heisig
+/app/api/** @Thomas-Heisig
+/app/chat/** @Thomas-Heisig
+/app/models/** @Thomas-Heisig
+/app/settings/** @Thomas-Heisig
+/app/training/** @Thomas-Heisig
+
+# Dependency and entrypoint files
+/requirements.txt @Thomas-Heisig
+/requirements-dev.txt @Thomas-Heisig
+/frontend/package.json @Thomas-Heisig
+/frontend/package-lock.json @Thomas-Heisig
+/start.py @Thomas-Heisig
+/pyproject.toml @Thomas-Heisig
+
+# Docs
+/docs/** @Thomas-Heisig
+/README.md @Thomas-Heisig
+
+# Deployment and container files
+/Dockerfile @Thomas-Heisig
+/docker-compose.yml @Thomas-Heisig
+/docker-compose.yaml @Thomas-Heisig
+/alembic.ini @Thomas-Heisig

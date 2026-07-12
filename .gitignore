@@ -2,21 +2,55 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Virtual environments
 .venv/
 .venv-chat/
 .venv-training/
+venv/
+env/
+
+# Secrets and local environment
 .env
+.env.*
+!.env.example
+
+# Python caches and reports
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
 htmlcov/
+
+# Node / frontend
 node_modules/
+frontend/node_modules/
 frontend/dist/
+
+# Databases and local runtime data
+*.db
+*.sqlite
+*.sqlite3
 data/database/*.db
+
+# Logs and temp data
 logs/
+*.log
 data/cache/
 data/logs/
 data/temp/
+
+# Artifacts and large model/training outputs
 artifacts/
 training-artifacts/
+model-directories/**/*.gguf
+model-directories/**/*.bin
+model-directories/**/*.safetensors
+
+# Uploads and backups
+data/uploads/
+data/backups/
+
+# IDE files
+.vscode/
+.idea/

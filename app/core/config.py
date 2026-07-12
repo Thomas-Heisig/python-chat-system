@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class AppConfig(BaseSettings):
     app_env: str = "development"
-    app_name: str = "python-chat-system"
+    app_name: str = "kernschmiede"
     database_url: str = "sqlite+aiosqlite:///./data/database/chat_system.db"
     secret_key: str = "change-this-key"
     settings_cache_ttl_seconds: int = 5

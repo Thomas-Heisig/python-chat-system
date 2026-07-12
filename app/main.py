@@ -18,7 +18,7 @@ from app.lifespan import app_lifespan
 from app.core.config import get_config
 
 
-app = FastAPI(title="Python Chat System", lifespan=app_lifespan)
+app = FastAPI(title="Kernschmiede", lifespan=app_lifespan)
 register_error_handlers(app)
 
 config = get_config()
@@ -47,4 +47,4 @@ app.include_router(system_router)
 
 @app.get("/")
 async def root() -> dict[str, str]:
-    return {"name": "python-chat-system", "status": "running"}
+    return {"name": "kernschmiede", "status": "running"}

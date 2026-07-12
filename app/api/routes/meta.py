@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/meta", tags=["meta"])
 @router.get("/capabilities")
 async def get_capabilities() -> dict[str, object]:
     return {
-        "service": "python-chat-system",
+        "service": "kernschmiede",
         "version": "0.1.0",
         "features": {
             "meta.capabilities": True,

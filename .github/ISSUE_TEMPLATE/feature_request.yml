@@ -2,6 +2,7 @@ name: Feature request
 description: Suggest an idea for this project
 labels:
   - enhancement
+  - feature
 body:
   - type: input
     id: summary
@@ -24,6 +25,22 @@ body:
       placeholder: Describe your proposed solution
     validations:
       required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Expected impact
+      placeholder: Who benefits and what workflow is improved?
+  - type: checkboxes
+    id: affected_areas
+    attributes:
+      label: Potentially affected areas
+      options:
+        - label: Backend/API
+        - label: Frontend/UI
+        - label: Database/migrations
+        - label: Model loading/inference
+        - label: Training workbench
+        - label: Security/compliance
   - type: textarea
     id: alternatives
     attributes:

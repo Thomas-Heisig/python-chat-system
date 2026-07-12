@@ -88,6 +88,8 @@
 - Actions-Monitoring erweitern: bei Workflow-Fehlern automatischen Check einbauen, ob Berechtigungen/Trigger zur Badge-Anzeige passen (insb. Release Drafter, Dependency Review, CodeQL).
 - README-Workflow-Badges periodisch abgleichen: neue oder umbenannte Workflows (`.github/workflows/*.yml`) sofort in der Badge-Zeile nachziehen.
 - Issue-Templates mit SUPPORT.md abgleichen: Felder fuer Modell-/GPU-/Training-Probleme, Log-Redaktion und Anfrage-Typ (`bug`/`question`/`feature`) ergaenzen.
+- Maintainer-Preflight definieren: vor jedem Release Lizenzdatei, Security-Pfade, CODEOWNERS, Issue-Templates und Git-Standards (`.editorconfig`, `.gitattributes`, `.gitignore`) automatisiert pruefen.
+- Rebranding-Checkliste einfuehren: bei Namenswechseln README, UI-Titel, API-Meta, User-Agent, CONTRIBUTING und Branding-Assets zwingend gemeinsam pruefen.
 - Security-Tests erweitern: URL-Allowlist/Port-Blockade fuer Trainings-Import und redigierte Streaming-Fehlerantworten als feste Regressionstests aufnehmen.
 - Admin-Aenderungen nachvollziehbar machen: Audit-Log (Akteur, Zielnutzer, Feld, Zeit) fuer Benutzer-Updates einfuehren.
 - Audit-Log im UI nutzbar machen: Admin-Ansicht fuer Benutzer-Aenderungshistorie (Filter nach Nutzer/Aktion/Zeit) ergaenzen.

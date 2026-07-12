@@ -443,7 +443,7 @@ def _canonicalize_allowed_dataset_url(url: str) -> str:
 
 def _download_training_source(url: str, destination: Path) -> None:
     safe_url = _canonicalize_allowed_dataset_url(url)
-    request = Request(safe_url, headers={"User-Agent": "python-chat-system/1.0"})
+    request = Request(safe_url, headers={"User-Agent": "kernschmiede/1.0"})
     with urlopen(request, timeout=30) as response:
         _canonicalize_allowed_dataset_url(response.geturl())
         payload = response.read()

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.14 - 2026-07-12
+
+- Rebranding auf `Kernschmiede` fuer sichtbare Produktstellen umgesetzt (README, Backend-Titel, Frontend-Title, Meta-Service, Startbeschreibung).
+- Neues Projektlogo als SVG hinzugefuegt und in README eingebunden: `docs/assets/kernschmiede-logo.svg`.
+- Branding-bezogene Meta-Dokumente angepasst (`.github/CONTRIBUTING.md`, `.github/CODEOWNERS`).
+
+## 0.1.13 - 2026-07-12
+
+- Repository-Metastruktur vervollstaendigt: `LICENSE` (Apache-2.0), `.editorconfig` und `.gitattributes` hinzugefuegt.
+- Security-Duplikat bereinigt: Root-`SECURITY.md` auf kurzen Verweis reduziert, verbindliche Richtlinie bleibt in `.github/SECURITY.md`.
+- GitHub-Issue-Intake erweitert: neue Templates fuer Dokumentationsfehler und Modell-/Training-Probleme sowie verbesserte Bug/Feature-Templates.
+- `.gitignore` fuer lokale Secrets, Datenbanken, Logs, Uploads, IDE-Dateien und Modell-/Training-Artefakte deutlich erweitert.
+- `README.md`, `.github/CODEOWNERS`, `.github/release-drafter.yml` und `.github/dependabot.yml` konsolidiert und bereinigt.
+
 ## 0.1.12 - 2026-07-12
 
 - Support-Richtlinie stark erweitert in `.github/SUPPORT.md`: klare Trennung von Fehlern, Bedienungsfragen, Funktionswuenschen und Sicherheitsmeldungen.

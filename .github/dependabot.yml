@@ -1,25 +1,84 @@
 version: 2
+
 updates:
-  - package-ecosystem: pip
+  - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    target-branch: "main"
     open-pull-requests-limit: 10
+    rebase-strategy: "auto"
+    versioning-strategy: "increase"
     labels:
-      - dependencies
+      - "dependencies"
+      - "backend"
+    reviewers:
+      - "Thomas-Heisig"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    groups:
+      python-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
-  - package-ecosystem: npm
+  - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: weekly
+      interval: "weekly"
+      day: "monday"
+      time: "06:15"
+      timezone: "Europe/Berlin"
+    target-branch: "main"
     open-pull-requests-limit: 10
+    rebase-strategy: "auto"
+    versioning-strategy: "increase"
     labels:
-      - dependencies
+      - "dependencies"
+      - "frontend"
+    reviewers:
+      - "Thomas-Heisig"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    groups:
+      frontend-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
-  - package-ecosystem: github-actions
+  - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Europe/Berlin"
+    target-branch: "main"
     open-pull-requests-limit: 10
+    rebase-strategy: "auto"
     labels:
-      - dependencies
+      - "dependencies"
+      - "ci"
+    reviewers:
+      - "Thomas-Heisig"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

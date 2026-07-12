@@ -1,0 +1,36 @@
+name: Documentation issue
+description: Report incorrect, unclear, or missing documentation
+labels:
+  - documentation
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      placeholder: Short description of the documentation issue
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Affected file or section
+      placeholder: e.g. README.md#Quickstart, docs/training-workbench.md
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is incorrect or unclear?
+      placeholder: Explain what you observed and why it is confusing or wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Suggested correction
+      placeholder: Describe the wording or structure you expect.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      placeholder: Links, screenshots, related issues, or commands.
