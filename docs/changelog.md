@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.8 - 2026-07-12
+
+- GitHub-typische Workflow-Infrastruktur wieder aktiviert: GitHub Actions auf Repository-Ebene auf `enabled: true` gesetzt.
+- CI/Release/Security-Workflows wiederhergestellt unter `.github/workflows/` (`ci.yml`, `codeql.yml`, `dependency-review.yml`, `release.yml`, `stale.yml`).
+- Release-Drafter-Konfiguration (`.github/release-drafter.yml`) erneut hinzugefuegt.
+- README wieder auf aktive Workflow-Badges und Workflow-Hinweis umgestellt.
+
 ## 0.1.7 - 2026-07-12
 
 - Release-Drafter-Restkonfiguration entfernt: `.github/release-drafter.yml` geloescht, da keine GitHub-Workflows mehr aktiv sind.

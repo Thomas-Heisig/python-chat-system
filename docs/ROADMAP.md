@@ -88,8 +88,7 @@
 - Frontend-Devtool-Sicherheit dauerhaft absichern: Vite/Vitest/esbuild-Updates regelmaessig einplanen und Dependabot-PRs zeitnah mergen.
 - Nach Major-Upgrades (React/TypeScript/jsdom) verbindliche Kompatibilitaetspruefung ueber CI + UI-Regressionspfade etablieren.
 - Backend-Security weiter vertiefen: zentralisiertes Error-Redaction-Pattern fuer alle API-Routen vereinheitlichen und testbar machen.
-- Falls CI wieder benoetigt wird: minimalen, gehärteten Workflow-Stack kontrolliert neu aufsetzen (mit klaren Triggern und Secret-Policy).
-- Solange Actions deaktiviert bleiben: keine Badge-/Workflow-Verweise mehr in Repo-Dateien fuehren.
+- Workflow-Stack kontinuierlich haerten: Trigger, Berechtigungen und Secret-Policy regelmaessig ueberpruefen.
 - Chat-Updates von Polling auf push-basiertes Eventing (SSE/WebSocket) umstellen, um geraeteuebergreifend niedrigere Latenz zu erreichen.
 - Statische Typqualitaet im Backend weiter schaerfen (Pylance strict): unbekannte Typen in Service-/Repository-Pfaden systematisch eliminieren.
 
