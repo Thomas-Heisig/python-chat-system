@@ -1,10 +1,5 @@
 # Python Chat System
 
-[![CI](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/ci.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/codeql.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/codeql.yml)
-[![Dependency Review](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/dependency-review.yml)
-[![Release Drafter](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/release.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/release.yml)
-
 Modulares Python-Chatsystem mit FastAPI, SQLAlchemy und austauschbaren Modell-Backends.
 
 ## GitHub Community Health
@@ -17,7 +12,7 @@ Modulares Python-Chatsystem mit FastAPI, SQLAlchemy und austauschbaren Modell-Ba
 - Issue templates: `.github/ISSUE_TEMPLATE/*`
 - Ownership rules: `.github/CODEOWNERS`
 - Automated updates: `.github/dependabot.yml`
-- CI/CD and security workflows: `.github/workflows/*`
+- GitHub Actions workflows: aktuell deaktiviert und aus dem Repository entfernt.
 
 ## Entwicklungsstufe 1 (enthalten)
 

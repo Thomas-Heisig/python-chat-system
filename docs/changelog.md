@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6 - 2026-07-12
+
+- Alle GitHub-Workflow-Runs im Repository beendet und die Run-Historie geloescht.
+- Alle Workflow-Dateien unter `.github/workflows/` entfernt.
+- GitHub Actions auf Repository-Ebene deaktiviert (`enabled: false`).
+- README auf den neuen Workflow-Status angepasst (keine Actions-Badges, klare Notiz zur Deaktivierung).
+
 ## 0.1.5 - 2026-07-12
 
 - CodeQL-Sicherheitsfunde in API-/Training-Pfaden gehaertet: URL-Importe fuer Trainingsdaten jetzt mit SSRF-Schutz (Host-/Schema-Validierung, Block privater IP-Ranges, Redirect-Revalidierung).
