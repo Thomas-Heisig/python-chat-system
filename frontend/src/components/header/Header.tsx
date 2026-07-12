@@ -61,7 +61,8 @@ export function Header({ onOpenLeftMenu, modelLoaded, onOpenSettings, selectedPr
         <button type="button" className="icon-btn mobile-menu-btn" onClick={onOpenLeftMenu} aria-label={ui.openNav}>
           ☰
         </button>
-        <strong className="brand">Local Chat</strong>
+        <img src="/kernschmiede-logo.svg" alt="Kernschmiede" className="brand-logo" />
+        <strong className="brand">Kernschmiede</strong>
         <button type="button" className="project-chip" onClick={onOpenProjects}>
           {ui.project}: {selectedProjectName}
         </button>

@@ -290,9 +290,9 @@ export function LeftSidebar({
   return (
     <aside className={`left-sidebar ${collapsed ? "left-sidebar--collapsed" : ""}`}>
       <div className="left-sidebar__header">
-        <div className="logo-row" title="Local Chat">
-          <span className="logo-badge">LC</span>
-          <span className="label">Local Chat</span>
+        <div className="logo-row" title="Kernschmiede">
+          <img src="/kernschmiede-logo.svg" alt="Kernschmiede" className="sidebar-logo" />
+          <span className="label">Kernschmiede</span>
         </div>
 
         <button type="button" className="icon-btn" onClick={onToggleCollapse} aria-label="Sidebar ein-/ausklappen">

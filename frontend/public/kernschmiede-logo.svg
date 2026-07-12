@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="420" viewBox="0 0 1600 420" role="img" aria-label="Kernschmiede Logo">
+  <defs>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#223041"/>
+      <stop offset="100%" stop-color="#1a222f"/>
+    </linearGradient>
+    <style>
+      .ink { fill: url(#ink); }
+      .orange { fill: #ef7a2d; }
+      .cyan { fill: #29bde5; }
+      .line-dark { stroke: #253444; stroke-width: 8; stroke-linecap: round; }
+      .line-cyan { stroke: #29bde5; stroke-width: 8; stroke-linecap: round; }
+      .wordmark { font-family: 'Segoe UI', 'Arial Black', Arial, sans-serif; font-weight: 900; letter-spacing: 2px; }
+      .tagline { font-family: 'Segoe UI', Arial, sans-serif; font-weight: 700; letter-spacing: 10px; }
+    </style>
+  </defs>
+  <rect width="1600" height="420" fill="#f7f8fa"/>
+  <path class="ink" d="M38 280h300c-10 24-54 54-120 64-4 22-30 40-63 40s-59-18-63-40c-66-10-110-40-120-64h66c14 0 30-16 30-35s-16-35-30-35H18l-16-20h302l-16 20h-60c-14 0-30 16-30 35s16 35 30 35h110z"/>
+  <g transform="translate(155 68)">
+    <line x1="0" y1="70" x2="70" y2="30" class="line-dark"/>
+    <line x1="70" y1="30" x2="140" y2="70" class="line-dark"/>
+    <line x1="0" y1="70" x2="0" y2="145" class="line-dark"/>
+    <line x1="140" y1="70" x2="140" y2="145" class="line-dark"/>
+    <line x1="0" y1="145" x2="70" y2="115" class="line-dark"/>
+    <line x1="140" y1="145" x2="70" y2="115" class="line-dark"/>
+    <line x1="70" y1="30" x2="70" y2="115" class="line-dark"/>
+    <line x1="0" y1="145" x2="70" y2="190" class="line-cyan"/>
+    <line x1="140" y1="145" x2="70" y2="190" class="line-cyan"/>
+    <line x1="70" y1="115" x2="70" y2="190" class="line-dark"/>
+    <circle cx="70" cy="30" r="20" class="orange"/>
+    <circle cx="0" cy="70" r="18" class="ink"/>
+    <circle cx="140" cy="70" r="18" class="ink"/>
+    <circle cx="0" cy="145" r="16" class="orange"/>
+    <circle cx="140" cy="145" r="16" class="orange"/>
+    <circle cx="70" cy="115" r="18" class="ink"/>
+    <circle cx="70" cy="190" r="18" class="cyan"/>
+  </g>
+  <text x="470" y="220" class="wordmark" font-size="150" fill="#1f2a37">KERNSCHMIEDE</text>
+  <line x1="490" y1="305" x2="580" y2="305" stroke="#ef7a2d" stroke-width="10"/>
+  <text x="610" y="322" class="tagline" font-size="62" fill="#273242">LOCAL </text>
+  <text x="890" y="322" class="tagline" font-size="62" fill="#29bde5">AI </text>
+  <text x="980" y="322" class="tagline" font-size="62" fill="#273242">WORKBENCH</text>
+  <line x1="1460" y1="305" x2="1550" y2="305" stroke="#ef7a2d" stroke-width="10"/>
+</svg>

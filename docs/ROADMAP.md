@@ -94,6 +94,7 @@
 - Support-Prozess standardisieren: Issue-Typisierung (`bug`/`question`/`feature`/`security`) mit reproduzierbaren Mindestangaben und Log-Redaktionsregeln in Templates abbilden.
 - Repository-Governance weiter festigen: Lizenz-, Security- und Issue-Template-Konventionen als verbindlichen Maintainer-Check vor Releases verankern.
 - Rebranding konsistent halten: sichtbare Produktbezeichnungen, Logos und API-Metadaten bei Namensaenderungen zentral und synchron aktualisieren.
+- Design-Konsistenz ausbauen: Branding-Assets (Logo, Farben, Typografie) in Login, Header, Sidebar und Favicon zentral versionieren und validieren.
 - Trainings-URL-Import langfristig produktivieren: Host-Allowlist aus Settings verwalten (statt statischer Basen) und mit dedizierten Security-Tests absichern.
 - Chat-Updates von Polling auf push-basiertes Eventing (SSE/WebSocket) umstellen, um geraeteuebergreifend niedrigere Latenz zu erreichen.
 - Statische Typqualitaet im Backend weiter schaerfen (Pylance strict): unbekannte Typen in Service-/Repository-Pfaden systematisch eliminieren.

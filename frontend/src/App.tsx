@@ -111,6 +111,11 @@ export default function App() {
           })();
         }}
       >
+        <div className="auth-brand" aria-hidden="true">
+          <img src="/kernschmiede-logo.svg" alt="" className="auth-brand__logo" />
+          <div className="auth-brand__title">Kernschmiede</div>
+          <div className="auth-brand__subtitle">Local AI Workbench</div>
+        </div>
         <h1>{registerMode ? "Konto erstellen" : "Anmelden"}</h1>
         <p>Mit deinem Konto anmelden und deinen Namen im Workspace sehen.</p>
 
