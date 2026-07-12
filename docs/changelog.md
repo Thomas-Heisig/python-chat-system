@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7 - 2026-07-12
+
+- Release-Drafter-Restkonfiguration entfernt: `.github/release-drafter.yml` geloescht, da keine GitHub-Workflows mehr aktiv sind.
+- GitHub-Status verifiziert: Repository hat `0` registrierte Workflows und keine Runs; damit kann kein `release.yml`-Badge/Run mehr fehlschlagen.
+
 ## 0.1.6 - 2026-07-12
 
 - Alle GitHub-Workflow-Runs im Repository beendet und die Run-Historie geloescht.
