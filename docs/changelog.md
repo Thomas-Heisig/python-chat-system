@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 - 2026-07-12
+
+- Dependabot-Sicherheitsalerts im Frontend behoben: `vitest` auf `^4.1.10` und `vite` auf `^8.1.4` aktualisiert (inkl. transitive Fixes fuer `esbuild`, `vite-node`, `@vitest/mocker` und `launch-editor`).
+- Sicherheitsverifikation durchgefuehrt: `npm audit` meldet fuer `frontend` jetzt `0 vulnerabilities`.
+- Regression geprueft: `npm run build` und `npm run test:run` laufen nach dem Upgrade erfolgreich.
+
 ## 0.1.2 - 2026-07-12
 
 - GitHub-Repository-Standardisierung deutlich erweitert: Community-Health-Dateien (`CODE_OF_CONDUCT`, `CONTRIBUTING`, `SECURITY`, `SUPPORT`, `CODEOWNERS`) und PR-/Issue-Templates hinzugefuegt.

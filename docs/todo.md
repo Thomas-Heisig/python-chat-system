@@ -81,6 +81,7 @@
 - Sichere Zugangsverwaltung fuer lokale Entwicklung dokumentieren (nicht versionierte Secret-Datei / Passwortmanager statt Klartext in `docs`).
 - Public-Release-Checkliste ergaenzen: vor jedem oeffentlichen Push automatisierten Secret-Scan und `.gitignore`-Validierung ausfuehren.
 - GitHub-Automation nachziehen: Label-Set vereinheitlichen und CI-Workflows schrittweise auf stabile, reproduzierbare Test-Segmente (Backend/Frontend getrennt) verfeinern.
+- Security-Wartung fest verankern: nach jedem Frontend-Dependency-Update `npm audit` und `npm run test:run` als Pflichtcheck ausfuehren.
 - Admin-Aenderungen nachvollziehbar machen: Audit-Log (Akteur, Zielnutzer, Feld, Zeit) fuer Benutzer-Updates einfuehren.
 - Audit-Log im UI nutzbar machen: Admin-Ansicht fuer Benutzer-Aenderungshistorie (Filter nach Nutzer/Aktion/Zeit) ergaenzen.
 - Reaktivierung fuer Soft-Delete-Nutzer ergaenzen: geloeschte Konten optional wiederherstellbar machen (neuer Benutzername + Passwort setzen).
