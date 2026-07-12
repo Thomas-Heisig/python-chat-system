@@ -86,6 +86,7 @@
 - Release-Haertung fuer oeffentliche Repositories ausbauen: standardisierte Pre-Publish-Checks fuer Secret-Scan und Ignore-Regeln vor jedem Public Push etablieren.
 - GitHub-Repository-Governance weiter ausbauen: Label-Strategie, Auto-Triage und semantische Release-Notes entlang PR-Kategorien weiter verfeinern.
 - Frontend-Devtool-Sicherheit dauerhaft absichern: Vite/Vitest/esbuild-Updates regelmaessig einplanen und Dependabot-PRs zeitnah mergen.
+- Nach Major-Upgrades (React/TypeScript/jsdom) verbindliche Kompatibilitaetspruefung ueber CI + UI-Regressionspfade etablieren.
 - Chat-Updates von Polling auf push-basiertes Eventing (SSE/WebSocket) umstellen, um geraeteuebergreifend niedrigere Latenz zu erreichen.
 - Statische Typqualitaet im Backend weiter schaerfen (Pylance strict): unbekannte Typen in Service-/Repository-Pfaden systematisch eliminieren.
 

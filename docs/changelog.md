@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4 - 2026-07-12
+
+- Dependabot-Sammelupdate umgesetzt (Frontend, Python-Requirements und GitHub Actions).
+- Frontend auf neue Basis angehoben: `typescript` auf `^7.0.2`, `react`/`react-dom` auf `^19.2.7`, `@types/react`/`@types/react-dom` auf `^19.x`, `jsdom` auf `^29.1.1`, `vitest` auf `^4.1.10`.
+- Python-Abhaengigkeiten aktualisiert: `trl>=1.8.0`, `python-multipart>=0.0.32`, `pytest-asyncio>=1.4.0`, `accelerate>=1.14.0`, `llama-cpp-python>=0.3.34`, `pydantic>=2.13.4`, `httpx>=0.28.1`, `psutil>=7.2.2`, `transformers>=5.13.1`.
+- GitHub Actions aktualisiert: `actions/checkout@v7`, `actions/setup-node@v6`, `actions/setup-python@v6`, `github/codeql-action@v4`, `actions/dependency-review-action@v5`, `actions/stale@v10`, `release-drafter/release-drafter@v7`.
+- CI-Node-Version fuer `jsdom@29.1.1` Kompatibilitaet auf `22.13.0` angehoben.
+- Verifikation erfolgreich: `npm run build`, `npm run test:run`, `npm audit` (0 Vulnerabilities).
+
 ## 0.1.3 - 2026-07-12
 
 - Dependabot-Sicherheitsalerts im Frontend behoben: `vitest` auf `^4.1.10` und `vite` auf `^8.1.4` aktualisiert (inkl. transitive Fixes fuer `esbuild`, `vite-node`, `@vitest/mocker` und `launch-editor`).
