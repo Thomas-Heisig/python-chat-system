@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 - 2026-07-12
+
+- GitHub-Repository-Standardisierung deutlich erweitert: Community-Health-Dateien (`CODE_OF_CONDUCT`, `CONTRIBUTING`, `SECURITY`, `SUPPORT`, `CODEOWNERS`) und PR-/Issue-Templates hinzugefuegt.
+- Automationen fuer Repository-Pflege aktiviert: Dependabot-Konfiguration sowie Workflows fuer CI, CodeQL, Dependency-Review, Stale-Management und Release-Drafting angelegt.
+- README um GitHub-Badges und einen Abschnitt `GitHub Community Health` erweitert.
+
 ## 0.1.1 - 2026-07-12
 
 - Sicherheitsdokumentation bereinigt: `docs/zugaenge.md` enthaelt keine Klartext-Passwoerter mehr und verweist nur auf Secret-Speicher.

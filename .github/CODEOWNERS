@@ -1,0 +1,11 @@
+# Default owners for all files
+* @Thomas-Heisig
+
+# Backend
+app/** @Thomas-Heisig
+
+# Frontend
+frontend/** @Thomas-Heisig
+
+# Documentation
+docs/** @Thomas-Heisig

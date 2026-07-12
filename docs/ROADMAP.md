@@ -84,6 +84,7 @@
 - Nutzerpraesenz von Heartbeat-Polling auf push-basierte Echtzeitpraesenz (WebSocket/SSE-Presence-Events) weiterentwickeln.
 - Secret-Handling standardisieren: Zugangsdaten und API-Secrets ausschliesslich ueber sichere, nicht versionierte Secret-Speicher verwalten.
 - Release-Haertung fuer oeffentliche Repositories ausbauen: standardisierte Pre-Publish-Checks fuer Secret-Scan und Ignore-Regeln vor jedem Public Push etablieren.
+- GitHub-Repository-Governance weiter ausbauen: Label-Strategie, Auto-Triage und semantische Release-Notes entlang PR-Kategorien weiter verfeinern.
 - Chat-Updates von Polling auf push-basiertes Eventing (SSE/WebSocket) umstellen, um geraeteuebergreifend niedrigere Latenz zu erreichen.
 - Statische Typqualitaet im Backend weiter schaerfen (Pylance strict): unbekannte Typen in Service-/Repository-Pfaden systematisch eliminieren.
 

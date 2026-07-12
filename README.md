@@ -1,6 +1,23 @@
 # Python Chat System
 
+[![CI](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/ci.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/codeql.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/codeql.yml)
+[![Dependency Review](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/dependency-review.yml)
+[![Release Drafter](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/release.yml/badge.svg)](https://github.com/Thomas-Heisig/python-chat-system/actions/workflows/release.yml)
+
 Modulares Python-Chatsystem mit FastAPI, SQLAlchemy und austauschbaren Modell-Backends.
+
+## GitHub Community Health
+
+- Contributing guide: `.github/CONTRIBUTING.md`
+- Security policy: `.github/SECURITY.md`
+- Code of conduct: `.github/CODE_OF_CONDUCT.md`
+- Support guide: `.github/SUPPORT.md`
+- Pull request template: `.github/PULL_REQUEST_TEMPLATE.md`
+- Issue templates: `.github/ISSUE_TEMPLATE/*`
+- Ownership rules: `.github/CODEOWNERS`
+- Automated updates: `.github/dependabot.yml`
+- CI/CD and security workflows: `.github/workflows/*`
 
 ## Entwicklungsstufe 1 (enthalten)
 
