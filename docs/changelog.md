@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.12 - 2026-07-12
+
+- Support-Richtlinie stark erweitert in `.github/SUPPORT.md`: klare Trennung von Fehlern, Bedienungsfragen, Funktionswuenschen und Sicherheitsmeldungen.
+- Verbindlichere Angaben fuer Diagnose und Reproduktion ergaenzt, inklusive Modell-/GPU-/Training-spezifischer Felder.
+- Regeln fuer Log-Redaktion und vertrauliche Daten explizit ausgebaut sowie Abschnitt zu orientierenden Reaktionszeiten hinzugefuegt.
+
 ## 0.1.11 - 2026-07-12
 
 - README-Badges vervollstaendigt: fehlender Badge fuer den aktiven Stale-Workflow (`stale.yml`) ergaenzt.

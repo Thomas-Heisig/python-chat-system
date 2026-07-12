@@ -1,62 +1,156 @@
-# Code of Conduct
+# Verhaltenskodex
 
-## Our Pledge
+## Unser Versprechen
 
-We as members, contributors, and maintainers pledge to make participation in our
-community a harassment-free experience for everyone, regardless of age, body
-size, visible or invisible disability, ethnicity, sex characteristics, gender
-identity and expression, level of experience, education, socio-economic status,
-nationality, personal appearance, race, religion, or sexual identity and
-orientation.
+Als Mitwirkende und Verantwortliche dieses Projekts verpflichten wir uns, eine sachliche, respektvolle und belästigungsfreie Zusammenarbeit zu ermöglichen.
 
-We pledge to act and interact in ways that contribute to an open, welcoming,
-diverse, inclusive, and healthy community.
+Dies gilt unabhängig von Alter, körperlichen Merkmalen, sichtbaren oder unsichtbaren Behinderungen, ethnischer oder sozialer Herkunft, Geschlechtsidentität, Erfahrung, Ausbildung, wirtschaftlichem Status, Nationalität, persönlichem Erscheinungsbild, Religion, sexueller Identität oder sexueller Orientierung.
 
-## Our Standards
+Wir möchten eine offene und fachlich geprägte Projektumgebung schaffen, in der unterschiedliche Erfahrungen und begründete Auffassungen respektiert werden.
 
-Examples of behavior that contributes to a positive environment for our
-community include:
+## Erwartetes Verhalten
 
-- Demonstrating empathy and kindness toward other people
-- Being respectful of differing opinions, viewpoints, and experiences
-- Giving and gracefully accepting constructive feedback
-- Accepting responsibility and apologizing to those affected by our mistakes
-- Focusing on what is best not just for us as individuals, but for the overall
-  community
+Zu einem angemessenen Verhalten gehören insbesondere:
 
-Examples of unacceptable behavior include:
+- respektvoller und sachlicher Umgang
+- konstruktive und nachvollziehbare Kritik
+- Bereitschaft, andere Standpunkte zu prüfen
+- klare Trennung zwischen fachlicher Kritik und persönlichem Angriff
+- Anerkennung eigener Fehler und angemessene Korrektur
+- verantwortungsvoller Umgang mit vertraulichen Informationen
+- Rücksicht auf unterschiedliche Kenntnisse und Erfahrungen
+- Konzentration auf das Projekt und die konkrete Fragestellung
+- Einhaltung technischer, rechtlicher und organisatorischer Grenzen
 
-- The use of sexualized language or imagery, and sexual attention or advances
-- Trolling, insulting or derogatory comments, and personal or political attacks
-- Public or private harassment
-- Publishing others' private information, such as a physical or email address,
-  without their explicit permission
-- Other conduct which could reasonably be considered inappropriate in a
-  professional setting
+Kritik an Code, Architektur oder Entscheidungen ist ausdrücklich zulässig. Sie sollte sich auf überprüfbare Sachverhalte beziehen und möglichst eine Begründung oder einen Verbesserungsvorschlag enthalten.
 
-## Enforcement Responsibilities
+## Nicht akzeptiertes Verhalten
 
-Project maintainers are responsible for clarifying and enforcing our standards
-of acceptable behavior and will take appropriate and fair corrective action in
-response to any behavior that they deem inappropriate, threatening, offensive,
-or harmful.
+Nicht akzeptiert werden insbesondere:
 
-## Scope
+- Beleidigungen, Drohungen oder Einschüchterungen
+- persönliche, abwertende oder diskriminierende Angriffe
+- gezielte Provokation und wiederholtes Stören von Diskussionen
+- sexuelle Sprache, sexualisierte Darstellungen oder unerwünschte Annäherungen
+- öffentliche oder private Belästigung
+- Veröffentlichung privater oder personenbezogener Informationen ohne Zustimmung
+- Veröffentlichung von Zugangsdaten, Tokens oder anderen Geheimnissen
+- absichtliche Falschdarstellungen über andere Mitwirkende
+- Manipulation von Diskussionen oder technischen Prüfungen
+- Identitätsmissbrauch
+- wiederholte Missachtung begründeter Moderationsentscheidungen
+- Verhalten, das in einem professionellen Arbeitsumfeld vernünftigerweise als unangemessen gelten würde
 
-This Code of Conduct applies within all project spaces and also applies when an
-individual is officially representing the project in public spaces.
+Meinungsverschiedenheiten, technische Fehler oder sachlich formulierte Kritik stellen für sich genommen keinen Verstoß dar.
 
-## Enforcement
+## Geltungsbereich
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the maintainers at:
+Dieser Verhaltenskodex gilt für alle vom Projekt bereitgestellten oder kontrollierten Bereiche, insbesondere:
 
-- Open a private security report via GitHub Security Advisories (preferred)
-- Or open a confidential issue request and mark it as sensitive
+- Issues
+- Pull Requests
+- Reviews
+- Diskussionen
+- Commit-Kommentare
+- Projektbezogene Kommunikation
+- sonstige öffentliche Auftritte im Namen des Projekts
 
-All complaints will be reviewed and investigated promptly and fairly.
+Er gilt außerdem, wenn eine Person das Projekt offiziell vertritt oder den Eindruck einer offiziellen Vertretung vermittelt.
 
-## Attribution
+## Verantwortung der Projektleitung
 
-This Code of Conduct is adapted from the Contributor Covenant, version 2.1:
-https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
+Die Projektverantwortlichen sind für die Auslegung und Durchsetzung dieses Verhaltenskodex zuständig.
+
+Sie können Inhalte bearbeiten, ausblenden oder entfernen sowie Beiträge ablehnen, wenn diese gegen den Verhaltenskodex verstoßen oder den geordneten Projektablauf erheblich beeinträchtigen.
+
+Maßnahmen sollen:
+
+- verhältnismäßig sein,
+- den vorhandenen Sachverhalt berücksichtigen,
+- möglichst nachvollziehbar begründet werden,
+- betroffene Personen nicht unnötig öffentlich bloßstellen und
+- vergleichbare Fälle möglichst gleich behandeln.
+
+## Meldung eines Vorfalls
+
+Verstöße können dem Projektverantwortlichen Thomas Heisig über einen privaten Kontaktweg gemeldet werden, der im GitHub-Profil hinterlegt ist:
+
+[GitHub-Profil von Thomas-Heisig](https://github.com/Thomas-Heisig)
+
+Falls kein privater Kontaktweg verfügbar ist, kann ein öffentliches Issue eröffnet werden, das ausschließlich um eine vertrauliche Kontaktaufnahme bittet. Einzelheiten, personenbezogene Daten und Beweise sollen dabei nicht öffentlich eingestellt werden.
+
+GitHub Security Advisories sind ausschließlich für technische Sicherheitslücken vorgesehen und sollen nicht für allgemeine Verhaltensmeldungen verwendet werden.
+
+Bei einer Meldung sollten, soweit möglich, folgende Angaben gemacht werden:
+
+- betroffener Projektbereich
+- Zeitpunkt oder Zeitraum
+- Links zu relevanten Beiträgen
+- sachliche Beschreibung des Vorfalls
+- vorhandene Belege
+- bereits unternommene Schritte
+- gewünschte Form der Klärung
+
+Bewusst falsche oder missbräuchliche Meldungen können selbst einen Verstoß gegen diesen Verhaltenskodex darstellen.
+
+## Vertraulichkeit
+
+Meldungen werden soweit möglich vertraulich behandelt.
+
+Informationen werden nur an Personen weitergegeben, die für Prüfung, Moderation oder rechtlich notwendige Maßnahmen einbezogen werden müssen. Eine vollständige Vertraulichkeit kann insbesondere bei gesetzlichen Pflichten oder öffentlich dokumentierten Vorgängen nicht garantiert werden.
+
+## Mögliche Maßnahmen
+
+Abhängig von Art, Schwere und Wiederholung eines Verstoßes können unter anderem folgende Maßnahmen erfolgen:
+
+### 1. Hinweis
+
+Private oder öffentliche Klarstellung, welches Verhalten problematisch war und welches Verhalten künftig erwartet wird.
+
+### 2. Verwarnung
+
+Formelle Aufforderung, ein bestimmtes Verhalten zu unterlassen. Bei Wiederholung können weitergehende Maßnahmen folgen.
+
+### 3. Einschränkung
+
+Zeitweilige Einschränkung der Teilnahme an Issues, Pull Requests, Reviews oder anderen Projektbereichen.
+
+### 4. Ausschluss
+
+Dauerhafter Ausschluss aus den vom Projekt kontrollierten Kommunikations- und Entwicklungsbereichen.
+
+### 5. Meldung an GitHub oder zuständige Stellen
+
+Bei schwerwiegenden Verstößen, Sicherheitsbedrohungen oder möglichen Rechtsverletzungen kann der Vorgang an GitHub oder zuständige Stellen weitergegeben werden.
+
+## Prüfung und Entscheidung
+
+Meldungen sollen sachlich, unvoreingenommen und unter Berücksichtigung der verfügbaren Informationen geprüft werden.
+
+Betroffene Personen können Gelegenheit zur Stellungnahme erhalten, sofern dies die Sicherheit anderer Personen oder die sachgerechte Prüfung nicht gefährdet.
+
+Es besteht kein Anspruch auf eine bestimmte Maßnahme oder auf die Veröffentlichung interner Prüfungsdetails.
+
+## Keine Vergeltungsmaßnahmen
+
+Vergeltungsmaßnahmen gegen Personen, die einen Vorfall in gutem Glauben melden oder an einer Prüfung mitwirken, werden nicht akzeptiert.
+
+Dies schützt nicht vor Maßnahmen aufgrund bewusst falscher Angaben, eigener Verstöße oder missbräuchlicher Meldungen.
+
+## Verhältnis zu GitHub-Regeln und geltendem Recht
+
+Zusätzlich zu diesem Verhaltenskodex gelten:
+
+- die Nutzungsbedingungen und Richtlinien von GitHub,
+- die projektspezifischen Beitragsregeln und
+- das jeweils anwendbare Recht.
+
+Bei unmittelbarer Gefahr, glaubhaften Drohungen oder möglichen Straftaten sollten Betroffene nicht ausschließlich die Projektleitung kontaktieren, sondern erforderlichenfalls GitHub oder die zuständigen Behörden einschalten.
+
+## Herkunft
+
+Dieser Verhaltenskodex orientiert sich am Contributor Covenant, Version 2.1:
+
+[Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html)
+
+Er wurde für den Umfang und die derzeitige Organisation dieses Projekts angepasst.

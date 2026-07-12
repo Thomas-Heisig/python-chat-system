@@ -91,6 +91,7 @@
 - Workflow-Stack kontinuierlich haerten: Trigger, Berechtigungen und Secret-Policy regelmaessig ueberpruefen.
 - Code-Scanning-Strategie konsolidieren: genau einen produktiven CodeQL-Pfad (Default Setup oder Advanced Setup) verbindlich festlegen und dokumentieren, um SARIF-Konflikte dauerhaft zu vermeiden.
 - README-Badge-Pflege standardisieren: fuer jeden aktiven Workflow in `.github/workflows` eine eindeutige Badge-Strategie hinterlegen.
+- Support-Prozess standardisieren: Issue-Typisierung (`bug`/`question`/`feature`/`security`) mit reproduzierbaren Mindestangaben und Log-Redaktionsregeln in Templates abbilden.
 - Trainings-URL-Import langfristig produktivieren: Host-Allowlist aus Settings verwalten (statt statischer Basen) und mit dedizierten Security-Tests absichern.
 - Chat-Updates von Polling auf push-basiertes Eventing (SSE/WebSocket) umstellen, um geraeteuebergreifend niedrigere Latenz zu erreichen.
 - Statische Typqualitaet im Backend weiter schaerfen (Pylance strict): unbekannte Typen in Service-/Repository-Pfaden systematisch eliminieren.
