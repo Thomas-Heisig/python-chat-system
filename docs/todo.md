@@ -83,6 +83,7 @@
 - GitHub-Automation nachziehen: Label-Set vereinheitlichen und CI-Workflows schrittweise auf stabile, reproduzierbare Test-Segmente (Backend/Frontend getrennt) verfeinern.
 - Security-Wartung fest verankern: nach jedem Frontend-Dependency-Update `npm audit` und `npm run test:run` als Pflichtcheck ausfuehren.
 - Nach React-19/TypeScript-7-Migration gezielte UI- und Typecheck-Regression erweitern (inkl. strict TS-Checks im Frontend-CI-Job).
+- Security-Regressionstests ergaenzen: SSRF-Blocklisten (private IPs/localhost), Error-Redaction und sichere HTML-Extraktion im Dataset-Import automatisiert testen.
 - Admin-Aenderungen nachvollziehbar machen: Audit-Log (Akteur, Zielnutzer, Feld, Zeit) fuer Benutzer-Updates einfuehren.
 - Audit-Log im UI nutzbar machen: Admin-Ansicht fuer Benutzer-Aenderungshistorie (Filter nach Nutzer/Aktion/Zeit) ergaenzen.
 - Reaktivierung fuer Soft-Delete-Nutzer ergaenzen: geloeschte Konten optional wiederherstellbar machen (neuer Benutzername + Passwort setzen).

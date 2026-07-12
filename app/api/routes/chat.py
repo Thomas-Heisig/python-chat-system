@@ -43,7 +43,7 @@ async def get_context_usage(
     except ValueError as exc:
         if str(exc) == "conversation_not_found":
             raise HTTPException(status_code=404, detail="Conversation not found")
-        raise
+        raise HTTPException(status_code=400, detail="Invalid context usage request") from exc
 
 
 @router.get("/diagnostics/prompts")
@@ -110,7 +110,15 @@ async def generate_chat_response(
                             ),
                         )
                         return
-                    raise
+                    yield build_event(
+                        "error",
+                        build_error_envelope(
+                            code="stream.invalid_request",
+                            message="Invalid streaming request",
+                            retryable=False,
+                        ),
+                    )
+                    return
                 except Exception:
                     yield build_event(
                         "error",
@@ -118,10 +126,6 @@ async def generate_chat_response(
                             code="stream.internal_error",
                             message="Streaming failed",
                             retryable=False,
-                            details={
-                                "conversation_id": payload.conversation_id,
-                                "user_id": payload.user_id,
-                            },
                         ),
                     )
                     return
@@ -142,5 +146,5 @@ async def generate_chat_response(
     except ValueError as exc:
         if str(exc) == "conversation_not_found":
             raise HTTPException(status_code=404, detail="Conversation not found")
-        raise
+        raise HTTPException(status_code=400, detail="Invalid chat request") from exc
     return result.model_dump()

@@ -1,6 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path, PurePath
+import re
+
+
+_URL_SCHEME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
+
+
+def _is_safe_local_path_input(raw: str) -> bool:
+    if not raw or "\x00" in raw:
+        return False
+    if _URL_SCHEME_PATTERN.match(raw):
+        return False
+    return True
 
 
 def normalize_base_directories(raw_directories: object) -> list[str]:
@@ -10,12 +22,15 @@ def normalize_base_directories(raw_directories: object) -> list[str]:
     normalized: list[str] = []
     seen: set[str] = set()
     for entry in raw_directories:
-        if not isinstance(entry, (str, int, float)):
+        if not isinstance(entry, str):
             continue
-        text = str(entry).strip()
-        if not text:
+        text = entry.strip()
+        if not _is_safe_local_path_input(text):
             continue
-        resolved = str(Path(text).expanduser().resolve(strict=False))
+        candidate = Path(text).expanduser()
+        if not candidate.is_absolute():
+            continue
+        resolved = str(candidate.resolve(strict=False))
         if resolved in seen:
             continue
         seen.add(resolved)
@@ -45,7 +60,7 @@ def is_within_allowed_bases(path: Path, allowed_base_directories: list[str]) -> 
 
 def validate_model_path_against_allowed_bases(model_path: str, allowed_base_directories: list[str]) -> tuple[bool, str | None]:
     raw = str(model_path).strip()
-    if not raw:
+    if not _is_safe_local_path_input(raw):
         return False, "path_empty"
 
     if has_path_traversal(raw):

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5 - 2026-07-12
+
+- CodeQL-Sicherheitsfunde in API-/Training-Pfaden gehaertet: URL-Importe fuer Trainingsdaten jetzt mit SSRF-Schutz (Host-/Schema-Validierung, Block privater IP-Ranges, Redirect-Revalidierung).
+- Fehlerantworten gehärtet: keine stacktrace-nahen Detaildaten mehr in Chat- und Trainings-API-Fehlerpfaden.
+- Pfadvalidierung haerter umgesetzt: Basisverzeichnisse akzeptieren nur sichere, lokale absolute Pfade ohne URL-Schemata.
+- Unsicheren Legacy-SHA256-Passwort-Check entfernt; Legacy-Fallback bleibt auf Klartext-Altformat begrenzt.
+- Regex-basiertes HTML-Strippen im Dataset-Parser durch parserbasiertes Extrahieren ersetzt.
+- `scripts/scan_models.py` loggt nur noch redigierte Modellzusammenfassungen statt kompletter Modellobjekte.
+
 ## 0.1.4 - 2026-07-12
 
 - Dependabot-Sammelupdate umgesetzt (Frontend, Python-Requirements und GitHub Actions).

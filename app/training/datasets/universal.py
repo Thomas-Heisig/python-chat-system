@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+from html import unescape
+from html.parser import HTMLParser
 import importlib
 import json
 import re
@@ -416,6 +418,39 @@ class XmlQaParser:
         ]
 
 
+class _PlainTextHtmlParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._parts: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        lower = tag.lower()
+        if lower in {"script", "style"}:
+            self._skip_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        lower = tag.lower()
+        if lower in {"script", "style"} and self._skip_depth > 0:
+            self._skip_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if self._skip_depth == 0 and data:
+            self._parts.append(data)
+
+    def as_text(self) -> str:
+        merged = " ".join(self._parts)
+        merged = unescape(merged)
+        return re.sub(r"\s+", " ", merged).strip()
+
+
+def _extract_plain_text_from_html(text: str) -> str:
+    parser = _PlainTextHtmlParser()
+    parser.feed(text)
+    parser.close()
+    return parser.as_text()
+
+
 class HtmlQaParser:
     name = "html_qa"
 
@@ -424,10 +459,7 @@ class HtmlQaParser:
 
     def parse(self, path: Path) -> list[CanonicalRecord]:
         text = path.read_text(encoding="utf-8", errors="ignore")
-        stripped = re.sub(r"(?is)<script.*?</script>", " ", text)
-        stripped = re.sub(r"(?is)<style.*?</style>", " ", stripped)
-        plain = re.sub(r"<[^>]+>", " ", stripped)
-        plain = re.sub(r"\s+", " ", plain).strip()
+        plain = _extract_plain_text_from_html(text)
         if not plain:
             return []
         return [

@@ -16,12 +16,9 @@ def verify_password(password: str, password_hash: str | None) -> bool:
     if not password_hash:
         return False
 
-    # Legacy compatibility: allow plain-text and plain sha256 hashes from older local datasets.
+    # Legacy compatibility: allow plain-text hashes from older local datasets.
     if "$" not in password_hash:
-        if hmac.compare_digest(password_hash, password):
-            return True
-        legacy_sha256 = hashlib.sha256(password.encode("utf-8")).hexdigest()
-        return hmac.compare_digest(password_hash, legacy_sha256)
+        return hmac.compare_digest(password_hash, password)
 
     try:
         algorithm, iterations_raw, salt_hex, expected_hex = password_hash.split("$", 3)

@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
+import ipaddress
 import json
 import re
+import socket
 import shutil
 from pathlib import Path
 from typing import cast
 from urllib.parse import urlparse
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select
@@ -95,8 +97,8 @@ def _verify_peft_artifact(saved_info: dict[str, object], hyperparameters: dict[s
             base_model = AutoModelForCausalLM.from_pretrained(base_model_path, local_files_only=True, device_map="cpu")
             PeftModel.from_pretrained(base_model, str(adapter_path), is_trainable=False)
             adapter_load_ok = True
-        except Exception as exc:
-            adapter_load_error = str(exc)
+        except Exception:
+            adapter_load_error = "adapter_load_failed"
 
     return {
         "checks": checks,
@@ -385,11 +387,46 @@ def _merge_dataset_metadata(
     return merged
 
 
-def _download_training_source(url: str, destination: Path) -> None:
+def _is_public_ip_address(address: str) -> bool:
+    try:
+        parsed = ipaddress.ip_address(address)
+    except ValueError:
+        return False
+    return not (
+        parsed.is_private
+        or parsed.is_loopback
+        or parsed.is_link_local
+        or parsed.is_multicast
+        or parsed.is_reserved
+        or parsed.is_unspecified
+    )
+
+
+def _validate_dataset_source_url(url: str) -> str:
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"}:
         raise HTTPException(status_code=400, detail="dataset_url_scheme_invalid")
-    with urlopen(url, timeout=30) as response:
+    if not parsed.hostname:
+        raise HTTPException(status_code=400, detail="dataset_url_host_invalid")
+    if parsed.username or parsed.password:
+        raise HTTPException(status_code=400, detail="dataset_url_auth_not_allowed")
+
+    try:
+        candidates = {entry[4][0] for entry in socket.getaddrinfo(parsed.hostname, parsed.port or 443, type=socket.SOCK_STREAM)}
+    except socket.gaierror as exc:
+        raise HTTPException(status_code=400, detail="dataset_url_host_unresolvable") from exc
+
+    if not candidates or not all(_is_public_ip_address(address) for address in candidates):
+        raise HTTPException(status_code=400, detail="dataset_url_host_not_allowed")
+
+    return url
+
+
+def _download_training_source(url: str, destination: Path) -> None:
+    safe_url = _validate_dataset_source_url(url)
+    request = Request(safe_url, headers={"User-Agent": "python-chat-system/1.0"})
+    with urlopen(request, timeout=30) as response:
+        _validate_dataset_source_url(response.geturl())
         payload = response.read()
     if not payload:
         raise HTTPException(status_code=400, detail="dataset_url_empty")
@@ -1125,7 +1162,7 @@ async def register_training_adapter(
     hyperparameters = _json_to_dict(job.hyperparameters_json)
     verification = _verify_peft_artifact(saved_info, hyperparameters)
     if not bool(verification.get("adapter_load_ok")):
-        raise HTTPException(status_code=409, detail={"code": "training.adapter_check_failed", "verification": verification})
+        raise HTTPException(status_code=409, detail={"code": "training.adapter_check_failed"})
 
     adapter_path = str(Path(_as_string(saved_info.get("artifact_path"))).expanduser().resolve(strict=False))
     if not adapter_path:
