@@ -1127,7 +1127,7 @@ class ChatService:
             yield {
                 "event": "error",
                 "data": {
-                    "detail": str(exc),
+                    "detail": "stream_generation_failed",
                 },
             }
             return

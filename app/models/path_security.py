@@ -1,10 +1,22 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path, PurePath
 import re
 
 
 _URL_SCHEME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
+
+
+def _allowed_base_directories() -> list[str]:
+    configured = os.getenv("MODEL_ALLOWED_BASE_DIRS", "").strip()
+    if configured:
+        entries = [item.strip() for item in configured.split(os.pathsep) if item.strip()]
+        return [str(Path(item).expanduser().resolve(strict=False)) for item in entries]
+    return [
+        str((Path.cwd() / "model-directories").resolve(strict=False)),
+        str(Path(r"F:\KI\models").resolve(strict=False)),
+    ]
 
 
 def _is_safe_local_path_input(raw: str) -> bool:
@@ -19,6 +31,7 @@ def normalize_base_directories(raw_directories: object) -> list[str]:
     if not isinstance(raw_directories, list):
         return []
 
+    allowed = {item.casefold(): item for item in _allowed_base_directories()}
     normalized: list[str] = []
     seen: set[str] = set()
     for entry in raw_directories:
@@ -27,10 +40,10 @@ def normalize_base_directories(raw_directories: object) -> list[str]:
         text = entry.strip()
         if not _is_safe_local_path_input(text):
             continue
-        candidate = Path(text).expanduser()
-        if not candidate.is_absolute():
+        allowed_path = allowed.get(text.casefold())
+        if allowed_path is None:
             continue
-        resolved = str(candidate.resolve(strict=False))
+        resolved = allowed_path
         if resolved in seen:
             continue
         seen.add(resolved)

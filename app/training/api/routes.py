@@ -4,9 +4,9 @@ import json
 import re
 import socket
 import shutil
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import cast
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, quote, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -62,6 +62,11 @@ _TRAINING_SOURCE_EXTENSIONS = {
     ".htm",
     ".pdf",
     ".docx",
+}
+
+_ALLOWED_DATASET_SOURCE_BASES = {
+    "raw.githubusercontent.com": "https://raw.githubusercontent.com",
+    "huggingface.co": "https://huggingface.co",
 }
 
 
@@ -402,7 +407,7 @@ def _is_public_ip_address(address: str) -> bool:
     )
 
 
-def _validate_dataset_source_url(url: str) -> str:
+def _canonicalize_allowed_dataset_url(url: str) -> str:
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"}:
         raise HTTPException(status_code=400, detail="dataset_url_scheme_invalid")
@@ -411,22 +416,36 @@ def _validate_dataset_source_url(url: str) -> str:
     if parsed.username or parsed.password:
         raise HTTPException(status_code=400, detail="dataset_url_auth_not_allowed")
 
+    host = parsed.hostname.lower().rstrip(".")
+    trusted_base = _ALLOWED_DATASET_SOURCE_BASES.get(host)
+    if trusted_base is None:
+        raise HTTPException(status_code=400, detail="dataset_url_host_not_allowed")
+
+    if parsed.port not in {None, 80, 443}:
+        raise HTTPException(status_code=400, detail="dataset_url_port_not_allowed")
+
     try:
-        candidates = {entry[4][0] for entry in socket.getaddrinfo(parsed.hostname, parsed.port or 443, type=socket.SOCK_STREAM)}
+        candidates = {entry[4][0] for entry in socket.getaddrinfo(host, parsed.port or 443, type=socket.SOCK_STREAM)}
     except socket.gaierror as exc:
         raise HTTPException(status_code=400, detail="dataset_url_host_unresolvable") from exc
 
     if not candidates or not all(_is_public_ip_address(address) for address in candidates):
         raise HTTPException(status_code=400, detail="dataset_url_host_not_allowed")
 
-    return url
+    raw_path = parsed.path or "/"
+    if any(part == ".." for part in PurePosixPath(raw_path).parts):
+        raise HTTPException(status_code=400, detail="dataset_url_path_invalid")
+
+    safe_path = quote(raw_path, safe="/-._~")
+    safe_query = urlencode(parse_qsl(parsed.query, keep_blank_values=True), doseq=True)
+    return f"{trusted_base}{safe_path}" + (f"?{safe_query}" if safe_query else "")
 
 
 def _download_training_source(url: str, destination: Path) -> None:
-    safe_url = _validate_dataset_source_url(url)
+    safe_url = _canonicalize_allowed_dataset_url(url)
     request = Request(safe_url, headers={"User-Agent": "python-chat-system/1.0"})
     with urlopen(request, timeout=30) as response:
-        _validate_dataset_source_url(response.geturl())
+        _canonicalize_allowed_dataset_url(response.geturl())
         payload = response.read()
     if not payload:
         raise HTTPException(status_code=400, detail="dataset_url_empty")

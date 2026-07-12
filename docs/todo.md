@@ -85,6 +85,7 @@
 - Nach React-19/TypeScript-7-Migration gezielte UI- und Typecheck-Regression erweitern (inkl. strict TS-Checks im Frontend-CI-Job).
 - Security-Regressionstests ergaenzen: SSRF-Blocklisten (private IPs/localhost), Error-Redaction und sichere HTML-Extraktion im Dataset-Import automatisiert testen.
 - Workflow-Hygiene-Check ergaenzen: Badge-Links, Workflow-Dateien und Repo-Actions-Status muessen konsistent bleiben.
+- Security-Tests erweitern: URL-Allowlist/Port-Blockade fuer Trainings-Import und redigierte Streaming-Fehlerantworten als feste Regressionstests aufnehmen.
 - Admin-Aenderungen nachvollziehbar machen: Audit-Log (Akteur, Zielnutzer, Feld, Zeit) fuer Benutzer-Updates einfuehren.
 - Audit-Log im UI nutzbar machen: Admin-Ansicht fuer Benutzer-Aenderungshistorie (Filter nach Nutzer/Aktion/Zeit) ergaenzen.
 - Reaktivierung fuer Soft-Delete-Nutzer ergaenzen: geloeschte Konten optional wiederherstellbar machen (neuer Benutzername + Passwort setzen).

@@ -89,6 +89,7 @@
 - Nach Major-Upgrades (React/TypeScript/jsdom) verbindliche Kompatibilitaetspruefung ueber CI + UI-Regressionspfade etablieren.
 - Backend-Security weiter vertiefen: zentralisiertes Error-Redaction-Pattern fuer alle API-Routen vereinheitlichen und testbar machen.
 - Workflow-Stack kontinuierlich haerten: Trigger, Berechtigungen und Secret-Policy regelmaessig ueberpruefen.
+- Trainings-URL-Import langfristig produktivieren: Host-Allowlist aus Settings verwalten (statt statischer Basen) und mit dedizierten Security-Tests absichern.
 - Chat-Updates von Polling auf push-basiertes Eventing (SSE/WebSocket) umstellen, um geraeteuebergreifend niedrigere Latenz zu erreichen.
 - Statische Typqualitaet im Backend weiter schaerfen (Pylance strict): unbekannte Typen in Service-/Repository-Pfaden systematisch eliminieren.
 

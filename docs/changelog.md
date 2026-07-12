@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.9 - 2026-07-12
+
+- CodeQL-Alert #8 (`py/full-ssrf`) gehaertet: Trainings-URL-Import nutzt jetzt Host-Allowlist plus kanonisierte URL-Bildung und blockiert nicht erlaubte Hosts/Ports/Path-Traversal.
+- CodeQL-Alert #9 (`py/path-injection`) gehaertet: Basisverzeichnis-Normalisierung akzeptiert nur serverseitig erlaubte Verzeichnisse (Allowlist) statt frei eingetragener Pfade.
+- CodeQL-Alert #3 (`py/stack-trace-exposure`) gehaertet: Chat-Streaming liefert bei internen Fehlern keine rohen Exception-Texte mehr nach aussen.
+
 ## 0.1.8 - 2026-07-12
 
 - GitHub-typische Workflow-Infrastruktur wieder aktiviert: GitHub Actions auf Repository-Ebene auf `enabled: true` gesetzt.
