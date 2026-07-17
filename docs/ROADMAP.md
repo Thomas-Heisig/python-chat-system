@@ -9,22 +9,48 @@
 
 ## V1 Stabilisierung und Produktreife lokal
 
+- Secret-Hygiene weiter haerten: Beispiel- und Setup-Dateien systematisch auf echte Tokens/API-Keys pruefen und einen festen Repo-Check fuer Platzhalterwerte etablieren.
+- Nach Einfuehrung der Integrations-Settings fuer API-Schluessel: optional sichere Maskierung, getrennte Rollenrechte und spaetere Secret-Backends (z. B. OS-Secret-Store) evaluieren.
+- Nach Erweiterung der Integrations-Settings auf viele Provider (inkl. Wetter/Web/Kommunikation): provider-spezifische Verfuegbarkeitschecks, Test-Buttons und klare Nutzungspfade pro Plugin/Backend im UI ausbauen.
+- Nach Einfuehrung direkter `Key holen`-Links je Integrationsfeld: optionale provider-spezifische Health-Checks im selben Feld (Ampelstatus + letzter erfolgreicher Testzeitpunkt) ergaenzen.
+- Nach Einfuehrung von `Key testen` je Integrations-Key (Weather/Search): Test-Historie je Feld (letzter Erfolg/Fehler, Zeitpunkt) und optionales Batch-Re-Validation fuer alle Schluessel erweitern.
+- Nach Umsetzung von `Alle Keys testen` mit Ergebnis `OK/Fehler/uebersprungen`: Sammeltest um Zeitstempel, Laufdauer und optionale Export-/Copy-Funktion fuer Support erweitern.
+- Nach eingefuehrtem Skip-Verhalten fuer leere Integrations-Keys: Re-Validation-Berichte um `getestet` vs. `uebersprungen` differenzieren, damit Teilkonfigurationen transparent bleiben.
+- Nach Umstellung auf kompakten Target-Button (`↗`) je Integrationsfeld: optional Tooltip-/Status-Muster fuer Key-Quelle, letzter Test und Fehlerdiagnose vereinheitlichen.
+- Nach Einfuehrung von Integrationen-Tabs und einklappbaren Gruppen: nutzerbezogene Persistenz fuer aktiven Tab/Klappzustand sowie Rollensteuerung pro Sensitivitaetsklasse der Keys evaluieren.
+- Nach Einfuehrung von `custom_provider_keys` (JSON): standardisierte Adapter-Konvention fuer dynamische Provider-Aktivierung im Plugin-/Tool-Layer definieren.
+- Nach Laufzeitverdrahtung fuer `weather` und `websearch`: denselben Integrationspfad schrittweise auf weitere API-Plugins (z. B. `news`, `translator`, `stock_market`) ausrollen.
+- Nach aktivierter Secret-Maskierung im Settings-GET-Endpoint: rollenbasierte Secret-Freigaben und selektive Entschluesselung/Offenlegung fuer Admin-Werkzeuge evaluieren.
+- Nach Einfuehrung des OpenAI-/ChatGPT-Backends: Modellkatalog, Verbindungsdiagnosen und klare Runtime-Hinweise fuer `.env` vs. `.env.example` weiter produktivieren.
+- Nach Umstellung der Modell-Einstellungen auf Untertabs und Standard-Klappgruppen: persoenliche UI-Persistenz fuer offenen Gruppenstatus und Filterkombinationen evaluieren.
+- Nach browserseitiger Persistenz fuer Modellfilter und Gruppenstatus: optional serverseitige Synchronisation pro Benutzer/Geraet evaluieren.
 - Python-Laufzeit konsolidieren: `.venv-chat` (Python 3.12) als primaere Umgebung fuer Chat/Loader/Training etablieren und Interpreter-Drift zwischen lokalen Starts vermeiden.
 - Nach erfolgreicher `.venv-chat`-Migration: GPU-Paritaet der neuen Hauptumgebung vervollstaendigen (CUDA-Torch final angleichen und gegen Transformers/Vision/Training live pruefen).
+- Nach projektlokaler Pyright/Pylance-Venv-Fixierung: CI-gestuetzten Typcheck (pyright) als optionalen Qualitaetsgate-Job fuer Backend-Pfade evaluieren.
+- Nach aktivierter Markdown-Strictness Phase 1 fuer `docs/**/*.md`: Rule-Haertung in kleinen Batches auf weitere Doku-Bereiche (z. B. Plugin-READMEs) ausweiten und je Batch mit gezielten Korrekturen absichern.
+- Nach umgesetzter Markdown-Strictness Phase 2 fuer ausgewaehlte Plugin-READMEs: verbleibende Legacy-Plugin-Dokus mit Sonderformaten (z. B. Wrapper-Fences) schrittweise auf regelkonforme H1/Fence-Struktur migrieren, um weitere globale Ausnahmen abzubauen.
 
 - Einheitliche API-Fehlerstruktur mit Fehlercode, Retry-Hinweis und Details bereitstellen.
 - Nach vereinheitlichtem HTTP- und SSE-Error-Envelope: zentrale Client-Error-Utility fuer Toasts, Retry-Hinweise und Telemetrie standardisieren.
+- Speech-API-Vertragsstabilitaet ausbauen: Request-Varianten fuer `POST /api/speech/synthesize` (snake_case/camelCase, optionale `null`-Felder) als feste API- und Integrationstests absichern.
+- Speech-Runtime-Hardening erweitern: modellfamilien-spezifische TTS-Ladepfade (u. a. Kokoro ohne `model_type` in `config.json`) als dauerhafte Runtime-/Integrationstests absichern.
+- Speech-Runtime-Kompatibilitaet stabil halten: Kokoro-Laufzeit gegen API-Aenderungen (z. B. Generator-Result-Typen und lokale Modellpfade unter Windows) mit versionsnahen Regressionstests absichern.
+- Nach aktivierter deutscher Kokoro-Sprachauswahl (`de`/`de-de`): optionales Voice-Profiling fuer deutschsprachige Standardsprecher (z. B. `bf_emma`, `bm_george`) in der UI als Presets ergaenzen.
+- Qwen3-TTS produktivieren: validierten Runtime-Stack mit CPU-Smoke und Causal-Mask-Bridge als optionales, konfliktfreies Deployment-Profil kapseln und per Regressionstest stabil halten.
+- VAD-Preprocessing weiter ausbauen: nach serverseitigem STT-Precut (Silero-VAD) als naechsten Schritt Segment-Merging-/Padding-Strategien je Sprache und Mikrofonprofil evaluieren.
 - Polling weiter optimieren: sichtbarkeitsbasierten Refresh um Fokus-/Idle-Strategie erweitern, um Hintergrundlast weiter zu senken.
 - Konversations-Lifecycle weiter haerten: Rename/Delete/Create-Endpunkte konsistent gegen Async- und DB-Randfaelle absichern.
 - Nach Settings-Fallback-Hardening fuer `model_<id>_*`: End-to-End-Tests fuer modell-spezifische Prompt-/Parameterauflosung ueber mehrere Benutzerkonten ausbauen.
 - Modellpfade mit Path-Traversal-Schutz und Basisverzeichnis-Pruefung haerten.
 - Nach Modellpfad-Haertung: bestehende `ModelConfig`-Datensaetze per Migrations-/Health-Check auf unerlaubte Pfade pruefen und bereinigen.
 - Nach umgestellter Startup-Repair-Strategie fuer invalide Settings: optionalen Admin-Repair-Trigger (on-demand) und einen strukturierten Reparaturreport fuer Betrieb/Support ergaenzen.
+- Runtime-Warnungsstrategie verfeinern: umgebungsabhaengige Log-Level (dev/staging/prod) fuer Betriebsmeldungen konsistent ueber weitere Startup-Checks ausrollen.
 - Nach erfolgreichem Volltestlauf (`43 passed`): verbleibende SQLAlchemy-Connection-Lifecycle-Warnung (`non-checked-in connection`) in Integrationstests systematisch beheben.
 - Nach Polling-Deduplikation: Fokus-/Idle-basierte Polling-Intervalle dynamisch staffeln, um Last unter aktiver Nutzung weiter zu optimieren.
 - Nach TanStack-Query-Konsolidierung: Cache-Invalidierung und Mutation-Flows fuer Einstellungen/Chataktionen weiter standardisieren.
 - Nach zentralen Settings-Query-Helfern: verbleibende Chat-Mutationen schrittweise in denselben einheitlichen Invalidation-/Optimistic-Update-Pfad ueberfuehren.
 - Nach Strict-Mode-Regressionstests: Polling-Testabdeckung auf Fokus-/Idle-Intervallstaffelung und Sichtbarkeitswechsel erweitern.
+- Nach bereinigter Pylance-Typdiagnostik in den Training-Repositories: Strict-Typisierung fuer weitere Training-Pfade (`services`, `routes`) systematisch nachziehen und als festen Qualitaetscheck verankern.
 - Prompt-Persistenz im Modellprofil weiter haerten: UI-Race-Conditions beim Modellwechsel/Speichern eliminieren und globalen Fallback (`prompt.system_prompt`) als sichtbaren Standardpfad absichern.
 - API-/Integrationstests fuer Startup-Restore und Modellpfad-Gueltigkeit gegen Datenbank-Bestandsdaten ausbauen.
 - Nach retrieval-basierten Kontextmetriken: externe Datenanteile von Metadaten-Kontext auf inhaltsbasierte Chunk-Selektion (inkl. Embedding-/Hybrid-Ranking) weiterentwickeln.
@@ -35,6 +61,32 @@
 
 ## V2 Funktionsausbau Chat, Settings und Wissensbasis
 
+- Nach eingefuehrter Zykluspruefung und Parent-Validierung in der Projekt-Hierarchie (`Mandant -> Benutzer -> Bereich -> Projekt`): als naechsten Schritt Mehrbenutzer-Ownership ueber Teams und tenantweite Konsistenzregeln weiter ausbauen.
+- Nach Einfuehrung tieferabhaengiger Quellenzuordnung (Quellen auf Knotenebene + vererbte Sicht entlang der Parent-Kette): Retrieval- und Bibliotheksansicht um direkte Kennzeichnung `direkt` vs. `geerbt` mit Filterung je Ebene erweitern.
+- Nach aktivierter Scope-Aufloesung im Chat-Retrieval (Konversation -> Projektlinie): verbleibende unzugeordnete Legacy-Quellen kontrolliert migrieren und optionalen Strict-Mode (`nur zugewiesene Projektquellen`) je Mandant/Team einfuehren.
+- Nach produktiver Persistenz und gehaerteter Reparenting-Logik (inkl. Child-Umbindung bei Delete): Drag-and-drop Baumansicht und Batch-Reparenting fuer groessere Projektlandschaften einfuehren.
+- Nach Einfuehrung des Plugin-Doku-Index (`docs/plugins/index.md`): Querverweise aus Entwickler-Startseiten/README systematisch auf den zentralen Einstiegspunkt ausrichten, um Doku-Streuung weiter zu reduzieren.
+- Nach zentraler Execute-Validierung fuer den Kommunikations-Contract: denselben Shared-Validator optional in `/api/plugins/execute`-Vertrags-/E2E-Tests und spaeter fuer weitere Kommunikations-Plugins wiederverwenden.
+
+- Nach Einfuehrung des Workspace-Neustarts (`Chats & Projekte loeschen`): optionalen Sicherheitsdialog mit Export-/Backup-Hinweis und feinere Reset-Scopes (nur Chats, nur Projekte, beides) ergaenzen.
+- Nach eingefuehrter Admin-Rechtepruefung fuer den globalen Neustart: optionalen Scope-Parameter (`user`, `global`) und zusaetzliches 4-Augen-Freigabemuster evaluieren.
+
+- Nach Einfuehrung von `Ollama Local` und `Ollama Cloud` in der Modellauswahl: optionalen Katalog-Refresh, Download-Fortschritt und gefilterte Darstellung nach Modellfamilie/Faehigkeiten im UI ausbauen.
+- Nach sichtbarem Pull-/Download-Status fuer `Ollama Cloud`: zusaetzlich Abbruch-/Retry-Flow und serverseitige Historie fuer fehlgeschlagene Downloads standardisieren.
+- Nach lokalem Filterset im Modellmanager (`Tools`, `Thinking`, `Vision`, Modellfamilie`): serverseitige Persistenz fuer Nutzerfilter und kombinierte Sortierprofile evaluieren.
+
+- Nach eingefuehrter Plugin-Runtime-API (`/api/plugins`, `/api/plugins/execute`, `/api/plugins/execute-from-markup`): UI-Orchestrierung fuer Plugin-Schritte (`plugin_call` -> warten -> `plugin_response` -> Antwort) als gefuehrten Chat-Laufpfad produktivieren.
+- Nach produktiver Chat-Orchestrierung mit `chat.plugin_orchestration_enabled`: Konversations-UX um sichtbare Tool-Statusanzeige und Debug-Ansicht fuer Plugin-Ketten erweitern.
+- Plugin-Governance ausbauen: pro Team/Benutzer erlaubte Plugins und API-Key-Verfuegbarkeit serverseitig erzwingen (Allow-/Deny-Policy + Audit).
+- Nach eingefuehrter plugin-spezifischer Feldvalidierung und feldgenauer Save-Fehlerrueckmeldung auf Basis von `settings_fields`: als naechsten Schritt Rechte-/Sichtbarkeitsregeln, Cross-Field-Validierung und API-/UI-Regressionstests pro Plugin ausbauen.
+- Nach Ausbau des `business_letter`-Plugins auf Brief+E-Mail+Validierung: Versandadapter (SMTP/API), Queueing und Zustellstatus (`queued` bis `delivered`/`failed`) mit nachvollziehbarer Historie produktiv anbinden.
+- Nach abgeschlossener Execute-Runtime-Absicherung des `business_letter`-Plugins: denselben Fallkatalog auf API- und Orchestrierungs-Ebene als End-to-End-Regressionssuite verankern.
+- Nach Harmonisierung von `email`, `whatsapp` und `translator` auf gemeinsame Boundary-Vertraege (`delivery`/`content`, `validate_only`, strukturiertes `validation`): kanaluebergreifende Kommunikations-Suite als verbindlichen API-/Orchestrierungs-Regressionstest ausbauen.
+- Nach Einfuehrung des kanonischen Kommunikations-Contracts (`docs/plugins/communication-contract.md`) samt Schema (`app/plugins/contracts/communication.schema.json`): auf Runtime aufsetzende API-/Frontend-Nutzung (Formulare, Contract-Tests, Fehlermapping) schrittweise vervollstaendigen.
+- Nach Einfuehrung strukturierter Empfaenger-/Referenz-/Anlagenfelder im `business_letter`-Plugin: PDF/DOCX-Template-Renderer auf dieselbe Datenstruktur harmonisieren, damit Brief und Mail aus identischen Dokumentdaten erzeugt werden.
+- Training robuster fuer Modellwechsel machen: architekturbezogene Auto-Profile fuer `target_modules` in den Preflight-Report aufnehmen (inkl. erkannter Module und Fallback-Hinweisen).
+- Preflight-Qualitaet vertiefen: `target_modules`-Vorschau optional durch leichtgewichtige Modell-Introspektion (ohne Full-Load) validieren und pro Modellfamilie mit Confidence kennzeichnen.
+
 - Nach Einfuehrung von `/api/models/capabilities`: Frontend-Modelleinstellungen und Ladeentscheidungen schrittweise auf capability-basierte Validierung umstellen.
 - Nach Erweiterung von `GET /api/models` um Capability-Metadaten: persistente Favoriten/Irrelevanz-Labels (`favorite`/`irrelevant`) und nutzerbezogene Gruppierungs-Praeferenzen ergaenzen.
 - Nach Einfuehrung persistenter Relevanzflags: Team-/rollenbezogene Relevanzansichten (pro Nutzer vs. globales Teamprofil) und Bulk-Markierung im Modellmanager ausbauen.
@@ -44,11 +96,26 @@
 - Nach erfolgreicher SmolVLM2-Liveaktivierung inkl. JPEG-Smoke-Test: Vision-Postprocessing weiter verbessern, damit Antworten nicht mehr Prompt-/History-Echo enthalten und modelltypisch kompakt ausgegeben werden.
 - Nach Frontend-Umstellung auf Markdown-Rendering: optionale Safe-Plugins (z. B. GFM) und feinere Typografie fuer Tabellen/Codebloecke evaluieren, ohne Sicherheit und Lesbarkeit zu verschlechtern.
 - Nach produktiver Einfuehrung und Stabilisierung von `Allgemein`-Settings: verbleibende Frontend-Texte auf durchgaengige i18n-Struktur umstellen (statt partieller DE/EN-Inline-Texte in einzelnen Komponenten).
+- Nach produktiver Verdrahtung der Settings-Gruppen `Chat`, `Wissen` und `Logs`: verbleibende Gruppen (`Darstellung`, `Datenbank`, `System`) schrittweise von Platzhaltern auf echte Persistenz-/Validierungsfluesse umstellen.
+- Nach Entkopplung und Startup-Cleanup der alten globalen Antwortstil-Keys: chattypische Presets weiter ausbauen (z. B. Streaming-Default, pluginbezogene Sicherheitsstufen, konversationsbezogene Startprofile) ohne erneute Vermischung mit modellspezifischen Generierungsparametern.
+- Nach abgesichertem On-Demand-Cleanup im Settings-Bereich: Audit-Trail fuer Wartungsaktionen (`cleanup-obsolete`, Reset-/Repair-Tasks) zentralisieren.
+- Nach Einfuehrung der zentralen Security-Dokumente unter `docs/security/`: verbleibende Admin-Endpunkte schrittweise auf gemeinsame Guard-Dependencies und einheitliche Audit-Events migrieren.
+- Security-Rollout operationalisieren: `docs/security/README.md` als verbindliche Reihenfolge- und Review-Checkliste fuer neue und bestehende Admin-Endpunkte verwenden.
 - Nach Selbstwissen-Erweiterung im Chat-Systemprompt: steuerbare Auspraegung festlegen, welche Benutzer-/Team-Einstellungen als Prompt-Kontext zwingend oder optional einbezogen werden.
+- Nach Umstellung des Standardstils auf natuerlichen Fliesstext: umschaltbare Ausgabeprofile (Klartext, strukturiert, technisch) pro Nutzer/Modell im Settings-Flow ergaenzen.
+- Nach eingefuehrter Live-Denkblase fuer `<think>`-Streaming: pro Benutzer konfigurierbar machen, ob Reasoning nur live sichtbar oder zusaetzlich in redigierter Form persistiert werden soll.
 - Nach integrierter In-Scan-Bereinigung von Datei-vs-Ordner-Dubletten: optionalen expliziten Maintenance-/Migrationspfad fuer historische Sonderfaelle ausserhalb regulärer Scan-Laeufe standardisieren.
 - Nach Runtime-Probes und produktiver Loader-Aufloesung: echte Inferenzpfade je Task-Typ (Embedding/Reranker/Speech/OCR/Bild) hinter denselben Loader-IDs weiter vertiefen und benchmarken.
 - Chat-Template-Strategie backenduebergreifend weiter haerten: GGUF/llama.cpp-Template-Verhalten gegen reale Modellmetadaten und Sonderfaelle (fehlendes Chat-Template) systematisch validieren.
+- Nach gehaerteter GGUF-Dateiauswahl (Gewichte statt `mmproj`): automatische Regressionstests fuer Ordner mit mehreren `.gguf`-Artefakten (inkl. Vision-Projektordateien) im Modellaktivierungsflow verankern.
 - Trainings-Kompatibilitaet vertiefen: neben `peft_lora` weitere Trainer-spezifische Regeln und hardwareabhaengige Constraints (VRAM/CUDA/Quantisierung) serverseitig auswerten.
+- Geschaeftskorrespondenz-Training weiter haerten: einheitliches JSON-Zielformat pro Dokumenttyp (`geschaeftsbrief`, `angebot`, ...) als verbindlichen Structured-Output-Standard etablieren und in Preflight/Evaluation verankern.
+- Nach API-Erweiterung um optionale Testdateien und `imported`-Default: Dataset-Verwaltung auf rollenbasierte Dateimodelle (`source`/`canonical`/`training`/`validation`/`test`) umstellen und UI entlang dieser Rollen strukturieren.
+- Nach eingefuehrter Rollen-UI, ZIP-Bundle-Import und normalisierten Tabellen (`training_dataset_files`, `training_artifacts`): End-to-End-Monitoring und Detailansichten auf den neuen Tabellen aufbauen (statt primaer auf JSON-Metadaten).
+- Nach neuer Job-Provenance (`result.dataset.files` + UI-Anzeige): naechster Schritt ist die Erweiterung um Dateihashes, Record-Counts und ggf. Snapshot-Versionen fuer vollstaendig reproduzierbare Laufhistorien.
+- Nach den neuen Bereichs-Toggles im Trainingscenter: Nutzerpraeferenzen fuer sichtbare Panels (Training/Dateien/Jobs) pro Benutzer speichern und beim erneuten Oeffnen wiederherstellen.
+- Nach eingefuehrten Run-Profilen (`A`/`B`/`C`) und strukturierter Artefaktablage pro Dataset/Version: vergleichsbasierte Run-Auswertung (Metrikmatrix + Topic-Abdeckung) als Standardprozess etablieren.
+- Nach eingefuehrtem A-F-Experimentskript (`scripts/run_training_experiment_plan.py`): automatische Zusammenfuehrung mehrerer Run-Reports in eine vergleichbare Leaderboard-Ansicht (Base vs Adapter, Delta je Schritt) ausbauen.
 - Nach Einfuehrung versionierter Konversations-Generierungsprofile: Versionsvergleich und schnelle Wiederherstellung (Diff/Restore) im UI erweitern.
 - Projektverwaltung weiter ausbauen: projektbezogene Filter und Bulk-Aktionen fuer Konversationen, Termine und Wissensquellen konsistent machen.
 - Quellenfluss produktivieren: nach `sources/upload` echte Inhaltsverarbeitung (Parsing/Chunking/Indexierung) fuer `pdf/md/txt/docx` aufbauen, damit Retrieval auf Dokumentinhalt statt Dateimetadaten basiert.
@@ -104,20 +171,40 @@
 
 ## V4 Training Workbench und Modellverbesserung
 
+- Plugin-Training operationalisieren: bereitgestelltes Datenset (`plugins_agent_training_v1.0.0.jsonl`) in den Evaluationsfluss ueberfuehren und das Interaktionsmuster `<plugin_call>/<plugin_input>/<plugin_response>` mit Gateway-Checks absichern.
+- Nach produktiver Chat-Orchestrierung: Trainingsdaten gegen die reale Zwei-Runden-Logik validieren und Plugin-Fehlerpfade als eigene Beispielsammlung erfassen.
+
 - Trainingsdomane als allgemeines `training`-Subsystem aufbauen (statt enger `finetuning`-Bezeichnung), damit neben Fine-Tuning auch LoRA/QLoRA, DPO/PPO, Reranker und Reward-Model-Pfade erweiterbar bleiben.
 - Trainings-Preflight fuer lokales Basismodell und Dataset weiter ausbauen (inkl. klarer Fehlerklassifizierung und Recovery-Hinweisen).
 - Lifecycle-Konsolidierung abschliessen: `running` als Oberstatus gegen granulare Trainingsstatus/Phasen sauber abloesen.
 - Realen PEFT-Smoke-Run als wiederholbaren Verifikationspfad weiter standardisieren (automatisierte Ausfuehrung, reproduzierbare Artefaktpruefung, klare Abbruchsignale).
 - Nach fruehem Trainer-Heartbeat und explizitem Validierungsdatei-Support: Trainingsbeobachtbarkeit im UI weiter ausbauen (sichtbare Phase vor Schritt 1, Datensatzgroessen, Tokenizer-/Pad-Checks im Report).
 - Nach erfolgreichem Adapter-Artefaktcheck: Trainingsartefakte in den Modellmanager rueckfuehren (registrieren, vergleichen, kurze Testinferenz mit/ohne Adapter).
+- Nach direkter Fortschrittsanzeige in der Job-Liste: Runtime-Metriken im selben Job-Panel weiter verdichten (Loss/LR/ETA) und als stabile Beobachtungsansicht standardisieren.
+- Nach aktiviertem Live-Polling fuer Trainingsjobs: naechster Schritt ist ein serverseitiges Event-Streaming fuer Job-Progress, um Polling-Last weiter zu reduzieren.
+- Nach OOM-Hinweisintegration und Dateifallback fuer Alt-Jobs: automatische Retry-Assistenten mit hardwareabhaengigen Hyperparameter-Empfehlungen aufbauen.
+- Nach aktivem CUDA-OOM-CPU-Fallback im PEFT-Trainer: Fallback-Transparenz im UI ausbauen (Kennzeichnung, Dauer, Ressourcenverbrauch) und intelligentes Offload-Tuning je Hardwareprofil einfuehren.
+- Nach verbesserter 409-/Preflight-Fehlertransparenz: Jobstart-Dialog um gefuehrte Korrekturschritte (Modell/Trainer/Datensatzstatus) erweitern.
+- Nach Parsing verschachtelter API-Fehlerdetails: einheitliche Fehlerdarstellung ueber alle Routen (nicht nur Training) inkl. konsistenter UX-Typen (Hinweis/Warnung/Blocker) einfuehren.
+- Nach Freigabe von `imported`-Datasets fuer den Jobstart-Preflight: Statusmodell vereinheitlichen, sodass technische Import-Stati und fachliche Trainingsbereitschaft klar getrennt sind.
+- Queue-first Jobstart weiter absichern: Konflikte auf echte technische Blocker begrenzen (Preflight), während Dataset-Lifecycle-Stati den Submit-Pfad nicht unnoetig blockieren.
+- API-Robustheit im Trainingspfad ausbauen: ORM-Serialisierung nach Commit standardisieren (Reload-Pattern), um asynchrone Lazy-Load-Fehler in Response-Mapping zu verhindern.
+- Dataset-Lebenszyklus weiter schaerfen: harte Loeschung nur fuer unbenutzte Datasets erlauben, genutzte Datasets bewusst archivieren statt referenzierte Trainingshistorie zu zerstören.
+- Async-ORM-Antworten nach Commit generell vermeiden oder gezielt neu laden, damit Archivieren/Unarchivieren und andere Training-CRUD-Aktionen keine expired-attribute Fehler erzeugen.
+- Trainingsordner als Batch-Quelle: Ordnerbasierte Datensaetze gesammelt in die Queue schieben und erfolgreiche Ergebnisse automatisch archivieren.
 - Trainer ueber Interface abstrahieren (Unsloth, Axolotl, TRL, MLX, FutureTrainer), damit Backendwechsel ohne Umbau in Services/API moeglich ist.
 - Dataset-Domane mit Versionierung und reproduzierbaren Metadaten ausbauen (Quelle, Split, Tokenizer, Promptformat, Lizenz, Sprache, Checksum, Ersteller, Projektbezug).
+- Trainingsdaten und Artefakte langfristig normalisieren: eigene DB-Tabellen fuer Dataset-Dateien und Job-Artefakte einfuehren statt ausschliesslich JSON-Felder zu verwenden.
+- Nach Einfuehrung der Tabellen `training_dataset_files` und `training_artifacts`: API-Responses schrittweise auf table-first umstellen und JSON-Felder auf Kompatibilitaetsrolle reduzieren.
+- Nach Split-Leakage-Checks im Preflight: ergaenzende Hash-/Checksum-basierte Quellintegritaetspruefung in den Manifest-Flow integrieren.
+- Nach eingefuehrtem Business-Letter-Linter: Qualitaetsgates in den Trainingssubmit integrieren (Schema-Validitaet, verbotene Muster, Dokumenttyp-Konsistenz), sodass fehlerhafte Assistant-Targets bereits vor Jobstart abgelehnt werden.
 - Nach Datei-/URL-Import fuer Trainingsdatasets: Metadatenfluss fuer Manifest/README/Checksummen automatisch auslesen und bei Importen direkt am Dataset hinterlegen.
 - Nach universellem Dataset-MVP: Parser-/Validator-/Exporter-Plugins fuer weitere Formate und unternehmensspezifische Schemata standardisieren, inklusive Auto-Split (train/val/test), Qualitaetsbewertung und Benchmark-Generierung aus demselben kanonischen Datensatz.
 - Exporter und Validator als Pflichtbausteine einfuehren: Datenqualitaet/Schema/Tokenlaengen/Rollen/Duplikate validieren und Daten aus Chats/Bibliothek/Dokumenten/Bewertungen/Projekten exportieren.
 - Job-Lifecycle fuer Training weiter granularisieren (`created`, `queued`, `preparing`, `validating`, `tokenizing`, `training`, `saving`, `registering`, `completed`, `cancelled`, `failed`) und im UI transparent machen.
 - Promotions-Gate verpflichtend machen: Training -> Evaluation -> Healthcheck -> Benchmark -> Registrierung -> Aktivierbar.
 - Evaluationsmodul nach jedem Training automatisch ausfuehren (Perplexity, Testsatz, Qualitaet, Benchmark, Regression).
+- Nach erweitertem `evaluation-report.json` (Base-vs-Adapter + Konfusionsmatrizen): Labelschema fuer Intent/Agent/Tool standardisieren, damit die Metriken nicht mehr von frei formatierten Completion-JSONs abhaengen.
 - Experiment-Tracking und Trainingshistorie persistieren (Hyperparameter, Seed, Commit, Dataset-/Trainer-Versionen, CUDA, Loss/LR/Epoch/ETA/Checkpoint, GPU/VRAM/RAM).
 - GPU-Scheduler mit klaren Prioritaeten einfuehren: Chat (1), Embedding (2), Training (3).
 - Referenzarchitektur laufend pflegen in [docs/training-workbench.md](docs/training-workbench.md).

@@ -1,6 +1,364 @@
 # Changelog
 
+## 0.1.41 - 2026-07-17
+
+- Kommunikations-Contract in der Runtime operationalisiert: `app/tools/communication_contract.py` validiert fuer `business_letter`, `email`, `whatsapp`, `translator` jetzt direkt gegen `app/plugins/contracts/communication.schema.json` (Draft 2020-12).
+- Runtime-Dependency ergaenzt: `jsonschema` als Projektabhaengigkeit in `requirements.txt` aufgenommen.
+- Contract-Regressionen fuer alle betroffenen Plugins erweitert: `tests/unit/test_plugin_executor.py` prueft jetzt pluginuebergreifend schema-konforme Validierungs-Envelopes sowie gezielte schema-seitige Invalid-Faelle.
+- WhatsApp-Validate-Only-Pfad an den gemeinsamen Contract angepasst: Top-Level-`status` nutzt jetzt `ready` statt `validated`, inklusive angepasstem Runtime-Test in `tests/unit/test_whatsapp_plugin_runtime.py`.
+
+## 0.1.41 - 2026-07-17
+
+- Zentrale Contract-Validierung in den gemeinsamen Execute-Pfad integriert: `app/tools/executor.py` prueft fuer `business_letter`, `email`, `whatsapp`, `translator` den Kommunikations-Envelope vor dem Plugin-Call (`plugin_contract_invalid_input`) und das Plugin-Ergebnis danach (`plugin_contract_invalid_output`).
+- Shared Helper eingefuehrt: `app/tools/communication_contract.py` validiert die kanonischen Boundary-Felder (`delivery`, `content`, `metadata`, `validate_only`, `validation`, `status`, `reason`) auf Basis des zentralen Contracts.
+- Plugin-Ausgaben auf den gemeinsamen `validation`-Vertrag harmonisiert: nicht-kanonische Zusatzfelder im `validation`-Objekt bei `email`, `whatsapp`, `translator` entfernt.
+- Executor-Regression erweitert: `tests/unit/test_plugin_executor.py` deckt jetzt alle vier harmonisierten Plugins im zentralen Execute-Pfad plus einen Negativfall fuer ungueltige Contract-Eingaben ab.
+
+## 0.1.40 - 2026-07-17
+
+- Zentrale Boundary-Contract-Dokumentation fuer Kommunikations-Plugins eingefuehrt: `docs/plugins/communication-contract.md` beschreibt verbindlich den gemeinsamen Envelope (`delivery`, `content`, `metadata`), `validation`-Format, `validate_only`, Skip-Verhalten und Autonomiegrenzen.
+- Maschinenlesbare Contract-Definition hinzugefuegt: `app/plugins/contracts/communication.schema.json` als wiederverwendbare Basis fuer spaetere Typen, Validierung, Frontend-Formulare und Tests.
+- Bestehende Kommunikations-Konventionen verknuepft: `docs/plugins/communication.md` referenziert jetzt den kanonischen Contract und das Schema.
+
+- Serverseitige Feldvalidierung fuer Plugin-Profile in `POST /api/settings/{category}/{key}` eingefuehrt: fuer `plugins/*_profile` werden jetzt Pflichtfelder, Feldtypen und Select-Optionen anhand der Registry-`settings_fields` geprueft.
+- Fehlervertrag fuer Plugin-Validierung gehaertet: bei ungueltigen Profilwerten liefert die API strukturierte Details mit `code`, `message`, `plugin_id` und `field_errors` pro Feld.
+- Plugin-Settings im Frontend konsequent auf dynamische Steuerung umgestellt: `WorkspacePage` rendert konfigurierbare Plugins ausschliesslich ueber `settings_fields` (inkl. Gruppen) und unterstuetzt `string`, `text`, `boolean`, `number`, `select`, `password`.
+- UI-Fehlerrueckmeldung pro Plugin/Feld umgesetzt: Validierungsfehler aus dem Backend werden plugin- und feldspezifisch angezeigt, statt nur als allgemeiner Speichern-Fehler.
+- Save-Flow je Plugin vereinheitlicht: Plugin-spezifischer Pending-Status (`savingPluginId`) und generische Draft-Verwaltung ueber `pluginSettingsDrafts`/`onPluginSettingChange`.
+- Plugins ohne konfigurierbare `settings_fields` werden im Plugin-Settings-Bereich nicht mehr als leere Konfigurationsbloecke gerendert.
+- Frontend-Build verifiziert: `npm run build` (Vite) laeuft nach der Umstellung erfolgreich durch.
+
+## 0.1.39 - 2026-07-17
+
+- Kommunikations-Plugin-Gleichklang erweitert: `whatsapp` und `translator` akzeptieren jetzt auch harmonisierte Eingabestrukturen aus fachuebergreifenden Payloads (`delivery`/`content`) ohne Verlust ihrer provider-spezifischen Autonomie.
+- `whatsapp` gehaertet: kanalbewusster Skip fuer fachfremde Kanaele (`letter`/`email`), `validate_only`-Pfad sowie strukturierte Validierung mit `status`, `errors`, `warnings`, `missing_information`.
+- `translator` gehaertet: harmonisierte Text-Normalisierung aus `content`, `validate_only`-Pfad und strukturierte Validierung in der Plugin-Antwort.
+- Runtime-Regressionen ergaenzt: neue Unit-Tests fuer WhatsApp und Translator (`tests/unit/test_whatsapp_plugin_runtime.py`, `tests/unit/test_translator_plugin_runtime.py`) inklusive Envelope-Kompatibilitaet und Validierungsfaellen.
+- Kommunikations-Plugin-Dokumentation synchronisiert: READMEs von `whatsapp` und `translator` auf neue Eingabe-/Ausgabevertraege erweitert.
+
+## 0.1.38 - 2026-07-17
+
+- business_letter Plugin-Dokumentation synchronisiert: README an den aktuellen Runtime-Stand angepasst (Alias-Mapping, Tonalitaeten, Input-Regeln, Statuslogik und erweiterte Validierungsregeln).
+- Zentrale Plugin-System-Dokumentation eingefuehrt: neue Leitdokumente unter `docs/architecture/plugin-system.md` und `docs/plugins/` (`settings.md`, `standards.md`, `validation.md`, `communication.md`, `plugin-development.md`) fuer systemweite Regeln statt plugin-spezifischer Ablage.
+- Navigationsseite fuer Plugin-Dokumente hinzugefuegt: `docs/plugins/index.md` mit empfohlener Lesereihenfolge und zielorientierter Schnellnavigation fuer neue Entwickler.
+- Chat-Retrieval auf Projekt-Hierarchie umgestellt: Quellen werden im Chat jetzt konversationsbezogen ueber `conversation_project_map` und `workspace.project_meta_map` aufgeloest statt userweit gemischt.
+- Scope-Regel durchgesetzt: bei zugewiesenem Konversationsprojekt werden nur Quellen aus der eigenen Projektlinie (Vorfahren + aktueller Knoten) beruecksichtigt; fachfremde Parallelprojekte (z. B. `Heisig Naturstein` vs. `Fussball`) werden nicht mehr vermischt.
+- Hierarchie-Richtung gehaertet: Quellen wandern nur von oben nach unten entlang der Parent-Kette; untergeordnete Projektdaten werden nicht nach oben geerbt.
+- Retrieval-Metadaten erweitert: ausgewaehlte Quellen und Diagnostik enthalten jetzt zusaetzlich `project_id` und `scope_depth` fuer nachvollziehbare Scope-Transparenz.
+- Knowledge-Repository erweitert: neuer Scope-Query-Pfad fuer kontextbezogenes Laden (`list_documents_for_scope`) inklusive optionalem Unassigned-Fallback.
+- Regressionstest hinzugefuegt (`tests/unit/test_chat_service.py`): validiert die konversationsgebundene Hierarchie-Auswahl und verhindert Quell-Leakage zwischen Projektbaeumen.
+
+## 0.1.37 - 2026-07-17
+
+- Plugin-Settings im Frontend von statisch auf generisch umgestellt: der Bereich `Einstellungen -> Plugins` rendert jetzt dynamisch alle Plugins anhand von `GET /api/plugins` und deren `settings_fields`.
+- Neue Frontend-API-Verdrahtung fuer Plugin-Metadaten umgesetzt: `getPlugins()` liefert Plugin-Katalog inkl. normalisierter Felddefinitionen (`type`, `group`, `default`, `options`) fuer die UI.
+- Persistenzpfad verallgemeinert: Profile werden fuer jedes Plugin unter `plugins.<plugin_id>_profile` geladen und gespeichert, statt nur `business_letter_profile` statisch zu behandeln.
+- Feldtypen produktiv abgedeckt: dynamisches Rendern/Speichern fuer `string`, `number`, `boolean` und `select` inkl. gruppierter Darstellung je Plugin.
+- Frontend-Build validiert: `vite build` laeuft nach der Mehr-Plugin-Umstellung erfolgreich durch (bestehende Chunk-Groessenwarnung unveraendert, nicht blockierend).
+
+## 0.1.36 - 2026-07-17
+
+- Chat-Settings entruempelt: redundante Generierungs-Standardwerte fuer Antwortstil/Sampling (`temperature`, `max_new_tokens`, `top_p`, `top_k`, `repetition_penalty`, `do_sample`, `seed`, `stop_sequences`) wurden aus den globalen `chat`-Defaults entfernt.
+- Aufloesung im Chat-Flow praezisiert: Generierungsparameter werden jetzt fuer die Antworterzeugung nur noch modell-spezifisch (`model_<id>_*`) gelesen; globale Chat-Werte dienen dafuer nicht mehr als Fallback.
+- Settings-UI `Chat` neu ausgerichtet: statt Antwortstil-Parametern werden jetzt chattypische Voreinstellungen gepflegt (`plugin_orchestration_enabled`, `auto_specialist_enabled`, `context_limit_tokens`, `context_safety_margin_tokens`).
+- Startup-Cleanup aktiviert: verbliebene alte globale `chat`-Eintraege fuer Antwortstil-/Sampling-Keys werden beim Runtime-Start kontrolliert entfernt (nur globaler Scope `user_id=null`, `team_id=null`).
+- On-Demand-Cleanup fuer Alt-Keys ergaenzt: neuer Endpoint `POST /api/settings/chat/cleanup-obsolete` unterstuetzt `dry_run`-Statistiken und die manuelle Ausfuehrung der Bereinigung.
+- Zugriffsschutz nachgezogen: `POST /api/settings/chat/cleanup-obsolete` verlangt jetzt explizit einen gueltigen Bearer-Token mit Admin-Rechten; fuer fehlende/ungueltige Tokens bzw. fehlende Admin-Rolle werden sichtbare `401/403`-Antworten geliefert.
+- Settings-UI erweitert: im Bereich `Einstellungen -> Chat` kann die Legacy-Bereinigung jetzt manuell angestossen werden; die letzte Cleanup-Statistik (gefunden/entfernt/verbleibend) wird direkt angezeigt.
+- Security-Dokumentation zentralisiert: neue Struktur unter `docs/security/` mit `authentication.md`, `authorization.md`, `admin-actions.md` und `audit-logging.md` als verbindlicher Referenzrahmen fuer geschuetzte Admin-Aktionen.
+- Verbindliche Guard-Konvention dokumentiert: administrative Endpunkte sollen zentralisierte Auth-Guards/Dependencies (z. B. `require_admin_user`) verwenden statt verteilter ad-hoc-Rollenpruefung.
+- Security-Uebersicht ergaenzt: `docs/security/README.md` verlinkt die vier Kern-Dokumente und legt die empfohlene Reihenfolge fuer Implementierung und Reviews fest.
+
+## 0.1.35 - 2026-07-17
+
+- `business_letter` als vollstaendigeres Kommunikationsmodul erweitert: Brief- und E-Mail-Ausgabe werden jetzt getrennt erzeugt (`letter`, `email`, `content`) und um `validation`, `delivery` sowie `metadata` ergaenzt.
+- Plugin-Schema deutlich ausgebaut: neue Eingabefelder fuer Kommunikationskanal (`letter`/`email`/`both`), Empfaengerdetails, E-Mail-Header (`to`/`cc`/`bcc`/`reply_to`), Referenzen, Fristen, Verlaufskontext und strukturierte Anlagenobjekte.
+- Briefarten fuer den Betriebsalltag erweitert (u. a. `angebotserinnerung`, `terminbestaetigung`, `lieferankuendigung`, `rechnung_begleitschreiben`, `mahnung_1`, `mahnung_2`, `dokumentenanforderung`).
+- Anrede-Logik sprachlich gehaertet: die pauschale Form `Sehr geehrte/r` wurde entfernt und durch eine strukturierte Anrede auf Basis von `customer_salutation`/`customer_title`/`customer_last_name` ersetzt.
+- Versandvalidierung professionalisiert: getrennte `errors`, `warnings` und `missing_information`, kanalabhaengige Pflichtpruefungen, Plausibilitaetschecks fuer Mahnungen/Angebote, Anlage-Checks und Platzhalter-Blocker vor Versandfreigabe.
+- Rechts- und Stammdaten in Plugin-Settings erweitert: u. a. Land/Postfach/Mobil/Fax, Reply-To/BCC, strukturierte Registerangaben, strukturierte Bankdaten, Kommunikationsvorgaben und fachliche Hinweisbausteine.
+- Legacy-Kompatibilitaet erhalten: `company_registry` und `company_bank` werden weiterhin als Fallback gelesen, intern aber in strukturierte Felder ueberfuehrt.
+- Instabile Referenzbildung mit Python-`hash()` entfernt: Dokumentnummern werden nun stabil ueber explizite Felder bzw. UUID-basierte IDs erzeugt.
+- Trainings-/Eval-Schema (`app/training/evaluation/business_letter_schema.py`) auf das neue erweiterte Ausgabeformat angepasst (kompatibel fuer altes und neues JSON-Layout).
+- Unit-Tests fuer das Business-Letter-Schema aktualisiert und um erweiterte Statusfaelle (`queued` etc.) ergaenzt.
+- Runtime-Tests fuer `BusinessLetterPlugin.execute()` hinzugefuegt (`tests/unit/test_business_letter_runtime.py`) mit sechs Kernfaellen: vollstaendige E-Mail, unvollstaendiger Brief, fehlende Pflichtanlage, Platzhalter-Firmendaten, Kanal `both`, Mahnung ohne Rechnungs-/Faelligkeitsangaben.
+
+## 0.1.34 - 2026-07-17
+
+- Plugin-Einstellungen im Settings-Bereich sichtbar vervollstaendigt: das `Geschaeftsbrief`-Profil zeigt jetzt neben Basisfeldern auch erweiterte Unternehmensdaten (u. a. Webseite, Steuer-/USt-ID, Register, Geschaeftsfuehrung, Kammer, Bank, AGB/Datenschutz).
+- Persistenzpfad fuer `plugins.business_letter_profile` erweitert: neue Felder werden in `AppShell` vollstaendig geladen, bearbeitet und gespeichert.
+- Frontend-Validierung erfolgreich: `vite build` laeuft nach dem Ausbau ohne neue Fehler in den geaenderten Settings-Komponenten.
+
+## 0.1.33 - 2026-07-17
+
+- Workspace-Hierarchie serverseitig gehaertet: `POST /api/workspace/projects` validiert `parent_project_id` jetzt strikt und liefert bei ungueltigem Parent den klaren Fehler `project_parent_not_found`.
+- Reparenting-Schutz erweitert: `PATCH /api/workspace/projects/{project_id}/hierarchy` blockiert nun indirekte Kreisbeziehungen mit `project_parent_cycle`.
+- Projektloeschung verbessert: beim Entfernen eines Hierarchieknotens werden direkte Kinder auf den Parent des geloeschten Knotens umgehaengt, statt auf `null` zu fallen.
+- End-to-End validiert: Hierarchietiefe, effektive Quellenvererbung und Kontexttrennung zwischen getrennten Projektbaeumen wurden gegen die Live-API erfolgreich geprueft.
+
+## 0.1.32 - 2026-07-17
+
+- Integrationen-UI erweitert: neue Sammelaktion `Alle Keys testen` fuehrt die sechs Kernprovider-Checks (`OpenWeather`, `WeatherAPI`, `Tomorrow.io`, `Exa`, `Brave Search`, `Bing Search`) in einem Lauf aus.
+- Re-Validation-Ausgabe ergaenzt: pro Key wird jetzt ein klares Ergebnis `OK`, `Fehler` oder `uebersprungen` in einer kompakten Ergebnisliste angezeigt.
+- Einzelfeld- und Sammeltest vereinheitlicht: dieselbe Testlogik wird fuer `Key testen` und `Alle Keys testen` verwendet, inklusive Skip-Verhalten fuer leere Felder.
+
+- Projektbegriff im Workspace erweitert: Projekte tragen jetzt zusaetzliche Hierarchie-Metadaten (`parent_project_id`, `scope_kind`, `area_key`, `tenant_key`, `owner_user_id`) und koennen als Knoten in einer variabel tiefen Struktur genutzt werden.
+- Persistente Hierarchiespeicherung eingefuehrt: die neue Struktur wird ueber `workspace.project_meta_map` in den Settings gespeichert und beim Laden wiederhergestellt.
+- Quellenzuordnung pro Hierarchieebene aktiviert: Bibliotheksquellen koennen jetzt explizit einer Projektebene zugewiesen oder von ihr geloest werden (`PATCH /api/workspace/sources/{source_id}/project`).
+- Effektive Quellenvererbung umgesetzt: neuer Endpoint `GET /api/workspace/projects/{project_id}/sources/effective` liefert Quellen entlang der Parent-Kette fuer tiefenbasierte Nutzung.
+- Projekte-UI erweitert: beim Erstellen und Bearbeiten sind nun Typ (`Mandant`, `Benutzer`, `Bereich`, `Projekt`), Parent-Ebene sowie Mandant-/Bereichskennungen konfigurierbar und direkt speicherbar.
+- Bibliotheks-UI erweitert: jede Quelle zeigt die aktuelle Projektebene und kann pro Datei neu zugeordnet werden.
+
+## 0.1.31 - 2026-07-17
+
+- Integrationen-UI fuer operative Key-Eingabe verbessert: Integrationsfelder werden in der Suche/Web-Wetter-Konfiguration jetzt klar als Einzelzeilen dargestellt (eine Zeile pro Key statt mehrspaltiger Darstellung).
+- Neue Direktaktion `Key testen` fuer die sechs produktionskritischen Provider (`OpenWeather`, `WeatherAPI`, `Tomorrow.io`, `Exa`, `Brave Search`, `Bing Search`) direkt am jeweiligen Key-Feld eingefuehrt.
+- Provider-Tests laufen gegen die bestehenden Plugin-Endpunkte (`/api/plugins/execute`) und pruefen den jeweils ausgewaehlten Anbieter gezielt statt nur unspezifischer Fallbacks.
+- Fehlerhafte Key-Tests werden jetzt deutlich visuell markiert: rotes Fehler-Highlight am Feld und Ausrufezeichen-Indikator mit konkreter Fehlermeldung.
+- Fehlende/nicht gesetzte Keys werden beim Feldtest jetzt still uebersprungen (keine rote Fehlermarkierung), damit Setups ohne vollstaendige Provider-Abdeckung sauber bleiben.
+
+## 0.1.30 - 2026-07-17
+
+- Integrationen-UI angepasst: `Key holen` durch kompakten Target-Button (`↗`) ersetzt, inklusive stabilisiertem Eingabereihen-Layout in Hell-/Dunkelmodus.
+- CSS-Reparatur fuer Integrationsfelder umgesetzt: dedizierte Klassen (`integration-target-btn`) verhindern Nebenwirkungen durch generische Button-Styles.
+- Secret-Klassifizierung im Backend verdrahtet: beim Speichern von Integrations-Settings wird `is_secret` jetzt automatisch gesetzt.
+- Sichere Settings-Ausgabe aktiviert: `GET /api/settings/{category}/{key}` maskiert Secrets standardmaessig (`********`), mit explizitem Opt-in ueber `include_secret=true`.
+- Frontend-Settings-Lader angepasst, damit editierbare Secret-Werte weiterhin bewusst angefordert werden koennen.
+
+## 0.1.29 - 2026-07-17
+
+- Frontend-Integrationen vervollstaendigt: `AppShell` laedt/speichert jetzt alle Integrationsfelder aus/in DB-Settings statt nur zwei Keys.
+- Integrationsspeicherung verallgemeinert ueber zentrales Mapping (`string`/`boolean`/`json`) inklusive JSON-Validierung fuer `custom_provider_keys`.
+- Integrationen-UI erweitert: pro API-Key-Feld gibt es nun einen direkten Button `Key holen` mit externem Provider-Link (neuer Tab).
+- Build-Validierung Frontend erfolgreich (`vite build`), keine neuen Fehler in geaenderten Dateien.
+
+## 0.1.28 - 2026-07-17
+
+- Laufzeitverdrahtung fuer Integrations-Keys erweitert: `weather`, `websearch` und `bing_search` lesen API-Keys jetzt aus DB-Settings (`integrations.*`) mit sauberem Env-Fallback.
+- Wetter-Plugin um echten `tomorrowio`-Provider erweitert (Realtime + Forecast), inklusive Provider-Auswahl und Fallback-Kette.
+- Websearch-Plugin von reinem DuckDuckGo auf echte Provider-Pipeline ausgebaut: Exa, Brave, Bing und DuckDuckGo als Fallback-Reihenfolge.
+- Plugin-Runtime im Chat-Flow gehaertet: `ChatService` injiziert plugin-spezifische Integrations-Keys gezielt in `plugin_settings.integrations`.
+- Plugin-API (`POST /api/plugins/execute`) auf denselben Integrationspfad gebracht, damit direkte Plugin-Ausfuehrung und Chat-Orchestrierung konsistent sind.
+
+## 0.1.27 - 2026-07-17
+
+- Integrationen-Endausbau umgesetzt: alle angeforderten API-Key-Kategorien erweitert (LLM/Enterprise, Vision/Video, Dokument/RAG, Suche/Web, Wetter/Karten, Finanzdaten, Kommunikation, Sicherheit).
+- Integrationen-UX auf Tabs und einklappbare Gruppen umgestellt, damit große Key-Sammlungen strukturiert und skalierbar bleiben.
+- Zukunftsfaehigkeit erhoeht: neues Feld `custom_provider_keys` als JSON-Objekt fuer beliebige spaetere Anbieter sowie `ollama_local_enabled` als zentraler Toggle integriert.
+- Vollstaendige DB-Anbindung verifiziert: alle Integrationswerte werden ueber den Settings-Flow in der Datenbank gespeichert, geladen und validiert.
+- `.env.example` synchron erweitert: sichere Platzhalter fuer die neuen Provider und klar gruppierte Sektionen fuer Setup und Betrieb.
+
+## 0.1.26 - 2026-07-17
+
+- Integrationen-Einstellungen deutlich erweitert: zusaetzlich zu OpenAI/DeepL koennen jetzt viele gaengige API-Keys zentral gespeichert werden (u. a. Anthropic, Google AI, Mistral, Cohere, Perplexity, Groq, Together, OpenRouter, Hugging Face, Replicate, DeepSeek, xAI).
+- Wetter-/Web-/Karten-Integrationen ergaenzt: neue Key-Felder fuer OpenWeather, WeatherAPI, Tomorrow.io, Tavily, SerpAPI, NewsAPI, Google Maps und Mapbox hinzugefuegt.
+- Kommunikations- und Plattform-Keys ergaenzt: neue Felder fuer Twilio, SendGrid, Slack Bot Token, Discord Bot Token, GitHub Token, Notion, Airtable und Stripe.
+- Backend-Settings-Schema synchron erweitert: neue Integrations-Keys sind in Defaults und Validierung hinterlegt und werden robust als Secrets-Strings verarbeitet.
+- `.env.example` um sichere Platzhalter fuer die neuen Integrationen erweitert, damit Setup und Dokumentation konsistent bleiben.
+
+## 0.1.25 - 2026-07-17
+
+- Markdown-Haertung Phase 2 umgesetzt: ausgewaehlte Plugin-READMEs wurden fuer `MD040` nachgezogen (Codefences mit expliziter Sprache versehen).
+- Fragment-Links in `plugins/README.md` korrigiert, sodass die Inhaltsverzeichnis-Links fuer `Dynamische Settings` und `Admin-UI & Konfiguration` unter `MD051` wieder gueltig sind.
+- `.markdownlint.json` weiter verschaerft: globale Ausnahme fuer `MD041` reduziert und Regelhaertung gezielt per Overrides auf den Phase-2-Batch der Plugin-READMEs erweitert.
+
+## 0.1.24 - 2026-07-17
+
+- Modellmanager-Praeferenzen pro Benutzer im Browser persistiert: aktive Modellfilter, gewaehlter Modell-Untertab und offene/geschlossene Modellgruppen werden jetzt benutzerbezogen wiederhergestellt.
+- `ultravox-gemma-2-9b-it` entblockt: fuer `audio_text_generation` wurde ein kompatibler Transformers-Loader registriert, sodass das Modell nicht mehr mit `Kein kompatibler Loader registriert` erscheint.
+- Sicherheitsbereinigung in `.env.example`: ein versehentlich enthaltener realer OpenAI-Schluessel wurde entfernt und durch den sicheren Platzhalter `your-openai-api-key` ersetzt.
+- Markdownlint schrittweise verschaerft (Phase 1): in `.markdownlint.json` gelten fuer `docs/**/*.md` jetzt wieder strengere Regeln (`MD040`, `MD041`, `MD051`), waehrend die restliche Legacy-Baseline unveraendert bleibt.
+- Doku-Qualitaetscheck fuer `docs/` validiert: die stricteren Phase-1-Regeln laufen fuer den Docs-Bereich aktuell ohne Befunde.
+
+## 0.1.23 - 2026-07-17
+
+- Modell-Einstellungsansicht neu gegliedert: `Modellverzeichnisse` und `Prompt-Profil` sind jetzt thematische Untertabs innerhalb von `Modelle` statt eigene Hauptreiter.
+- Modellmanager-Filter erweitert: neben Suche, Familie, `Tools`, `Thinking` und `Vision` lassen sich jetzt auch `Audio`, `Speech` und `OCR` gezielt filtern.
+- Modellgruppen entschlackt: Audio-/Speech-/OCR-/Hilfsgruppen und andere Nicht-Kernbereiche sind im Modellmanager standardmaessig eingeklappt; Eingabefelder und Filterflaechen wurden visuell vereinheitlicht.
+- Neues `openai`-Modellbackend ergänzt: ChatGPT/OpenAI-Modelle koennen jetzt als virtuelle Remote-Modelle gescannt, aktiviert und ueber denselben Modellmanager wie lokale/Ollama-Modelle genutzt werden.
+- OpenAI-Discovery an Integrations-Settings angebunden: vorhandene ChatGPT/OpenAI-API-Schluessel erzeugen beim Modellscan automatisch auswählbare Modelle wie `gpt-4.1-mini`, `gpt-4o-mini` und `o4-mini`.
+- Laufzeithinweis verifiziert: die App liest produktive API-Schluessel aus den Integrations-Settings oder `.env`, nicht aus `.env.example`; mit Platzhalterwerten wird die OpenAI-Aktivierung korrekt mit `invalid_api_key` geblockt.
+- Kritischer Startfehler behoben: in `app/models/ollama_integration.py` wurde ein syntaktisch fehlerhaftes Token in der Ollama-Cloud-Modellliste entfernt; der App-Start ueber `start.py` laeuft wieder stabil.
+- Startup-Logging verfeinert: die Meldung zu fehlendem `MODEL_ALLOWED_BASE_DIRS` wird in Entwicklungsumgebungen jetzt als `info` statt `warning` ausgegeben, in nicht-dev Umgebungen bleibt sie eine Warnung.
+- Markdownlint-Projektkonfiguration ergänzt: `.markdownlint.json` eingefuehrt, um bekannte, nicht-funktionale Doku-Lintregeln zentral zu steuern und den Problem-Status im Workspace zu beruhigen.
+
+## 0.1.22 - 2026-07-17
+
+- `.env.example` bereinigt: real wirkender API-Key entfernt, Beispielvariablen fuer externe Dienste auf sichere Platzhalter umgestellt und fehlerhafte DeepL-Beispielzeile korrigiert.
+- Neue Einstellungsgruppe `Integrationen` hinzugefuegt: ChatGPT/OpenAI- und DeepL-API-Schluessel koennen jetzt direkt ueber die Oberflaeche gespeichert und aus den App-Settings geladen werden.
+- Neuer Workspace-Neustart fuer sauberen Neuanfang implementiert: `POST /api/workspace/reset-clean-start` loescht alle Chats (inkl. Messages) und alle Projekte global aus der Datenbank.
+- Bugfix: Neustart-Endpunkt auf globalen Hard-Reset erweitert (statt nutzerbezogen), damit nach dem Neustart keine fremden/restlichen Chats mehr sichtbar bleiben.
+- Sicherheitsfix: Globaler Reset ist jetzt durch Admin-Berechtigung geschuetzt (Bearer-Token erforderlich, Nicht-Admin wird mit 403 abgewiesen).
+- FK-sichere Bereinigung umgesetzt: Referenzen in Terminen, Wissensdokumenten und Trainings-Datasets werden vor Projektloeschung automatisch entkoppelt.
+- Settings-Reset fuer Chat-Mappings integriert (`conversation_*_map`), damit nach dem Neustart keine veralteten Zuordnungen bestehen bleiben.
+- Seed-Steuerung eingefuehrt: `workspace.seed_demo_data=false` verhindert nach dem Neustart das automatische Wiederanlegen von Demo-Daten.
+- Einstellungen erweitert: In der Gruppe `System` gibt es jetzt den Button `Neustart: Chats & Projekte loeschen` mit Sicherheitsabfrage und Pending-Status.
+
+## 0.1.21 - 2026-07-17
+
+- Ollama als zusaetzliches Laufzeit-Backend integriert: lokale und cloudbasierte Ollama-Modelle werden beim Modellscan jetzt als aktivierbare virtuelle Modelle registriert und koennen ueber denselben Aktivierungsfluss wie andere Backends geladen werden.
+- Modellauswahl im Chat erweitert: chatfaehige Modelle erscheinen jetzt quellengetrennt unter `Lokal`, `Ollama Local`, `Ollama Cloud` und `Remote`.
+- Ollama-Faehigkeiten aus der Runtime abgebildet: Tool-/Thinking-/Vision-Merkmale werden aus den Ollama-Metadaten uebernommen und als Quellen-/Capability-Information im Modellmanager angezeigt.
+- Ollama-Cloud-Katalog erweitert: zusaetzliche Standardmodelle wie `phi4`, `qwen2.5-coder`, `codestral`, `command-r`, `deepseek-r1`, `llava` und `moondream` werden jetzt direkt als auswählbare Cloud-Eintraege gelistet.
+- Cloud-Katalog weiter ergänzt: `chatgpt-oss` und `deepseek-v3` sind jetzt ebenfalls als auswählbare Ollama-Cloud-Modelle vorhanden.
+- Sichtbarer Pull-/Download-Status fuer Ollama Cloud umgesetzt: Cloud-Modelle koennen im Modellmanager explizit heruntergeladen werden; Download-Status und Fortschritt werden ueber die Modell-API geliefert und im UI angezeigt.
+- Echter Abbrechen-/Retry-Flow fuer Ollama-Cloud-Downloads umgesetzt: laufende Downloads koennen serverseitig abgebrochen und danach erneut gestartet werden; der Modellstatus wechselt dabei sichtbar auf `cancelling` bzw. `cancelled`.
+- Modellkarten im Modellmanager erweitert: lokale Filter nach Suche, Modellfamilie sowie `Tools`, `Thinking` und `Vision` erleichtern die Auswahl grosser Modellmengen.
+
+## 0.1.20 - 2026-07-14
+
+- Kokoro-TTS um deutsche Sprachauswahl erweitert: `GET /api/speech/models` liefert fuer Kokoro jetzt `de` und `de-de` als waehlbare Sprachoptionen im UI.
+- Kokoro-Sprachmapping erweitert: zusaetzliche deutsche Aliaswerte (`de-at`, `de-ch`, `german`) werden stabil auf den `b`-Voice-Pfad aufgeloest.
+- Laufzeittest bestaetigt: `POST /api/speech/synthesize` mit `model_id=19`, `language=de`, `speaker=bf_emma` liefert erfolgreich WAV-Audio (HTTP 200).
+
+## 0.1.19 - 2026-07-14
+
+- Live-Reasoning im Chat-Streaming ergaenzt: Token innerhalb von `<think>...</think>` werden waehrend der Generierung als separate Denkblase angezeigt statt in den finalen Antworttext geschrieben.
+- Frontend-Streamingparser gehaertet: partielle Tag-Grenzen ueber Chunk-Grenzen hinweg werden korrekt behandelt, sodass sichtbarer Antworttext und Denktext stabil getrennt bleiben.
+- Denkblase als temporaere Assistant-Message gestaltet und nach Abschluss/Fehler des Streams automatisch entfernt, damit die Chat-Historie sauber bleibt.
+
+## 0.1.18 - 2026-07-14
+
+- Ausgabe-Design im Chat deutlich auf natuerlichen Fliesstext umgestellt: der systemseitige Stil-Appendix bevorzugt jetzt standardmaessig klare Abschnitte ohne Markdown-Zwang, ohne Emojis und ohne erzwungene Listen.
+- Prompt-Haertung fuer Bestandsprofile: alte Markdown-Stilfragmente im effektiven System-Prompt werden beim Zusammenbau bereinigt, damit bestehende Profile nicht weiter in Ueberschriften-/Listenstil gedrueckt werden.
+- Antwort-Nachbearbeitung auf Klartext ausgerichtet: Markdown-Header und Listenmarker werden fuer normale Antworten in lesbaren Fliesstext normalisiert, statt aktiv weitere Markdown-Struktur zu erzwingen.
+
+## 0.1.17 - 2026-07-14
+
+- GGUF-Modellaktivierung gehaertet: bei Ordner-basierten GGUF-Modellen priorisiert der `llama_cpp`-Resolver jetzt echte Gewichtsdateien gegenueber `mmproj`/`projector`-Dateien und waehlt bevorzugt die groesste passende GGUF-Datei.
+- Diagnose bei Aktivierungsfehlern verbessert: `POST /api/models/{id}/activate` liefert bei `409` jetzt die konkrete Root-Cause im Fehlerdetail (inkl. Rollback-Hinweis), statt nur generischem "Model activation failed".
+
+## 0.1.16 - 2026-07-14
+
+- VAD-Dekodierung im Speech-Backend gehaertet: Audio-Uploads werden jetzt mit mehrstufigen Decoder-Fallbacks und suffix-sensibler Temp-Datei-Erkennung verarbeitet, wodurch `POST /api/speech/detect-activity` und STT+VAD robuster auf Windows laufen.
+- Qwen3-TTS-Synthese validiert: `POST /api/speech/synthesize` liefert im frischen Runtime-Prozess jetzt HTTP 200; die qwen/transformers-Kompatibilitaet wird ueber einen expliziten Causal-Mask-Bridge-Pfad und kompatible Decorator-Shims abgesichert.
+
+## 0.1.15 - 2026-07-13
+
+- STT um serverseitiges automatisches VAD-Precut erweitert: `POST /api/speech/transcribe` unterstuetzt jetzt `vad_enabled`, `vad_model_id`, `vad_threshold`, `vad_padding_ms` und `vad_merge_gap_ms` und schneidet erkannte Sprachsegmente vor der Transkription zusammen.
+- STT-Flow fuer No-Speech-Faelle gehaertet: bei aktivem VAD und ohne Sprachsegmente liefert die API jetzt fruehzeitig eine stabile Antwort mit `note: no_speech_detected` statt spaeterem STT-Fehler.
+- Frontend-Sprachaufnahme an den neuen Backend-Precut angebunden: VAD-Parameter werden beim Transkriptionsrequest mitgesendet, damit derselbe Segmentierungsweg serverseitig genutzt wird.
+
+- Qwen3-TTS-Kompatibilitaet im bestehenden System verbessert: Runtime-Shims fuer `check_model_inputs`, RoPE-Key-Handling (`default`), `pad_token_id`-Bridge im Talker-Config und `create_causal_mask`-Argument-Mapping hinzugefuegt.
+- Qwen3-TTS-Fehlermeldung weiter gehaertet: bekannte Inkompatibilitaeten werden als klare Pairing-Empfehlung fuer `qwen-tts`/`transformers` in derselben `.venv` ausgegeben statt als rohe Tensor-Tracebacks.
+
+- VAD als dritte Sprach-Pipeline integriert: `voice_activity_detection`-Modelle (u. a. `silero-vad-v5`) werden jetzt in `GET /api/speech/models` gelistet.
+- Neuer Speech-Endpoint fuer VAD: `POST /api/speech/detect-activity` analysiert Audiostreams und liefert `speaking`, Segmente, Konfidenz und Speech-Ratio zurueck.
+- Chat-Spracheinstellungen erweitert: STT/TTS/VAD-Auswahl, optionaler VAD-Precheck vor STT-Aufnahme und konfigurierbare VAD-Schwelle im UI.
+
+- Speech-Modell-Metadaten fuer UI-Auswahl verbessert: TTS-Modelle liefern jetzt korrekte `tasks` (`synthesize`), modellspezifische Sprachlisten und (u. a. fuer Qwen3) Sprecherlisten aus `config.json`.
+- Kitten-TTS-Laufzeitpfad korrigiert: ONNX-Datei/`voices.npz` werden explizit geladen, Alias-Stimmen (`Bella` etc.) auf interne Voice-IDs gemappt und die ONNX-Inferenz laeuft mit passender Style-Shape.
+- Kitten-TTS auf Windows gehaertet: phonemizer/espeak wird ueber `espeakng-loader` verdrahtet, damit keine systemweite espeak-Installation erforderlich ist.
+- Qwen3-TTS-Fehlerbild verfeinert: statt unklarer `transformers`-`model_type`-Meldung liefert die API jetzt eine konkrete Runtime-/Version-Kompatibilitaetsmeldung mit Handlungsweg.
+
+- Kokoro-Initialisierung fuer lokale Windows-Modellpfade final gehaertet: lokale Gewichte/Config werden direkt geladen, ohne den lokalen Pfad als ungueltige `repo_id` an Hugging Face zu uebergeben.
+- Kokoro-Generator-Kompatibilitaet erweitert: Audio-Chunks werden jetzt sowohl aus Legacy-Tupeln als auch aus aktuellen `KPipeline.Result`-Objekten gelesen.
+- Runtime-Dependency ergaenzt: `kokoro>=0.9.2` in `requirements.txt` aufgenommen, damit die Speech-API nach Umgebungserstellung ohne manuelle Nachinstallation startet.
+
+- Kokoro-TTS-Ladepfad gehaertet: `POST /api/speech/synthesize` faellt fuer Kokoro-Modelle (z. B. `Kokoro-82M`) nicht mehr auf `transformers.pipeline` mit `model_type`-Pflicht zurueck, sondern nutzt einen dedizierten Kokoro-Fallback mit Sprach-/Stimmenzuordnung.
+- Audio-Fehlerbild behoben: der 422-Fehler "Unrecognized model ... Should have a `model_type` key in its config.json" tritt fuer Kokoro-Modelle im Standardpfad nicht mehr auf.
+
+- TTS-Request-Validierung fuer `POST /api/speech/synthesize` gehaertet: akzeptiert jetzt robuste Eingaben bei optionalen Feldern (`null`/leer), normalisiert `device`/`speed` auf sichere Defaults und reduziert dadurch 422-Fehler bei Audioausgabe-Anfragen.
+- TTS-Schema-Regressionstest ergaenzt: neue Unit-Tests pruefen CamelCase-/`null`-Payloads sowie Fallback-Verhalten fuer ungueltige `device`- und `speed`-Werte.
+
+- Plugin-Runtime-Anbindung umgesetzt: neue Registry und Executor laden Plugins aus `plugins/*/plugin.py` zur Laufzeit und fuehren sie gezielt per Plugin-ID aus.
+- Neues API-Modul fuer Plugins bereitgestellt: `GET /api/plugins`, `POST /api/plugins/execute` und `POST /api/plugins/execute-from-markup`.
+- Markup-Interaktionsmuster direkt unterstuetzt: Modellausgaben mit `<plugin_call>...</plugin_call>` und `<plugin_input>{...}</plugin_input>` koennen jetzt serverseitig geparstt und ausgefuehrt werden.
+- Chat-Orchestrierung end-to-end aktiviert: der normale Chat-Flow laeuft bei aktivem Setting automatisch weiter von `plugin_call` ueber `plugin_input` bis zur Rueckgabe von `plugin_response` und einer finalen Modellantwort.
+- Orchestrierung per Setting abschaltbar gemacht: `chat.plugin_orchestration_enabled` steuert die neue Runtime-Logik und ist im Chat-Settings-Panel sichtbar.
+- Business-Letter-Plugin vollstaendig stabilisiert: fehlerhafte Plugin-Datei repariert, README vervollstaendigt und Ausgabe auf strukturierte Briefdaten plus klares Klartext-Rendering umgestellt (ohne ASCII-Rahmen).
+- Plugin-Runtime fuer Admin-Settings erweitert: `POST /api/plugins/execute` akzeptiert jetzt optional `plugin_settings`, die an Plugins mit `settings`-Konstruktor durchgereicht werden (z. B. Logo, Basistexte, Signaturdaten im `business_letter`-Plugin).
+- Admin-Einstellungen jetzt direkt nutzbar: in der Einstellungsgruppe `Plugins` wurde ein Formular fuer `business_letter` (Logo, Basistexte, Signatur, Kerndaten) eingebaut und als `plugins.business_letter_profile` persistiert.
+- Chat-Orchestrierung nutzt gespeicherte Plugin-Profile automatisch: bei `plugin_call` werden die gespeicherten `plugins.<plugin_id>_profile`-Werte geladen und bei der Plugin-Ausfuehrung angewandt.
+- Training modellwechsel-fest gemacht: `training.target_modules` verwendet jetzt standardmaessig `auto` statt fixer Q/K/V/O-Liste.
+- PEFT-LoRA erweitert: Zielmodule werden im Auto-Modus pro Basismodell aus vorhandenen linearen Layernamen abgeleitet und als Laufzeit-Log sichtbar gemacht.
+- Training-Preflight erweitert: vor Jobstart wird jetzt explizit angezeigt, welche `target_modules` bei `auto` fuer das aktuell gewaehlte Modell aufgeloest wurden (inkl. Aufloesungsquelle wie `config.model_type`/`config.architectures`/`fallback`).
+- Registry ohne Seiteneffekte gehaertet: Plugin-Discovery instanziiert keine Plugins mehr, um unerwuenschte Initialisierungen (z. B. Modelldownloads) beim Listing zu verhindern.
+- Plugin-Stabilisierung abgeschlossen: `wikipedia` behandelt HTTP-/Netzwerkfehler robust, `crm_hubspot` hat jetzt korrektes `__init__.py` fuer sauberes Package-Verhalten.
+
+- Kontrolllauf als neuer Training-Standard gesetzt: Defaults stehen jetzt auf `num_train_epochs=4`, `learning_rate=1e-4`, `per_device_train_batch_size=1`, `gradient_accumulation_steps=4`, `max_sequence_length=768`, `lora_r=16`, `save_steps=10`.
+- Qualitaetsgate fuer Geschaeftsbrief-Trainingsdaten ergaenzt: neues Modul `app/training/evaluation/business_letter_schema.py` validiert Assistant-Zieltexte als striktes JSON-Format und blockiert bekannte Fehlmuster (Markdown-Ueberschriften, ASCII-Rahmen, Meta-Einleitungen).
+- Neues Lint-Werkzeug fuer Datensatzbereinigung hinzugefuegt: `scripts/lint_business_letter_dataset.py` prueft JSONL/Universal-Datasets vor dem Fine-Tuning und liefert pro fehlerhaftem Beispiel klare Regelverletzungen.
+- Trainings-Settings erweitert und im UI konfigurierbar gemacht: `warmup_ratio`, `weight_decay`, `eval_steps`, `load_best_model_at_end`, `metric_for_best_model`, `greater_is_better` sind jetzt in Backend-Validierung, Default-Resolver und Settings-Panel verdrahtet.
+- PEFT-TrainingArguments erweitert: die neuen Hyperparameter werden beim Lauf tatsaechlich an den Trainer uebergeben (inkl. `eval_steps` statt starrer Kopplung an `save_steps`).
+- Evaluation-Report ausgebaut: pro Run wird jetzt `evaluation-report.json` geschrieben mit `base_vs_adapter`-Vergleich, Konfusionsmatrizen fuer `intent`/`agent`/`tool` und Warnung bei zu kleinem Testset.
+- Trainings-Artefakt-Metadaten erweitert: `evaluation_report_path` wird beim Speichern erkannt und im Manifest/Saved-Payload referenziert.
+- Datensatz-Splitpfade (`source`/`validation`/`test`) werden beim Job-Load in Hyperparameter gespiegelt, damit die Evaluation reproduzierbar den richtigen Split verwenden kann.
+- Reproduzierbarer A-F-Experimentplan als Skript hinzugefuegt: `scripts/run_training_experiment_plan.py` (Preflight + Queueing, Report unter `artifacts/jobs/experiment-plan-af-last.json`).
+- Passendes Runbook hinzugefuegt: `docs/training-experiment-plan-af.md`.
+
 ## 0.1.14 - 2026-07-12
+
+- Dataset-Archivierung gehartet: `archive` und `unarchive` laden das Dataset nach dem Commit neu, damit die Antwort nicht mehr mit abgelaufenem ORM-Zustand in `MissingGreenlet` laeuft.
+
+- Trainings-Batch hinzugefuegt: Im Trainingsbereich startet ein neuer Button alle startbaren Datensaetze aus dem konfigurierten Trainingsordner als Jobs. Erfolgreiche Runs koennen per Job-Metadatum automatisch ins Archiv verschoben werden.
+
+- Dataset-Loeschung abgesichert: `DELETE /api/training/datasets/{id}` bricht jetzt mit einem klaren `training.dataset_in_use`-Konflikt ab, wenn bereits Trainingsjobs auf das Dataset verweisen, statt mit SQLite-Foreign-Key-Fehlern als 500 zu enden.
+
+- Training-Submit stabilisiert: `POST /api/training/jobs` laedt den neu erzeugten Job nach Commit erneut aus der DB, um `sqlalchemy.exc.MissingGreenlet` beim Serialisieren (`updated_at`) zu vermeiden. Ergebnis: Job kann korrekt als `queued` zurueckgegeben werden.
+
+- Jobstart-Logik entkoppelt von starren Dataset-Stati: bei `POST /api/training/jobs` blockiert der Status nicht mehr (ausser `archived`). Nicht-archivierte Datasets laufen in Preflight und werden bei Erfolg regulär als `queued` angelegt.
+
+- Jobstart-Guard korrigiert: Datasets im Status `imported` werden nun fuer `POST /api/training/jobs` zugelassen und gehen in den regulären Preflight, statt vorzeitig mit `training.dataset_not_ready` zu scheitern.
+
+- 409-Konflikttexte weiter verbessert: verschachtelte Backend-Details (`error.details.detail`) werden jetzt im Frontend ausgelesen, sodass konkrete Ursachen wie `training.preflight_failed` statt nur `[conflict] Request failed` sichtbar sind.
+
+- API-Fehlerdarstellung im Frontend verbessert: objektbasierte `detail`-Payloads (z. B. `training.preflight_failed` bei `409`) werden jetzt mit `code`/`message` im Toast angezeigt statt nur generischem Status.
+
+- PEFT-LoRA OOM-Fallback erweitert: bei CUDA-`out of memory` wird derselbe Lauf automatisch einmal im CPU/RAM-Modus erneut versucht (`device_map=cpu`, `no_cuda=true`, Batch=1), statt sofort final zu fehlschlagen.
+
+- Training-Fehlerbehandlung verbessert: CUDA-OOM-Fehler werden jetzt mit konkreten Low-VRAM-Hinweisen (Batchsize, Seq-Len, Grad-Accumulation, Quantisierung) gespeichert; zusaetzlich wird standardmaessig `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` gesetzt, wenn nicht bereits konfiguriert.
+- Job-Dateianzeige robuster: falls `result.dataset.files` bei aelteren Jobs fehlt, nutzt die UI nun automatisch die Dataset-Metadaten als Fallback statt `-`.
+
+- Trainingsjobs aktualisieren jetzt automatisch im Hintergrund (2s Polling), solange mindestens ein Job in `queued`/`running`/`in_progress`/`processing` ist; dadurch aktualisiert sich der Fortschrittsbalken ohne manuelle Aktion.
+
+- Python-Analyse stabilisiert: projektlokale `pyrightconfig.json` (venv `.venv-chat`) und `.vscode/settings.json` hinzugefuegt, damit Pylance Imports wie `fastapi`, `pydantic`, `sqlalchemy` zuverlaessig aufloest und Kaskadenfehler in API-Routen entfallen.
+
+- Trainingscenter: laufende Training-Jobs zeigen jetzt direkt in der Job-Liste einen Fortschrittsbalken mit Prozentwert (und sofern verfuegbar Schrittzaehler), statt Fortschritt nur indirekt ueber Rohdaten zu sehen.
+
+- Jobs deklarieren jetzt explizit die verwendeten Trainingsdateien: beim Submit wird ein `result.dataset.files`-Block mit den effektiven Rollenpfaden (`source`/`training`/`validation`/`test`/...) geschrieben und in der UI bei Job-Liste sowie Job-Details angezeigt.
+
+- Trainingscenter erweitert um echte Archiv-Ansicht: Datasets und Jobs haben nun je einen `Aktiv/Archiv`-Toggle; archivierte Elemente koennen direkt per `Wiederherstellen` reaktiviert werden.
+- Neue API-Operationen fuer Wiederherstellung: `POST /api/training/datasets/{id}/unarchive` und `POST /api/training/jobs/{id}/unarchive`.
+- URL-Import erweitert: Wikipedia-URLs sind jetzt als Trainingsquelle erlaubt; URLs ohne Dateiendung werden fuer Wikipedia als `.html` gespeichert und vom Adapter verarbeitet.
+- Workflow-Hinweise im UI praezisiert: klarere Schrittbezeichnungen (`Aus Ordner registrieren`, `Rollen-Dateien hochladen`, `ZIP-Bundle importieren`, `URL als Training verwenden`) sowie expliziter Hinweis zur automatischen Dataset-Namensgenerierung.
+
+- Register-File-Request gehaertet: Frontend sendet fuer `/api/training/datasets/register-file` jetzt sowohl rollenbasierte `files[]` als auch Legacy-Felder (`file_name`, `validation_file_name`, `test_file_name`) fuer robuste API-Kompatibilitaet und zur Vermeidung von 422-Validierungsfehlern.
+- Archiv-/Loesch-Workflow fuer Trainingsobjekte eingefuehrt: neue Endpunkte fuer Datasets und Jobs (`archive`, `delete`) plus UI-Aktionen im Trainingscenter.
+- Archivierte Datasets/Jobs werden in den Standardlisten nicht mehr angezeigt (optional ueber `include_archived=true` abrufbar).
+
+- Trainingscenter-UX modernisiert: neue Bereichs-Toggles erlauben das Ein-/Ausblenden von Training, Dateien/Datasets und Jobs fuer fokussiertes Arbeiten.
+- ZIP-Workflow entschaerft: der Bundle-Importbutton ist nicht mehr an einen manuell gesetzten Dataset-Namen gebunden; ein valider Name wird bei Bedarf automatisch aus ZIP/Quelle abgeleitet.
+- Workflow-Gruppierung verbessert: Register-/Upload-/ZIP-/URL-Import sind jetzt klar als zusammenhaengender Training-Workflow strukturiert.
+
+- Trainingscenter auf rollenbasierte Dateifluesse erweitert: Register-/Upload-/URL-Import arbeiten jetzt mit `files`-Rollen (`source`, `training`, `validation`, `test`, `manifest`) statt nur mit einzelnen Dateinamenfeldern.
+- Neuer ZIP-Bundle-Import ergaenzt: `POST /api/training/datasets/upload-bundle` akzeptiert ein ZIP mit `training.jsonl`, `validation.jsonl`, `test.jsonl`, `manifest.json`, extrahiert sicher und legt daraus direkt ein Dataset an.
+- Datenmodell normalisiert: neue Tabellen `training_dataset_files` und `training_artifacts` eingefuehrt; Dataset-Rollen-Dateien und Job-Artefakte werden zusaetzlich strukturiert persistiert.
+- Trainings-Executor erweitert: abgeschlossene Runs schreiben Adapter-/Tokenizer-/Manifest-/Metrik-Artefakte in die neue Artefakt-Tabelle.
+- Worker-Queue-Claim optional atomar gehaertet: auf DBs mit Lock-Support wird `FOR UPDATE SKIP LOCKED` genutzt, mit kompatiblem Fallback fuer SQLite.
+
+- Kontrollierte Vergleichslaeufe fuer Training eingefuehrt: `run_profile` (`A`/`B`/`C`) plus optionales `run_label` koennen jetzt in Job-Submit und Preflight gesetzt werden; die Profile setzen reproduzierbare Startwerte fuer `num_train_epochs`, `learning_rate` und `seed`.
+- Dataset-Metadaten fuer rollenbasierte Dateizuordnung erweitert (`files.source|training|validation|test|manifest|canonical`) und Register-API entsprechend ausgebaut (Legacy-Felder bleiben kompatibel).
+- Trainingsinput priorisiert jetzt explizit den Trainings-Split: wenn `files.training` gesetzt ist, wird dieser statt der Rohquelle als `source_path` fuer den Trainer verwendet.
+- Artefaktablage vereinheitlicht: Trainingslaeufe schreiben jetzt in `training-artifacts/<dataset-slug>/v<version>.0.0/run-<job>-...` statt in ein globales Sammelverzeichnis.
+- Preflight erweitert: erkennt jetzt Split-Leakage durch Duplikatpruefung zwischen Train/Validation/Test und blockiert bei Ueberlappungen.
+- Dataset-Listing bereinigt: interne `*.canonical.jsonl`-Dateien und technische `_prep-smoke`-Pfade werden in `/api/training/datasets/files` nicht mehr als normale Trainingsdateien gelistet.
+- Trainingsgate gehaertet: Job-Submit erlaubt nur noch Dataset-Status `ready` oder `validated`.
+
+- Trainingscenter-Konsistenz verbessert: Dataset-Status-Default fuer neue Datensaetze auf `imported` umgestellt (statt fruehem `ready`) in API-Schemas und Training-Routen.
+- Trainings-Dataset-API erweitert: optionale Testdatei/-URL ist jetzt in Register-/Upload-/Import-Pfaden verfuegbar; `test_source_path` wird in den Dataset-Metadaten persistiert und im Preflight mitvalidiert.
+- Job-Lifecycle gehaertet: `TrainingService.submit(...)` erzeugt Jobs jetzt direkt in `queued` und kann Hyperparameter durchreichen, damit Worker-Verarbeitung nicht am Status/Parameterverlust haengen bleibt.
+- Training-Repository gehaertet: `update_status(...)` loescht bestehendes `result_json` bei Status-only-Updates nicht mehr; Cancel-Logs werden konsistent unter `result.runtime.logs` gefuehrt.
+
+- Pylance-Typdiagnostik in den Training-Repositories gehaertet: `TrainingDatasetRepository` und `TrainingJobRepository` verarbeiten JSON- und Listenfelder jetzt strikt typisiert statt mit `Unknown`-Ableitungen.
+- Repository-Helper erweitert: `_json_dict(...)` akzeptiert nun robuste Eingabetypen (`str`/`dict`/`None`) und normalisiert konsistent auf `dict[str, object]`; in `TrainingJobRepository` ergaenzt um `_object_list(...)` und `_to_int(...)` fuer sichere Runtime-Auswertung.
+- Verifikation abgeschlossen: fuer `app/database/repositories/training_dataset_repository.py` und `app/database/repositories/training_job_repository.py` liegen aktuell keine Pylance-Fehler mehr vor.
+
+- Einstellungsgruppen `Chat`, `Wissen` und `Logs` im Frontend produktiv verdrahtet: Werte werden jetzt geladen, editiert und ueber `/api/settings` persistiert.
+- Neue UI-Formulare mit Speichern-Flow fuer zentrale Chat-Parameter (`temperature`, `max_new_tokens`, `top_p`, `top_k`, `repetition_penalty`, `do_sample`, `seed`, Kontextbudget) integriert.
+- Retrieval-Settings im Bereich `Wissen` funktional gemacht (`knowledge.top_k`, `min_score_ratio`, `min_absolute_score`, `min_score_gap`) inkl. Laden/Speichern.
+- Loglevel-Steuerung im Bereich `Logs` funktional gemacht (`system.log_level` mit `DEBUG|INFO|WARNING|ERROR`).
+- Frontend-Validierung erfolgreich: `npm run build` und `npm run test:run` im `frontend`-Projekt laufen gruen.
 
 - Rebranding auf `Kernschmiede` fuer sichtbare Produktstellen umgesetzt (README, Backend-Titel, Frontend-Title, Meta-Service, Startbeschreibung).
 - Neues Projektlogo als SVG hinzugefuegt und in README eingebunden: `docs/assets/kernschmiede-logo.svg`.
