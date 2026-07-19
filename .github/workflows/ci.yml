@@ -12,6 +12,10 @@ jobs:
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
+    env:
+      BUSINESS_LETTER_VALIDATION_REPORT_DIR: artifacts/validation
+      VERAPDF_REPORT_DIR: artifacts/validation
+      REQUIRE_EXTERNAL_VALIDATORS: "1"
 
     steps:
       - name: Checkout
@@ -22,16 +26,93 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install XML validator runtime and Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-utils unzip curl docker.io
+          sudo systemctl start docker
+          xmllint --version
+
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      - name: Prepare pinned validator assets with SHA-256 verification
+        run: |
+          mkdir -p .cache/xrechnung .cache/validators
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          lock = json.loads(Path("config/validator-assets.lock.json").read_text(encoding="utf-8"))
+          validator = lock["xrechnung"]["validator_configuration"]
+          schematron = lock["xrechnung"]["schematron"]
+          verapdf = lock["verapdf"]
+
+          env_lines = [
+              f"XRECHNUNG_VALIDATOR_URL={validator['url']}",
+              f"XRECHNUNG_VALIDATOR_FILE={validator['file']}",
+              f"XRECHNUNG_VALIDATOR_SHA256={validator['sha256']}",
+              f"XRECHNUNG_SCHEMATRON_URL={schematron['url']}",
+              f"XRECHNUNG_SCHEMATRON_FILE={schematron['file']}",
+              f"XRECHNUNG_SCHEMATRON_SHA256={schematron['sha256']}",
+              f"VERAPDF_DOCKER_IMAGE={verapdf['docker_image']}",
+          ]
+
+          Path(".cache/validators/asset-env.txt").write_text("\n".join(env_lines) + "\n", encoding="utf-8")
+          PY
+
+          cat .cache/validators/asset-env.txt >> "$GITHUB_ENV"
+
+          curl -fL "$XRECHNUNG_VALIDATOR_URL" -o ".cache/xrechnung/$XRECHNUNG_VALIDATOR_FILE"
+          curl -fL "$XRECHNUNG_SCHEMATRON_URL" -o ".cache/xrechnung/$XRECHNUNG_SCHEMATRON_FILE"
+
+          echo "$XRECHNUNG_VALIDATOR_SHA256  .cache/xrechnung/$XRECHNUNG_VALIDATOR_FILE" | sha256sum -c -
+          echo "$XRECHNUNG_SCHEMATRON_SHA256  .cache/xrechnung/$XRECHNUNG_SCHEMATRON_FILE" | sha256sum -c -
+
+          unzip -q ".cache/xrechnung/$XRECHNUNG_VALIDATOR_FILE" -d .cache/xrechnung/validator
+          unzip -q ".cache/xrechnung/$XRECHNUNG_SCHEMATRON_FILE" -d .cache/xrechnung/schematron
+
+          docker pull "$VERAPDF_DOCKER_IMAGE"
+          echo "VERAPDF_CMD=docker run --rm -v /tmp:/tmp $VERAPDF_DOCKER_IMAGE" >> "$GITHUB_ENV"
+
+          XSD_PATH="$(find .cache/xrechnung/validator -type f \( -name 'UBL-Invoice-2*.xsd' -o -name '*Invoice*.xsd' \) | head -n 1)"
+          SCH_PATH="$(find .cache/xrechnung/schematron -type f -name '*.sch' | grep -Ei 'xrechnung|invoice|ubl|en16931' | head -n 1)"
+          CII_XSD_PATH="$(find .cache/xrechnung/validator -type f -name 'CrossIndustryInvoice_100pD16B.xsd' | head -n 1)"
+          CII_SCH_PATH="$(find .cache/xrechnung/schematron -type f -name 'XRechnung-CII-validation.sch' | head -n 1)"
+
+          if [ -z "$XSD_PATH" ] || [ -z "$SCH_PATH" ] || [ -z "$CII_XSD_PATH" ] || [ -z "$CII_SCH_PATH" ]; then
+            echo "Failed to resolve official XRechnung UBL/CII XSD/Schematron paths."
+            find .cache/xrechnung -maxdepth 5 -type f | sort
+            exit 1
+          fi
+
+          echo "XRECHNUNG_XSD_PATH=$XSD_PATH" >> "$GITHUB_ENV"
+          echo "XRECHNUNG_SCHEMATRON_PATH=$SCH_PATH" >> "$GITHUB_ENV"
+          echo "XRECHNUNG_CII_XSD_PATH=$CII_XSD_PATH" >> "$GITHUB_ENV"
+          echo "XRECHNUNG_CII_SCHEMATRON_PATH=$CII_SCH_PATH" >> "$GITHUB_ENV"
+
+      - name: Backend lint
+        run: |
+          python -m ruff check .
+
       - name: Run backend tests
-        run: pytest -q
+        run: |
+          mkdir -p artifacts/validation
+          pytest -q
+
+      - name: Upload backend validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-validation-reports
+          path: artifacts/validation
+          if-no-files-found: warn
 
   frontend:
-    name: Frontend build
+    name: Frontend test and build
     runs-on: ubuntu-latest
 
     steps:
@@ -48,6 +129,14 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Frontend type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Run frontend test suite
+        working-directory: frontend
+        run: npm run test:run
 
       - name: Build frontend
         working-directory: frontend

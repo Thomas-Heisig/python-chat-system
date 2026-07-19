@@ -147,6 +147,8 @@ Sonderpfade:
 - Lifecycle erweitert um `saving` und `validation_failed`; Validation-Fehler (z. B. Dataset-Schema/Secrets) werden nachvollziehbar als Jobstatus abgelegt.
 - Base-Model-Auswahl ist zentralisiert: Training verwendet den Model Manager (`GET /api/models`) als einzige Quelle fuer Basismodelle.
 - `training.base_model` dient als globales Default im Settings-Service; Job-Submission kann dieses Default ohne Duplikation von Modellscan-Logik verwenden.
+- Modellwechsel-Kompatibilitaet fuer LoRA-Zielmodule: `training.target_modules` unterstuetzt den Modus `auto` (Standard), bei dem Zielmodule pro Modellarchitektur automatisch aus den linearen Layernamen abgeleitet werden.
+- Fuer Spezialfaelle kann `training.target_modules` weiterhin explizit als Liste gesetzt werden (z. B. `q_proj,k_proj,v_proj,o_proj`), wenn ein fester Zielbereich erzwungen werden soll.
 - Beim Job-Submit werden Registry-Metadaten (Pfad, Name, Registry-ID, Backend) in Hyperparametern mitgefuehrt, damit Trainer den konkreten Modellpfad reproduzierbar nutzen.
 - Trainings-Preflight ist umgesetzt (`/api/training/preflight`) und prueft vor Jobstart Modellregistrierung, Pfad/Format, Transformers-Tokenizer-/Architektur-Checks, CUDA/4-bit-Abhaengigkeiten, Dataset-Validitaet sowie Artefaktverzeichnis und freien Speicherplatz.
 - Jobstart ist bei harten Preflight-Fehlern serverseitig blockiert; das Frontend zeigt das Preflight-Ergebnis mit Fehler- und Warncodes im Training-Tab an.

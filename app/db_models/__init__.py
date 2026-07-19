@@ -9,7 +9,11 @@ from app.db_models.appointment import Appointment
 from app.db_models.knowledge_document import KnowledgeDocument
 from app.db_models.user_audit_log import UserAuditLog
 from app.db_models.training_dataset import TrainingDataset
+from app.db_models.training_dataset_file import TrainingDatasetFile
 from app.db_models.training_job import TrainingJob
+from app.db_models.training_artifact import TrainingArtifact
+from app.db_models.plugin_confirmation import PluginConfirmation
+from app.db_models.plugin_idempotency_record import PluginIdempotencyRecord
 
 __all__ = [
     "User",
@@ -23,5 +27,9 @@ __all__ = [
     "KnowledgeDocument",
     "UserAuditLog",
     "TrainingDataset",
+    "TrainingDatasetFile",
     "TrainingJob",
+    "TrainingArtifact",
+    "PluginConfirmation",
+    "PluginIdempotencyRecord",
 ]

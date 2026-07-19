@@ -257,6 +257,82 @@ Enthält:
 
 ---
 
+## Plugin-Frontend-Muster
+
+Wenn ein Plugin eine eigene Frontpage oder manuelle Oberflaeche besitzt, muss diese reproduzierbar nach einem einheitlichen Muster aufgebaut werden.
+
+### Ziel
+
+Plugin-Frontends sollen:
+
+* direkt aus der Plugin-Kachel erreichbar sein
+* fuer das jeweilige Plugin eigenstaendig funktionieren
+* trotzdem den bestehenden `/api/plugins/execute`-Vertrag nutzen
+* nicht von versteckten Sonderpfaden im Frontend abhaengen
+* spaeter auf weitere Plugins uebertragbar bleiben
+
+### Empfohlene Struktur
+
+```text
+frontend/src/plugins/<plugin_id>/
+    <PluginName>ManualPage.tsx
+    <PluginName>ManualPage.css
+    README.md
+```
+
+Beispiel:
+
+```text
+frontend/src/plugins/business_letter/
+    BusinessLetterManualPage.tsx
+    BusinessLetterManualPage.css
+    README.md
+```
+
+### Verbindliche Regeln
+
+1. Die plugin-spezifische Frontpage ist eine echte React-Komponente im Frontend-Projekt, nicht nur eine lose Metadatenbeschreibung.
+2. Die Komponente bekommt ihre Ausfuehrung ueber den bestehenden App-Contract (`pluginId`, `pluginInput`, `pluginSettings`, `userId`) und darf keinen zweiten inkompatiblen Execute-Vertrag einfuehren.
+3. Wenn ein Plugin viele Dokument- oder Aktionsarten besitzt, muessen Sichtbarkeit, Pflichtfelder, Payload-Aufbau und Hilfetexte aus einer zentralen Konfiguration abgeleitet werden statt aus verstreuten `if`-Ketten.
+4. Diese zentrale Konfiguration muss sowohl fuer die Frontend-Felder als auch fuer den Payload-Aufbau genutzt werden, damit Typregeln nicht auseinanderlaufen.
+5. Im Backend soll das Plugin fuer dieselben Typen eine zentrale Regelmatrix besitzen (z. B. Positionspflicht, Referenzpflicht, E-Rechnungsfaehigkeit, Angebotsgueltigkeit, Liefer-/Zahlungslogik), damit das Plugin auch ohne Frontend eigenstaendig korrekt funktioniert.
+6. Die Frontpage muss eine fachliche Ergebnisansicht bereitstellen; reines Roh-JSON ist nur zusaetzlich als Debug-Sicht zulässig.
+7. Plugin-Frontpages duerfen nur dann plugin-spezifische UI-Verzweigungen im globalen Workspace erhalten, wenn ein generischer Metadatenpfad nicht ausreicht und die Komponente im Plugin-Ordner selbst lebt.
+
+### Minimaler Frontend-Vertrag
+
+Ein plugin-spezifisches Frontend soll mindestens diese Faelle abdecken:
+
+* fachliche Eingabefelder
+* clientseitige Pflichtfeldpruefung
+* Payload-Aufbau fuer `/api/plugins/execute`
+* Fehleranzeige
+* strukturierte Ergebnisanzeige
+
+### Minimaler Backend-Vertrag
+
+Ein Plugin mit vielen Dokumenttypen oder Aktionsarten soll mindestens zentral definieren:
+
+* erlaubte Typen/Aktionen
+* Pflichtfelder je Typ
+* Positionspflicht
+* Liefer- oder Zahlungslogik
+* E-Rechnungsfaehigkeit
+* Nummernkreis-Scope
+* Standardtexte oder Defaultverhalten
+
+### Beispiel `business_letter`
+
+`business_letter` ist die Referenzimplementierung fuer dieses Muster:
+
+* plugin-spezifische Frontpage unter `frontend/src/plugins/business_letter/`
+* zentrale Dokumenttyp-Konfiguration im Frontend fuer Sichtbarkeit, Payload und Ergebnislogik
+* zentrale Dokumenttyp-Regeln im Backend fuer Validierung und Laufzeitdefaults
+
+Neue Plugin-Frontends sollen sich an diesem Muster orientieren, statt erneut eigene, abweichende Popup-/Execute-Mechaniken einzufuehren.
+
+---
+
 ## 6. Datenbankregeln
 
 Alle veränderbaren Anwendungseinstellungen gehören grundsätzlich in die Datenbank.
@@ -858,6 +934,25 @@ Der Code muss:
 sein.
 
 ## Typisierung
+
+---
+
+## Plugin-Frontend-Standard (verbindlich)
+
+Fuer die Darstellung und Bedienung von Plugins im Frontend gelten folgende Regeln:
+
+1. Plugins werden in der Uebersicht als Widgets dargestellt.
+2. Die Widget-Aktion fuer Konfiguration ist ein Settings-Symbol.
+3. Plugin-Details werden als Popup/Dialog geoeffnet, nicht als separate Inline-Seite im Listenfluss.
+4. Jedes Plugin-Widget besitzt zusaetzlich die Aktion "Plugin oeffnen".
+5. Die Aktion "Plugin oeffnen" ist der feste Einstiegspunkt fuer die manuelle Plugin-Oberflaeche.
+6. Serverseitige Berechtigungs- und Validierungspruefungen bleiben immer aktiv und duerfen nicht durch UI-Logik ersetzt werden.
+7. Dieselbe Oeffnungslogik gilt in der Settings-Hierarchie auch fuer uebergeordnete Ebenen: Kategorien, Plugin-Hauptgruppen und Untergruppen sollen als kompakte Vorschau dargestellt und fuer die eigentliche Bearbeitung in grossen Popups geoeffnet werden.
+
+Implementierungshinweis:
+
+* Wenn Plugin-Einstellungen und manuelle Plugin-Oberflaeche parallel angeboten werden, sollen sie innerhalb desselben Popup-Containers ueber klar benannte Tabs oder Ansichten erreichbar sein.
+* In `Einstellungen > Plugins` sollen Kategorien, Plugins und Untergruppen dieselbe Interaktionssprache verwenden: Vorschau in Karten/Boxen, Detailbearbeitung im Modal.
 
 Neue öffentliche Funktionen und Methoden benötigen Typannotationen.
 

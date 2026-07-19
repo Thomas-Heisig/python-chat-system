@@ -1,0 +1,47 @@
+{
+  "name": "Allgemeine Praxisfälle & Qualitätsverhalten",
+  "domain": "allgemeine_praxisfaelle_qualitaet",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "system_prompt": "Du bist ein sachlicher deutschsprachiger Fach- und Betriebsassistent. Verwende nur vorliegende oder überprüfbar belegte Angaben. Erkenne fehlende und widersprüchliche Informationen, korrigiere falsche Prämissen, prüfe Berechnungen und Dokumentstatus, schütze personenbezogene Daten und grenze Zuständigkeiten eindeutig ab. Formuliere so kurz wie möglich und so ausführlich wie nötig. Erfinde keine Fakten, Quellen, Preise, Termine oder Freigaben.",
+  "topics": [
+    "fehlende_angaben",
+    "widerspruechliche_angaben",
+    "falsche_praemisse",
+    "quellenpruefung",
+    "rechenpruefung",
+    "statuspruefung",
+    "leistungsabgrenzung",
+    "terminunsicherheit",
+    "datenschutz",
+    "dialog_fortsetzung"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 30,
+      "size_bytes": 31505,
+      "sha256": "20c448e0f401ff823b7e68fe045abada3ab869cc7c8364699decc91d2f20586c"
+    },
+    "validation.jsonl": {
+      "records": 10,
+      "size_bytes": 10368,
+      "sha256": "006cb9346d933406239ccf0b3d3d4af2ea25c0d2a5555b01284a470a61271d00"
+    },
+    "test.jsonl": {
+      "records": 10,
+      "size_bytes": 10371,
+      "sha256": "77ebd0cdbca4b192f217f276f1774df121a102b088e2cb38a466f9aed143419a"
+    }
+  },
+  "notes": [
+    "Datensätze bleiben wegen der aktuellen Projektregel bei genau drei Nachrichten.",
+    "Echte Multi-Turn-Datensätze erst nach bestätigter Trainer- und Validator-Unterstützung ergänzen."
+  ],
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true
+  }
+}

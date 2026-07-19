@@ -1,0 +1,22 @@
+{
+  "source": {
+    "repository": "itplr-kosit/xrechnung-testsuite",
+    "tag": "v2026-01-31"
+  },
+  "cases": [
+    {
+      "id": "01.05_minimal_test_uncefact",
+      "path": "src/test/technical-cases/cius/01.05_minimal_test_uncefact.xml",
+      "kind": "technical-minimal-cii",
+      "valid": true,
+      "notes": "Minimaler offizieller CII/UNCEFACT-Referenzfall mit EndpointID, BuyerReference, PaymentMeans und steuerfreier Kategorie O."
+    },
+    {
+      "id": "01.06_minimal_test_uncefact",
+      "path": "src/test/technical-cases/cius/01.06_minimal_test_uncefact.xml",
+      "kind": "technical-minimal-cii",
+      "valid": true,
+      "notes": "Zweiter offizieller minimaler CII/UNCEFACT-Referenzfall aus derselben KoSIT-CIUS-Familie."
+    }
+  ]
+}

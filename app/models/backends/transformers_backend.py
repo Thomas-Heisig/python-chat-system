@@ -113,7 +113,14 @@ class TransformersBackend(ModelBackend):
 			self._processor = processor
 			self._tokenizer = None
 		else:
-			tokenizer = auto_tokenizer.from_pretrained(model_path, local_files_only=local_files_only)
+			try:
+				tokenizer = auto_tokenizer.from_pretrained(model_path, local_files_only=local_files_only)
+			except Exception as exc:
+				tokenizer = self._load_tokenizer_fallback(
+					model_path=model_path,
+					local_files_only=local_files_only,
+					original_error=exc,
+				)
 			text_model = auto_model_for_causal_lm.from_pretrained(model_path, local_files_only=local_files_only)
 
 			if self._device == "cuda":
@@ -126,6 +133,32 @@ class TransformersBackend(ModelBackend):
 		self._task_type = task_type
 		self._model = model
 		self._loaded = True
+
+	def _load_tokenizer_fallback(self, model_path: str, local_files_only: bool, original_error: Exception) -> Any:
+		try:
+			from transformers import PreTrainedTokenizerFast
+
+			tokenizer_json_path = Path(model_path) / "tokenizer.json"
+			if not tokenizer_json_path.exists():
+				raise RuntimeError(str(original_error))
+
+			tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(tokenizer_json_path))
+			tokenizer_config_path = Path(model_path) / "tokenizer_config.json"
+			if tokenizer_config_path.exists():
+				try:
+					tokenizer_config_raw = json.loads(tokenizer_config_path.read_text(encoding="utf-8"))
+					if isinstance(tokenizer_config_raw, dict):
+						tokenizer_config = cast(dict[str, Any], tokenizer_config_raw)
+						for token_attr in ("bos_token", "eos_token", "unk_token", "pad_token"):
+							token_value = tokenizer_config.get(token_attr)
+							if isinstance(token_value, str) and token_value:
+								setattr(tokenizer, token_attr, token_value)
+				except Exception:
+					pass
+
+			return tokenizer
+		except Exception as fallback_exc:
+			raise RuntimeError(str(original_error)) from fallback_exc
 
 	def unload(self) -> None:
 		self._tokenizer = None
@@ -303,7 +336,7 @@ class TransformersBackend(ModelBackend):
 			"streaming": True,
 			"embeddings": False,
 			"vision": self._task_type == "vision_text_generation",
-			"audio": False,
+			"audio": self._task_type == "audio_text_generation",
 			"tool_calling": False,
 			"structured_output": False,
 			"device": self._device,

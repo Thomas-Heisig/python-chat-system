@@ -2,20 +2,24 @@
 
 ## Kritisch
 
-- Nach unit-seitig abgesicherter Execute-Contract-Validierung: API-/E2E-Regressionen fuer `/api/plugins/execute` mit denselben Contract-Fehlercodes (`plugin_contract_invalid_input`/`plugin_contract_invalid_output`) ergaenzen.
-- Skip-Semantik vereinheitlichen: bei kanalbedingtem Ueberspringen pluginuebergreifend konsistente Antwortstruktur (`status=skipped`, `reason=unsupported_channel`) in Runtime- und API-Tests absichern.
+- `jtl_suite` SQL-Direktzugriff haerten: verbindliche Read-Only-DB-Rolle statt `sa` fuer Produktion vorsehen und Migrationshinweis fuer bestehende Setups dokumentieren.
+- `jtl_suite` DB-Queries absichern: kuratierte Standardabfragen je JTL-Service, Parametervalidierung und Result-Limits fuer grosse Tabellen einfuehren.
+- Modell-spezifische Chat-Defaults weiter beobachten: nach dem neuen Fallback fuer `model_<id>_*` in den naechsten Laufzeiten sicherstellen, dass auch alte String-Werte sauber auf numerische Defaults fallen.
 
-- Legacy-Quellenbereinigung vorbereiten: unzugeordnete Wissensdokumente (`project_id = null`) analysieren und geordnet auf Mandant/Bereich/Projekt-Ebenen mappen, um fachfremde Rueckfaelle zu vermeiden.
-
-- Secret-Scan fuer Konfigurationsbeispiele ergaenzen: `.env.example`, Doku-Snippets und Setup-Dateien automatisiert auf echte API-Keys oder Tokens pruefen.
+- `business_letter`-Plugin weiter entkernen: `plugin.py` auf Orchestrierung reduzieren und die letzten Rueckverweise auf den Monolithen abbauen.
+- Die neuen `business_letter`-Admin-Settings weiter funktional anbinden: zentrale Layout-/PDF-Felder, wesentliche Versanddefaults, Kernhebel fuer Persistenz/Archivierung, Dispatch-Queue/Idempotenz und die erweiterten Nummernkreisregeln sind jetzt aktiv; offen bleiben tiefere Layoutvarianten, asynchrone Queue-Workerprozesse, Mahnlogik und weitergehende Aufbewahrungs-/Freigabeworkflows.
+- Team-Berechtigungen im Settings-Layer verfeinern: globale und benutzerspezifische Scopes sind jetzt auth-gebunden, aber fuer Team-Scopes fehlt weiterhin ein explizites Mitgliedschafts-/Rollenmodell jenseits des aktuellen Admin-Fallbacks.
+- SQLite-Persistenz fuer `business_letter` weiter vervollstaendigen: transaktionale Kopplung Nummernreservierung+Persistenz und Dual-Save (Plugin + Gastsystem-DB) sind aktiv; als naechster Schritt fehlen Ausfall-/Rollback-Metriken, Migrationsskripte und Lasttests.
+- E-Invoice-Pfad vervollstaendigen: offizielle XSD/Schematron-Ausfuehrung, Priority-3-Fachmapping und ein grundsaetzlich gleichwertiger CII-Pfad sind aktiv; offen bleiben tiefere CII-/CreditNote-Spezialfaelle, strengere Profilregeln je Dokumenttyp und robuste Fallback-Strategien fuer Upstream-Validatorwechsel.
+- ZUGFeRD/PDF-A-3 vervollstaendigen: XML-Einbettung (`factur-x.xml`), XMP/PDF-A-Metadaten, veraPDF-Gate und Report-Artefakte sind umgesetzt; als Restaufgaben bleiben Freigabekriterien, Drift-Monitoring und regelmaessige Revalidierung gegen neue veraPDF-Versionen.
+- Secret-Scan-Review im CI nachhalten: bei fehlendem Snapshot den Build-Fehler beobachten und Baseline-Report in `docs/security/reports/` aktuell halten.
 - Nach Secret-Bereinigung in `.env.example`: den betroffenen externen API-Schluessel rotieren und pruefen, ob derselbe Wert in Shell-History, lokalen Notizen oder CI-Variablen erneut auftaucht.
 - Integrations-Schluessel weiter haerten: Sichtbarkeit/Masksierung im UI verbessern und Berechtigungspfad fuer besonders sensible Einstellungen einschaerfen.
 - Nach Erweiterung der Integrationen auf viele API-Keys: pro Feld klar markieren, welche Backends/Plugins den jeweiligen Key bereits nutzen und welche nur vorbereitet sind.
 - Integrationen-UX erweitern: optionalen "Verbindung testen"-Button pro Provider (insb. Wetter/Web-APIs) mit klarer Erfolgs-/Fehlerdiagnose einfuehren.
 - Nach Einfuehrung von `Key testen` pro Feld: Sammelaktion `Alle Keys testen` fuer die sechs Kernprovider umsetzen und als Re-Validation-Flow im Integrationen-Bereich sichtbar machen.
-- Nach ausgelieferter Sammelaktion `Alle Keys testen`: Ergebnisliste um Laufmetadaten (Zeitpunkt, Dauer) und optionalen `Erneut testen`-Shortcut pro fehlgeschlagenem Key erweitern.
 - Re-Validation-UX praezisieren: fuer leere Keys explizit `uebersprungen` anzeigen (ohne Fehlerstatus), damit unvollstaendige Provider-Sets nachvollziehbar bleiben.
-- Nach rotem Fehler-Highlight bei fehlgeschlagenem Provider-Test: Erfolgs-/Fehlerstatus je Key serverseitig persistieren und beim erneuten Oeffnen der Einstellungen wiederherstellen.
+- Integrationen-UX nachziehen: optionalen Export/Copy der Sammeltestergebnisse fuer Support-/Ticket-Faelle ergaenzen.
 - Integrationen-UX nach CSS-Reparatur absichern: visuellen Regressionstest fuer kompakte Target-Buttons (`↗`) in allen Integrationsgruppen und Themes ergaenzen.
 - Nach Einfuehrung der Integrationen-Tabs/Klappgruppen: aktiven Tab und Klappzustand pro Benutzer persistent speichern.
 - Runtime-Anbindung erweitern: neue Keys (`azure_openai`, `bedrock`, `stability`, `unstructured`, `pinecone`, `exa`, `whatsapp`, `virustotal` etc.) schrittweise in konkrete Plugins/Tools verdrahten.
@@ -31,19 +35,62 @@
 - Globalen Neustart regressionssicher machen: automatisierte API-Tests fuer Auth-Faelle (`401` ohne Token, `403` fuer Nicht-Admin, `200` fuer Admin) ergaenzen.
 - Neustart-UX verfeinern: optionalen zweiten Bestaetigungsschritt ("LOESCHEN" eintippen) fuer produktive Umgebungen anbieten.
 
-- Ollama-Flow end-to-end absichern: API- und UI-Regression fuer Scan -> Auswahl -> Aktivierung eines `Ollama Local`- und eines `Ollama Cloud`-Modells ergaenzen.
 - Ollama-UX vertiefen: Download-/Pull-Status fuer `Ollama Cloud` beim Aktivieren sichtbar machen und klare Fehlermeldungen bei nicht erreichbarem lokalen Daemon anzeigen.
 - Ollama-Pull robust machen: optionalen Abbruch-/Retry-Flow und echten Fortschrittstest fuer ein noch nicht lokal installiertes Cloud-Modell automatisiert absichern.
 - Ollama-Fortschritt weiter verfeinern: fuer grosse Cloud-Modelle den Live-Fortschritt mit laenger laufendem End-to-End-Test absichern und optional ETA/Byte-Infos anzeigen.
 - Modellfilter persistieren: Suche/Familie/Tools/Thinking/Vision pro Benutzer merken und beim Oeffnen des Modellmanagers wiederherstellen.
 
 - Plugin-Loop sichtbar machen: im Chat eine kompakte Tool-Statusanzeige und optional einen Debug-Drawer fuer `plugin_call` -> `plugin_response` integrieren.
+- Status 2026-07-18 (Dokumentanfrage-Fallback): fuer erkannte Dokument-Intents wird bei fehlendem `<plugin_call>` jetzt einmalig automatische Plugin-Discovery injiziert; als naechster Schritt bleiben Telemetrie/Audit fuer diesen Auto-Fallback und E2E-Absicherung im Browserlauf.
+- Status 2026-07-18 (Dokumentanfrage-Fallback Block 2): wenn das Modell trotz Discovery keinen Tool-Tag liefert, wird `business_letter` jetzt direkt mit heuristisch aufgebautem Basis-Payload ausgefuehrt; offen bleiben tiefere Feldextraktion, Artefakt-Links im Chat und Audit-Events fuer diesen Direktpfad.
+- Status 2026-07-18 (Dokumentanfrage-Routing Block 3): starke Dokument-Intents werden jetzt bereits vor dem Modelllauf direkt auf `business_letter` geroutet; offen bleiben robustere Multi-Positions-Extraktion, PDF-/Artefaktlinks im Chat und Audit/Telemetry fuer diesen Vorab-Pfad.
+- Status 2026-07-18 (Dokumentanfrage-Routing Block 4): echte PDF-/Artefaktlinks im Chat sind jetzt aktiv; als naechste Schritte bleiben Rechte-/Tenant-Hardening fuer den Downloadpfad, bessere Multi-Positions-Extraktion und strukturierte Audit-Events fuer direkte Dokument-Routings.
+- Status 2026-07-18 (Dokumentanfrage-Routing Block 5): der Direktpfad ist jetzt vertragssauber (`content`-String entfernt, interner Idempotency-Key aktiv); offen bleiben feinere Feldextraktion, Rechte-/Tenant-Hardening fuer Artefaktdownloads und Audit-Events fuer diesen Routingpfad.
+- Status 2026-07-18 (Dokumentanfrage-Routing Block 6): der Chat liest PDF-/JSON-Artefakte jetzt aus der echten `plugin_storage`-Struktur; offen bleiben Rechte-/Tenant-Hardening, bessere Extraktion mehrerer Positionen und Audit-Events fuer den Vorab-Pfad.
+- Status 2026-07-18 (Dokumentanfrage-Routing Block 7): Downloadlinks sind jetzt auth- und tenantgebunden und erscheinen als strukturierte Ergebnisbox mit PDF-/JSON-Aktionen im Chat; offen bleiben Team-/Tenant-Modell fuer gemeinsame Dokumente, feinere Multi-Positions-Extraktion und Audit-Events fuer Downloads/Routing.
+- Status 2026-07-19 (Dokumentanfrage-Routing Block 8): Download-Audits (`artifact_downloaded`) und Tenant-Scope `user|team|shared` sind aktiv; offen bleiben echtes Team-Mitgliedschaftsmodell statt Admin-Fallback, feinere Multi-Positions-Extraktion und die Auswertung der neuen Audit-Events.
+- Status 2026-07-19 (Branding-Konsistenz): bei fehlendem Firmenlogo nutzt `business_letter` jetzt das Kernschmiede-Systemlogo als Fallback; offen bleibt ein echter PNG/JPEG-Systemlogo-Pfad oder SVG-Rasterisierung, damit dasselbe Fallback auch im PDF-Renderer visuell eingebettet werden kann.
+- Status 2026-07-19 (Branding-Konsistenz Block 2): PDF-Fallback zeigt jetzt eine sichtbare Kernschmiede-Wortmarke, wenn nur das SVG-Systemlogo verfuegbar ist; offen bleibt optional ein echtes PNG/JPEG-Systemlogo oder spaetere SVG-Rasterisierung fuer pixelgenaue Logo-Paritaet zwischen HTML und PDF.
+- Status 2026-07-19 (Direkt-Routing Preisanreicherung): freie Angebotsanfragen koennen jetzt `pricefinder` fuer Durchschnittspreise und einfache Freitext-Adressparser nutzen; offen bleiben mehrzeilige Mehrpositions-Faelle, feinere Materialklassifikation und echte Mehrplugin-Orchestrierung fuer komplexe Rechercheaufgaben.
+- Discovery-Metadaten fuer Kernplugins nachziehen: pro Plugin explizite `capabilities`, `functions`, `usage_rules` und qualitativ hochwertige `examples` in `PLUGIN_META` pflegen, damit die neue zweistufige Auswahl nicht nur auf Heuristiken basiert.
+- Status 2026-07-18: `business_letter` und `calculator` sind auf explizite Metadaten inkl. Funktionsvertrag umgestellt; als naechste Kernplugins folgen `email`, `calendar`, CRM und Dateiverarbeitung.
+- Plugin-Discovery robuster machen: semantische Kandidatensuche (`/api/plugins/capabilities?query=...`) um Relevanz-Tuning, Fehlertoleranz und Negativtests fuer False-Positive-Treffer erweitern.
+- Chat-Orchestrierungsprotokoll absichern: E2E-Testfaelle fuer den neuen Ablauf `plugin_search -> plugin_manifest -> plugin_function -> plugin_call` inklusive Fehlerpfaden (`plugin_not_found`, `plugin_function_not_found`) ergaenzen.
+- Plugin-Settings-UX weiter verfeinern: schnelleres Springen zu einzelnen Plugins ermoeglichen.
+- Playwright-Basis fuer echte `business_letter`-Settings-E2E ist umgesetzt und stabil (`3 passed`); der PDF-Renderer wertet jetzt lokale Logo-Einbettung, Positionierung, Akzentfarbe und `layout_template` aus, als naechster Schritt Assertions im Browserlauf fuer Logo-/Layout-Details und XML-Anhangspfad je Dokumenttyp wieder verschaerfen.
+- Nach aktivem Plugin-Solo-Runner im Frontend (`Plugins` -> direkter `/api/plugins/execute`-Lauf): dedizierte E2E-Regression fuer JSON-Input/Output, Fehlerrueckgaben und `business_letter`-Happy-Path ergaenzen.
+- Neue `calculator`-Manual-Frontpage (Preset/Keypad/Verlauf) mit Playwright-E2E absichern: Preset laden, Berechnung ausfuehren, Ergebnisdarstellung und Wiederaufnahme aus Verlauf validieren.
+- `calculator`-Manual-Frontend nachziehen: neue wissenschaftliche Funktionen (`asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`) sichtbar in Hilfetexten/Presets integrieren und per UI-E2E absichern.
+- Nach abgeschlossener `calculator`-Strukturangleichung an `business_letter` (inkl. eigenem Logo im Manual-Frontend): Platzhaltermodule `models/` und `renderers/` fachlich befuellen und mit Unit-Tests fuer Ausgabe-/Formatierungslogik absichern.
+- Nach umgesetzter Widget-Ansicht und direktem Settings-Zugriff im `Plugins`-Frontend: pro Kernplugin eine eigene Teilansicht (spezifisches Frontend statt reinem JSON-Runner) schrittweise einfuehren.
+- Nach Umstellung auf Popup-Interaktion im Plugin-Bereich: E2E-Regressionen fuer `⚙`-Aktion, Overlay-Open/Close, Tab-Wechsel (`Einstellungen`/`Manuell`) und `Plugin oeffnen`-Einstieg ergaenzen.
+- Plugin-Manual-Ansicht im Popup ausbauen: fuer Kernplugins schrittweise fachliche Formulare statt generischem JSON-Runner bereitstellen, ohne den gemeinsamen Popup-Standard zu verlassen.
+- Nach Einfuehrung der visuellen `abhaengig von ...`-Marker in Plugin-Settings: Bedingungsdetails fuer komplexe Regeln (`equals`/`in`) weiter schaerfen und per E2E-Regression fuer Kartenansicht + Popup absichern.
+- Nach Umstellung auf Kartenraster in `Einstellungen > Plugins`: pro Plugin-Karte weitere Schnellinfos und Aktionen pruefen (z. B. letzter Lauf, direkter Popup-Einstieg, Validierungsstatus), ohne die Karten zu ueberladen.
+- Nach Umstellung der Plugin-Untergruppen auf Unterboxen: wichtige Gruppen visuell hervorheben und weniger relevante Gruppen kompakter machen, damit grosse Plugins nicht in gleichgewichtigen Boxrastern ueberladen wirken.
+- Nach Umstellung der Plugin-Untergruppen auf grosse Popups: Vorschau-Boxen und Modalzustand UX-seitig weiter schaerfen (z. B. eindeutiger CTA, groessere Preview-Metadaten, Schnellnavigation zwischen Gruppen im Popup).
+- Nach Ausweitung der Popup-Logik auf Kategorie, Plugin und Untergruppe: Breadcrumbs oder Seitennavigation im Modal einfuehren, damit man innerhalb derselben Plugin-Hierarchie ohne Schliessen/Ruecksprung wechseln kann.
+- Nach Ausweitung der Detail-Popups auf Projekte, Bibliothek, Termine und Chats: dieselbe Modal-Paritaet fuer die verbleibenden allgemeinen Settings-Gruppen (`Allgemein`, `Chat`, `Wissen`, `Integrationen`, `Modelle`, `Training` usw.) sauber nachziehen.
+- Nach Einfuehrung der gemeinsamen Settings-Modal-Huelle: Tastaturfokus, Breadcrumbs und direkte Vor/Zurueck-Navigation zwischen Settings-Gruppe, Plugin-Hauptgruppe und Untergruppe weiter ausbauen, damit kein Modal-Kontext mehr isoliert wirkt.
+- Nach den neuen Breadcrumbs und Vor/Weiter-Steuerungen: echte Fokusfalle, Fokus-Rueckgabe an den Oeffner und konsistente Screenreader-Beschriftung fuer alle Popups nachziehen.
+- Nach Umstellung der obersten Settings-Ebene auf quadratische Auswahlkarten: pro Karte optionale Zustandsindikatoren (dirty, validiert, Fehler, zuletzt geaendert) ergaenzen.
+- Nach abgeschlossenem PDF-Renderer-Hardening (Strict-Mode, Groessenlimit, Negativtests fuer MIME/Endung/URL/Pfad/Binary): Browser-E2E-Assertions fuer diese Fehlerfaelle im Plugin-Solo-Lauf und in den Settings-Flows ergaenzen.
+- `business_letter`-Vorlagenpfad weiter vertiefen: auf dem neuen PDF-Baseline-Renderer aufbauen (Layout-Qualitaet, DOCX-Export, persistente Archivierung, spaetere Signatur-/Compliance-Pfade).
 - Nach gruenen Runtime-Tests fuer `BusinessLetterPlugin.execute()`: API-/E2E-Regressionstests fuer den Versandpfad (`/api/plugins/execute` und Chat-Orchestrierung) mit denselben sechs Kernfaellen ergaenzen.
-- `business_letter`-Versandpfad finalisieren: Delivery-Objekt an echten Mail-/Queue-Adapter anbinden und Statusuebergaenge (`ready` -> `queued` -> `sent`/`failed`) serverseitig persistieren.
+- `business_letter`-Versandbetrieb operationalisieren: asynchronen Queue-Worker (Scheduled Retry-Lauf), Admin-Queue-Ansicht, manuelle Requeue-Funktion und Monitoring/Alerting fuer `failed`-Dispatches nachziehen.
 - `business_letter`-Adminprofil im Frontend erweitern: neue strukturierte Plugin-Settings (Rechtliches/Bank/Kommunikation/Fachhinweise) vollstaendig erfassbar machen.
 - Live-Reasoning regressionssicher machen: Streaming mit `<think>`-Segmenten gegen Chunk-Grenzen testen, inklusive korrekter Trennung zwischen Denkblase und finaler Assistant-Nachricht.
 - Plugin-Ausfuehrung absichern: Allowlist pro Benutzer/Team einfuehren und fuer `apiKeyRequired`-Plugins vor Execute einen konfigurierten Secret-Check erzwingen.
-- Plugin-Settings-Hardening (Folgeschritt): Cross-Field-Validierung (z. B. kombinierte Pflichtregeln), Rechte-/Sichtbarkeitsregeln pro Feld und API-/UI-Regressionstests fuer plugin-spezifische Validierungsfehler ergaenzen.
+- Status 2026-07-18: zentraler Policy-Layer (`PluginExecutionPolicy`) ist aktiv (Plugin-Scope, Permission, Confirmation, Dry-Run, Idempotency, Input-Schema); offen bleiben Team-Allowlist-Workflow und API-Key-Presence-Gate fuer alle externen Provider-Plugins.
+- Status 2026-07-18 (Block 2): bestaetigungspflichtige Calls laufen ueber persistente Pending-Confirmations mit Confirm/Reject-API; davorliegendes Hardening ist umgesetzt (Alembic-Migration, Team-Bindung, atomarer Confirm-Claim `pending -> executing`, Idempotency-Lease mit Timeout-Übernahme).
+- NAECHSTER Governance-Schritt: strukturierte Policy-Audit-Events je Zustandsuebergang (`plugin_execution_requested`, `plugin_execution_blocked`, `plugin_confirmation_created`, `plugin_confirmation_confirmed`, `plugin_confirmation_rejected`, `plugin_confirmation_expired`, `plugin_idempotency_reserved`, `plugin_idempotency_replayed`, `plugin_idempotency_conflict`, `plugin_execution_completed`, `plugin_execution_failed`) als auswertbaren Verlauf in DB + API bereitstellen.
+- Plugin-Settings-Hardening (Folgeschritt): nach eingefuehrter semantischer Validierung und Scope-Matrix-Regression fuer `business_letter` Cross-Field-Regeln, rollenbasierte Scope-Policies und UI-Abhaengigkeiten pro Feld erweitern.
+- Nach eingefuehrter UI- und API-E2E-Regression fuer Plugin-Settings und Scope-Matrix (`global/team/user`): zusaetzliche Browser-E2E-Flows fuer Teamwechsel und Scope-Ueberschreibung aufnehmen.
+- Offizielle XRechnung-Assets weiter haerten: Pinning + SHA-Checks im CI sind aktiv; als naechster Schritt reproduzierbaren Rollforward-/Rollback-Prozess und dokumentierte Update-Checkliste etablieren.
+
+- KoSIT-Referenztests weiter ausbauen: nach den eingebundenen offiziellen UBL-Fixtures aus `xrechnung-testsuite@v2026-01-31` weitere Fallfamilien (insb. CreditNote/CII und noch mehr komplexe Business Rules) in den verpflichtenden CI-Pfad aufnehmen.
+- Fehlerklassifikation verfeinern: Mapping XML-Syntax/XSD/Schematron/EN16931/XRechnung in Reports um stabile Maschinenkennungen und Trendauswertung erweitern.
+- Fachliches Mapping weiter vertiefen: verbliebene EN16931-Sonderfaelle, komplexe Dokumentrabatte ueber mehrere Steuergruppen, Korrekturketten und vollstaendige CII-Paritaet als naechsten Business-Block umsetzen.
 - Speech-Endpoint end-to-end absichern: `POST /api/speech/synthesize` mit Payload-Varianten (`model_id`/`modelId`, optionale `null`-Felder) als API-Test gegen 422-Regressionen abdecken.
 - Kokoro-DE-Regressionscheck ergaenzen: absichern, dass `GET /api/speech/models` fuer Kokoro dauerhaft `de`/`de-de` ausliefert und `de-at`/`de-ch`/`german` korrekt auf den `b`-Voice-Pfad gemappt werden.
 - Kokoro-TTS-Smoke-Test ergaenzen: End-to-End-Check fuer lokales Modell ohne `model_type` in `config.json` (inkl. Sprach-/Stimmenfallback und WAV-Ausgabe) in den Regressionlauf aufnehmen.
@@ -64,12 +111,59 @@
 - `.venv-chat` Migration abschliessen: Python 3.12 installieren, Umgebung mit `scripts/setup_venv_chat.ps1` erstellen, dann Chat/Transformers/GGUF/ONNX/SmolVLM2/PEFT-Smoke durchtesten.
 - `.venv-chat` GPU-Upgrade abschliessen: CUDA-Torch-Wheels vollstaendig installieren und danach CUDA-Verfuegbarkeit (`torch.cuda.is_available()`) sowie Vision-/Training-Smoketests erneut pruefen.
 
-- Einstellungen sollen als Popup in der Mitte ausreichend groß angezeigt werden.
+- Popup-Regression jetzt dauerhaft absichern: E2E-Flow fuer `Einstellungen` und `Plugins` ergaenzen (Overlay oeffnet ueber Chat, kein Inline-Render im Ausgabefenster, Schliessen per Button/Overlay/Escape).
+- Neue Kachel-Hierarchie absichern: E2E fuer Kategorie-/Plugin-/Untergruppen-Kacheln inkl. Symbolanzeige und Erwartungstexten in allen Ebenen ergaenzen.
+- Dynamische Popup-Hoehen regressionssicher machen: E2E fuer Desktop/Mobil mit Pruefung, dass Felder der letzten Plugin-Untergruppe ohne Layout-Blockade erreichbar sind.
+- Integrationen-Darstellungsmodus aus `Einstellungen / Darstellung` per E2E absichern (Reload-Persistenz und Feldzugriff im Dokumente-Tab fuer Inline + Popup).
+- Plugin-Frontend-Metadaten ausbauen: nach dem neuen `Frontend`-Button in den Plugin-Kacheln naechstmoeglich echte feldbasierte Plugin-Frontends (statt nur Aktions-Presets) pro Kernplugin schrittweise einfuehren.
+- Dynamische Plugin-Logo-Discovery absichern: Namenskonvention fuer `frontend/src/assets/plugin-logos/` dokumentieren, optionales Metadatenfeld fuer alternative Logo-Namen ergaenzen und E2E-Regression fuer Kachel-Rendering (mit/ohne Asset) aufnehmen.
+- `business_letter`-Frontpage weiter ausbauen: die neuen Schnellzugaenge fuer Angebot/Rechnung/Mahnung/Layout/Persistenz mittelfristig auf strukturierte Fachformulare mit direkter Feldbearbeitung umstellen.
+- Generische Plugin-Frontpage weiter vertiefen: aus der neuen automatischen Funktionsliste den naechsten Schritt zu parameterbezogenen Mini-Formularen pro Aktion ableiten statt nur `action` in den Runner zu uebernehmen.
+- Plugin-eigene Frontpages ausrollen: nach `business_letter` die neue `pluginFrontend.page`-Struktur auf weitere Kernplugins anwenden und pro Plugin fachliche Karten statt nur generischer Einstiege liefern.
+- Komponentenbasierte Plugin-Frontpages ausrollen: nach `business_letter` weitere Kernplugins als echte React-Seiten unter `frontend/src/plugins/<plugin>/` anbinden und nicht nur ueber Metadatenkarten steuern.
+- Nach eingefuehrtem Shared-Hook `plugins/shared/frontend/usePluginDraft.ts` fuer `business_letter` + `calculator`: Migration weiterer plugin-spezifischer Frontpages auf den gemeinsamen Draft-Flow einplanen und je Plugin den Draft-Scope (user/team/project) fachlich festlegen.
+- `business_letter`-Manual-Frontpage fachlich nachschaerfen: `buildPayload()` pro Dokumenttyp enger auf den produktiven Backend-Vertrag abstimmen (z. B. Mahnung, Gutschrift, Lieferschein, E-Rechnungsfaelle).
+- `business_letter`-Manual-Frontpage weiter modularisieren: Header/Sidebar + Execution-Hook sowie alle Hauptsektionen (`DocumentSection`, `RelationshipSection`, `RecipientSection`, `PositionSection`, `TextSection`) sind ausgelagert; als naechster Schritt die verbleibende Parent-Orchestrierung in lokale Hooks/Reducer zerlegen.
+- TypeScript-Fixblock fuer ausgelagerte Plugin-Frontends ist abgeschlossen: die `react`/`jsx-runtime`-Aufloesung fuer `plugins/*/frontend` ist stabil, und die Fehlerkaskade in der `business_letter`-Manual-Page ist behoben; offen ist jetzt die separate Bereinigung der verbleibenden Typfehler in `frontend/src`.
+- Nach Migration auf `POST /api/plugins/execute-function`: konsistentes Fehler-Mapping fuer Policy-/Validierungsfehler im Frontend ergaenzen (maschinenlesbare Codes -> nutzerfreundliche Meldungen).
+- Folgebeleg-Validierung weiter vertiefen: serverseitige Teilmengen-/Referenz-Grenzfaelle (Mehrtreffer, gemischte Statusketten, Rundung) als explizite UI-Regressionstests absichern.
+- Nach aktivierter plugin-lokaler Frontpage-Entwurfs-Persistenz (`business_letter_frontpage_draft`): mehrere benannte Draft-Slots, explizite Loeschfunktion und optionaler Team-/Projekt-Scope fuer Entwuerfe nachziehen.
+- `business_letter` nach der Typintegration weiter verfeinern: pro neuem Dokumenttyp gezielte Pflichtfelder/Hinweise im Frontend einblenden und die Ergebnisansicht statt Roh-JSON auf Dokumentnummer, Status, PDF/XML, Warnungen, Speicherort und Versandstatus zuschneiden.
+- Nach Einfuehrung der zentralen Dokumenttyp-Konfiguration: Runtime-Tests pro Dokumentgruppe, Frontend-Komponententests fuer dynamische Pflichtfelder und mindestens ein Playwright-Pfad fuer Rechnungs- plus Service-Dokumenttyp nachziehen.
+- `business_letter` vom Dokumentgenerator zur kompletten Dokumentplattform weiterentwickeln: als priorisierte Produktbloecke Dokumentvorlagen, Assistent statt Langformular, Echtzeit-PDF-Vorschau, Kundenverwaltung, Artikelverwaltung, Dokumenthistorie, digitale Unterschriften, QR-Codes, automatische Anhaenge, Workflow/Statusmodell, Wiedervorlagen, Dashboard, Serienbriefe, KI-Unterstuetzung, Mehrsprachigkeit, flexiblere Nummernkreise, Projekt-/Baustellenbezug, Naturstein-spezifische Felder, Plugin-Integrationen und komplette Dokumentenpakete aufnehmen.
+- `business_letter` priorisierte Ausbaureihenfolge festhalten und umsetzen: 1. Dokumentvorlagen, 2. Kunden- und Artikelverwaltung, 3. Echtzeit-PDF-Vorschau, 4. Workflow mit Freigaben/Status, 5. Projekt- und Baustellenbezug, 6. Naturstein-spezifische Felder, 7. digitale Signaturen, 8. Dashboard/Auswertungen, 9. Serienbriefe, 10. KI-gestuetzte Texterstellung.
+- `business_letter`-Typmatrix fachlich vertiefen: Service-/Baustellendokumente um eigene strukturierte Feldgruppen erweitern (Montagebericht, Abnahmeprotokoll, Reklamation, Retourenschein) statt sie nur ueber generische Textfelder laufen zu lassen.
+- Mahnwesen-Regeln pro Stufe ausbauen: Karenzzeit, neue Zahlungsfrist, Mahngebuehr, Verzugszins, Mindestbetrag, Eskalationshinweis, Inkassosperre und Pruefung der vorherigen Mahnstufe als dokumenttyp-spezifische Regeln in die zentrale Matrix aufnehmen.
+- Dokumentbeziehungen produktivieren: `source_document_id`, `source_document_number`, `source_document_kind`, `project_id`, `customer_id`, `revision_of` und `cancels_document_id` als nachvollziehbare Referenzkette zwischen Anfrage, Angebot, Auftrag, Lieferschein, Rechnung und Mahnung einfuehren.
+- Konvertierungsaktionen fuer `business_letter` aufbauen: Folgebelege direkt aus bestehenden Dokumenten erzeugen (z. B. Angebot -> Auftragsbestaetigung, Lieferschein -> Rechnung, Rechnung -> Stornorechnung/Gutschrift/Zahlungserinnerung, Montagebericht -> Abnahmeprotokoll) inklusive Uebernahme von Kunde, Projekt, Positionen und Referenzen.
+- Naturstein-spezifische Positionsdaten als optionales `stone_details`-Objekt einziehen: Materialart, Handelsname, Herkunft, Farbe, Oberflaeche, Staerke, Laenge/Breite, Quadratmeter/Laufmeter, Kantenprofil, Ausschnitte, Bohrungen, Charge, Blocknummer, Verschnitt, Aufmassnummer und Montageort.
+- Frontend-Vorschau fuer `business_letter` nachziehen: echte Dokumentvorschau mit Briefkopf/Logo/Signatur, Seitenumbruechen, Layoutwarnungen und fachlichen Vollstaendigkeitspruefungen vor der Erzeugung bereitstellen.
+- Entwurfs- und Autosave-Pfad fuer `business_letter` einfuehren: Entwurf speichern, automatisch zwischenspeichern, letzten Entwurf wiederherstellen, duplizieren und als Vorlage speichern.
+- Freigabeworkflow fuer kaufmaennische Dokumente ergaenzen: Entwurf -> Pruefung -> Freigegeben -> Versendet inkl. Freigabegrenzen, Vier-Augen-Prinzip, Aenderungsprotokoll, Ablehnungsgrund und erneuter Freigabe nach relevanten Aenderungen.
+- Naechsten technischen Absicherungsblock festziehen: parametrisierte Backendtests je Dokumenttyp, Pflichtfeld- und Defaultwert-Checks, E-Rechnungs-Sperren, Frontendtests fuer sichtbare/versteckte Felder, Payload-Snapshots und Browser-E2E mindestens fuer Rechnung, Mahnung und Montagebericht.
+- `business_letter`-Umsetzungsreihenfolge fuer die naechste Phase festhalten: 1. Tests fuer die zentrale Typmatrix, 2. Dokumentbeziehungen und Konvertierungen, 3. Service-/Baustellenfelder, 4. Naturstein-spezifische Positionsdaten, 5. Entwuerfe/Autosave, 6. Vorschau, 7. Freigabeworkflow, 8. Dokumenthistorie und Versionierung.
+- `business_letter`-Sofortprioritaet festhalten: hoechster unmittelbarer Mehrwert liegt jetzt bei Dokumentbeziehungen, Konvertierungsaktionen und natursteinspezifischen Positionsfeldern.
+- Nach umgesetztetem Konvertierungsservice (inkl. Positionsuebernahme, Teilmengen und Referenzvalidierung): als naechsten Schritt `stone_details` tief in PDF/HTML/Artefakte, Folgebeleg-Renderer und fachliche Pruefpfade durchreichen.
+- Konvertierungsblock weiter haerten: nach aktivierter persistenter Referenzsuche (Projekt/Kunde + Quelltyp) und ersten strikten Status-/Prozesspruefungen jetzt Mehrtreffer-Strategie (Priorisierung/Disambiguierung), Mahnstufen-Kettenlogik und dokumenttyp-spezifische Freigaberegeln serverseitig ausbauen.
+- Nach aktivierter Restmengen-/Offene-Posten-Logik im Konvertierungspfad als naechsten Schritt die Mengenketten ueber mehrere Folgebelege persistenzbasiert aggregieren (geliefert, fakturiert, offen) und im Frontend transparent anzeigen.
+- Projektakte als eigener Sichtpfad priorisieren: alle Folgebelege eines Projekts inklusive Status und Zeitachse in einer zusammenhaengenden Timeline visualisieren.
+- Nach eingefuehrter persistenter Mengenkette + Projektakte (`project_case_overview`) als naechsten Schritt Timeline-Filter (Status/Datum/Dokumenttyp) und paging fuer grosse Projektakten ergaenzen.
+- Projektakte-Hardening: Prozessregeln pro Folgebeleg (z. B. Mahnstufe nur bei offenem Betrag, Storno nur fuer fakturierte Belege) serverseitig im Overview-/Konvertierungspfad erzwingen.
+- Folgebeleg-Gates weiter vertiefen: bestehende Blocker fuer `lieferschein_to_rechnung` (Restmenge) und `rechnung_to_zahlungserinnerung` (offener Betrag) um dokumentierte Grenzfaelle erweitern (Teilzahlung, Rundung, Mischketten aus Zahlung/Gutschrift/Storno).
+- Restmengenanzeige im Follow-up-Flow um Betragssicht erweitern (Warenwert geliefert/fakturiert/offen je Position und gesamt) fuer kaufmaennische Steuerung.
 - Nach funktionaler Verdrahtung von `Chat`/`Wissen`/`Logs`: verbleibende Settings-Gruppen (`Darstellung`, `Datenbank`, `System`) mit echten Lade-/Speicherfluesse statt Platzhaltern umsetzen.
 - Wartungsaktion nachziehen: fuer `POST /api/settings/chat/cleanup-obsolete` optionales Audit-Logging (wer/wann/wie viele Eintraege) ergaenzen.
 - Security-Standard aus `docs/security/` operationalisieren: gemeinsame Admin-Guard-Dependency konsolidieren und Audit-Pflichtfelder (`actor_user_id`, `request_id`, `result`, `error_message`) fuer weitere Admin-Endpunkte vereinheitlichen.
 - Security-README in den Workflow ziehen: bei jedem neuen Admin-Endpoint die Reihenfolge/Review-Checkpunkte aus `docs/security/README.md` verpflichtend anwenden.
 - Projekt- und Konversationsflows end-to-end absichern: API- und UI-Tests fuer Projekt erstellen/umbenennen/loeschen/auswaehlen sowie Chat-Projekt-Zuordnung ergaenzen.
+- Chat-Projektzuordnung in verschachtelten Projektbaeumen mit einer UI-Regression absichern, damit Breadcrumbs und echte Assign/Unassign-Flows nicht wieder auseinanderlaufen.
+- Chat-Projektzuordnung fuer sichtbare Fremdchats mit einer UI-Regression absichern, damit der entfernte Owner-Guard nicht wieder zurueckkommt.
+- Quellenansicht im Chat um eine UI-Regression fuer projektbezogene Filterung und Ebenenanzeige ergaenzen, damit der Nutzer nie wieder einen globalen Quellenpool sieht.
+- Chat-spezifische Einstellungen weiter zentralisieren: Chat-Header, Quellenansicht und Chat-Settings sollen dieselbe Projekt-/Scope-Semantik nutzen.
+- Chat-Projektzuordnung im Hamburger-Menue mit einem expliziten Accessibility-Check absichern, damit die Aktion nicht nur per Maus sauber erreichbar bleibt.
+- Projektfilter im Sidebar-Chatsbereich mit einem Regressionstest absichern, damit "Alle Chats" und Ordnerauswahl nicht wieder voneinander entkoppelt werden.
+- Sidebar weiter zerlegen: `ProjectFilterTree`, `ConversationTree` und `ConversationContextMenu` als eigene Komponenten aus `LeftSidebar` extrahieren.
+- Quellenbaum im rechten Panel mit einem Sichtbarkeits-Test fuer verschachtelte Pfade absichern, damit alle Ebenen korrekt gruppiert bleiben.
 - Dataset-Management als erster Lieferblock umsetzen: Import, Validierung, Versionierung, Explorer-API (Editieren/Pruefen) und reproduzierbare Metadaten.
 - Training-API naechster Ausbauschritt: Worker-Lifecycle um Validierung/Tokenisierung/Saving/Registering erweitern und feingranulare Statusuebergaenge verhaerten.
 - Frontend Training-Bereich vertiefen: Job-Detailansicht um Live-Logs/Progress erweitern und an den erweiterten Worker-Lifecycle anbinden.
@@ -202,7 +296,7 @@
 - Reverse-Proxy-Beispiel fuer Internetbetrieb (TLS, Host-Weitergabe, CORS-Origins) als lauffaehige Deploy-Vorlage dokumentieren.
 - Nutzerpraesenz weiterentwickeln: Heartbeat-Polling durch push-basierte Presence-Events (WebSocket/SSE) ersetzen.
 - Retry-Strategie differenzieren: GET mit begrenzten Retries, POST/PUT/DELETE nur mit Idempotency oder Safe-Markierung.
-- Auth-Lifecycle haerten: bei DB-Reset oder Nutzerloeschung gespeicherte Sessions sauber invalidieren und Re-Login-Flow ohne 401/404-Loop erzwingen.
+- Auth-Lifecycle haerten: bei DB-Reset oder Nutzerloeschung gespeicherte Sessions sauber invalidieren, Re-Login-Flow ohne 401/404-Loop erzwingen und Heartbeat-/Presence-Calls bei fehlendem Token sauber abfangen.
 - OOM-Wiederherstellung als kontrollierte Sequenz implementieren: Anfrage abbrechen, Zustand pruefen, entladen, Speicher freigeben, neu laden.
 - Seed-Service fuer Standardwerte und Standard-Prompts idempotent beim Start ausfuehren.
 - Backup- und Restore-Skripte fuer SQLite dokumentiert bereitstellen.

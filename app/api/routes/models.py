@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -5,7 +6,7 @@ from typing import cast
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.api.dependencies import db_session_dependency
 from app.api.errors import api_http_error
@@ -16,8 +17,20 @@ from app.models.manager import model_manager
 from app.models.health_check import check_backend_health
 from app.models.loader import create_backend, list_supported_backends
 from app.models.loader_registry import ModelLoaderRegistry
+from app.models.openai_integration import discover_openai_models, parse_openai_model_ref, resolve_openai_api_key
+from app.models.ollama_integration import (
+    discover_ollama_models,
+    get_ollama_local_models_payload,
+    is_ollama_model_installed,
+    parse_ollama_model_ref,
+    stream_ollama_lines,
+)
+from app.models.ollama_pull_registry import ACTIVE_PULL_STATES, TERMINAL_PULL_STATES, ollama_pull_registry
 from app.models.capabilities import REQUIRED_CHAT_CAPABILITIES
 from app.models.metadata import infer_model_capabilities
+from app.database.session import get_session_maker
+from app.db_models.conversation import Conversation
+from app.db_models.message import Message
 from app.db_models.model_config import ModelConfig
 from app.settings.service import SettingsService
 
@@ -161,6 +174,17 @@ async def _cleanup_legacy_model_rows(
                 keeper.load_status = candidate.load_status
                 keeper.last_loaded_at = candidate.last_loaded_at
 
+            await session.execute(
+                update(Conversation)
+                .where(Conversation.active_model_id == candidate.id)
+                .values(active_model_id=keeper.id)
+            )
+            await session.execute(
+                update(Message)
+                .where(Message.model_id == candidate.id)
+                .values(model_id=keeper.id)
+            )
+
             await session.delete(candidate)
             cleaned_rows = [row for row in cleaned_rows if row.id != candidate.id]
 
@@ -181,6 +205,10 @@ def _merged_scan_metadata(
     merged = dict(scanned_metadata)
     if "custom_code_trusted" in existing_metadata:
         merged["custom_code_trusted"] = _as_bool(existing_metadata.get("custom_code_trusted"))
+    if str(scanned_metadata.get("model_format") or "") == "ollama":
+        for key in ("ollama_installed", "context_length", "parameter_size", "quantization_level", "embedding_length"):
+            if key in existing_metadata:
+                merged[key] = existing_metadata[key]
     return merged
 
 
@@ -233,6 +261,174 @@ def _status_for_row(
     return "inaktiv", "blue"
 
 
+def _source_for_row(row: ModelConfig, metadata: dict[str, object]) -> tuple[str, str]:
+    source_kind = str(metadata.get("source_kind") or "").strip().lower()
+    source_label = str(metadata.get("source_label") or "").strip()
+    if source_kind and source_label:
+        return source_kind, source_label
+    if source_kind == "ollama_local":
+        return "ollama_local", "Ollama Local"
+    if source_kind == "ollama_cloud":
+        return "ollama_cloud", "Ollama Cloud"
+    if str(row.model_path).startswith(("http://", "https://")):
+        return "remote", "Remote"
+    return "lokal", "Lokal"
+
+
+def _ollama_pull_payload(metadata: dict[str, object], model_path: str) -> tuple[str, str, dict[str, object] | None]:
+    source_kind = str(metadata.get("source_kind") or "").strip().lower()
+    if str(metadata.get("backend") or "") != "ollama":
+        return "", source_kind, None
+    model_name, source_kind = parse_ollama_model_ref(model_path, metadata)
+    if not model_name:
+        return "", source_kind, None
+    pull_status = ollama_pull_registry.get(model_path)
+    return model_name, source_kind, pull_status.as_dict() if pull_status is not None else None
+
+
+def _openai_payload(metadata: dict[str, object], model_path: str) -> tuple[str, str]:
+    if str(metadata.get("backend") or "") != "openai":
+        return "", ""
+    return parse_openai_model_ref(model_path, metadata), str(metadata.get("source_kind") or "remote").strip().lower()
+
+
+async def _persist_ollama_install_state(model_id: int, *, installed: bool, metadata_patch: dict[str, object] | None = None) -> None:
+    session_maker = get_session_maker()
+    async with session_maker() as session:
+        model = (await session.execute(select(ModelConfig).where(ModelConfig.id == model_id))).scalar_one_or_none()
+        if model is None:
+            return
+        metadata = _parse_metadata(model.metadata_json)
+        metadata["ollama_installed"] = installed
+        if metadata_patch:
+            metadata.update(metadata_patch)
+        model.metadata_json = json.dumps(metadata)
+        if installed and model.load_status == "loading":
+            model.load_status = "unloaded"
+        if not installed and model.load_status == "ready":
+            model.load_status = "unloaded"
+        await session.commit()
+
+
+def _run_ollama_pull_sync(*, model_id: int, model_path: str, model_name: str) -> tuple[str, str | None, dict[str, object] | None]:
+    progress = 0
+    metadata_patch: dict[str, object] = {}
+    cancel_event = ollama_pull_registry.begin(
+        model_path,
+        state="queued",
+        detail="Download wird vorbereitet",
+        progress_percent=0,
+    )
+    response = None
+    try:
+        if is_ollama_model_installed(model_name):
+            ollama_pull_registry.set(model_path, state="completed", detail="Modell ist bereits lokal verfuegbar", progress_percent=100)
+            return "completed", None, {"ollama_installed": True}
+
+        ollama_pull_registry.set(model_path, state="pulling", detail="Download startet", progress_percent=1)
+        response = stream_ollama_lines("/api/pull", {"model": model_name}, timeout=900.0)
+        for raw_line in response:
+            if cancel_event.is_set():
+                ollama_pull_registry.set(model_path, state="cancelled", detail="Download abgebrochen", progress_percent=progress or None)
+                return "cancelled", None, {"ollama_installed": False}
+
+            line = raw_line.decode("utf-8", errors="ignore").strip()
+            if not line:
+                continue
+            try:
+                chunk_raw = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(chunk_raw, dict):
+                continue
+            chunk = cast(dict[str, object], chunk_raw)
+            detail = str(chunk.get("status") or "Download laeuft")
+            total_raw = chunk.get("total")
+            completed_raw = chunk.get("completed")
+            total = int(total_raw) if isinstance(total_raw, (int, float)) else None
+            completed = int(completed_raw) if isinstance(completed_raw, (int, float)) else None
+            if total and completed is not None and total > 0:
+                progress = max(1, min(100, int((completed / total) * 100)))
+            elif "verifying" in detail.lower():
+                progress = max(progress, 95)
+            elif "writing" in detail.lower():
+                progress = max(progress, 97)
+            else:
+                progress = max(progress, 5)
+
+            ollama_pull_registry.set(
+                model_path,
+                state="pulling",
+                detail=detail,
+                progress_percent=progress,
+                total=total,
+                completed=completed,
+            )
+
+            if cancel_event.is_set():
+                ollama_pull_registry.set(model_path, state="cancelled", detail="Download abgebrochen", progress_percent=progress or None)
+                return "cancelled", None, {"ollama_installed": False}
+
+            if bool(chunk.get("done")):
+                break
+
+        installed = is_ollama_model_installed(model_name)
+        if not installed:
+            raise RuntimeError("Ollama meldet den Download als abgeschlossen, aber das Modell ist lokal noch nicht sichtbar.")
+
+        ollama_pull_registry.set(model_path, state="completed", detail="Download abgeschlossen", progress_percent=100)
+        metadata_patch["ollama_installed"] = True
+        return "completed", None, metadata_patch
+    except Exception as exc:
+        if cancel_event.is_set():
+            ollama_pull_registry.set(model_path, state="cancelled", detail="Download abgebrochen", progress_percent=progress or None)
+            return "cancelled", None, {"ollama_installed": False}
+        message = str(exc).strip() or "Download fehlgeschlagen"
+        ollama_pull_registry.set(model_path, state="error", detail=message, progress_percent=None)
+        return "error", message, None
+    finally:
+        if response is not None:
+            try:
+                response.close()
+            except Exception:
+                pass
+
+
+async def _run_ollama_pull_task(*, model_id: int, model_path: str, model_name: str) -> None:
+    state, error_message, metadata_patch = await asyncio.to_thread(
+        _run_ollama_pull_sync,
+        model_id=model_id,
+        model_path=model_path,
+        model_name=model_name,
+    )
+    if state == "completed":
+        await _persist_ollama_install_state(model_id, installed=True, metadata_patch=metadata_patch)
+        return
+
+    if state == "cancelled":
+        session_maker = get_session_maker()
+        async with session_maker() as session:
+            model = (await session.execute(select(ModelConfig).where(ModelConfig.id == model_id))).scalar_one_or_none()
+            if model is None:
+                return
+            metadata = _parse_metadata(model.metadata_json)
+            metadata["ollama_installed"] = False
+            model.metadata_json = json.dumps(metadata)
+            model.last_error = None
+            model.load_status = "unloaded"
+            await session.commit()
+        return
+
+    session_maker = get_session_maker()
+    async with session_maker() as session:
+        model = (await session.execute(select(ModelConfig).where(ModelConfig.id == model_id))).scalar_one_or_none()
+        if model is None:
+            return
+        model.last_error = error_message
+        model.load_status = "error"
+        await session.commit()
+
+
 @router.get("/capabilities")
 async def model_capabilities() -> dict[str, object]:
     backends: list[dict[str, object]] = []
@@ -277,10 +473,14 @@ async def scan_models(session: AsyncSession = Depends(db_session_dependency)) ->
     settings_service = SettingsService(session)
     directories_raw = await settings_service.get("model", "base_directories")
     directories = normalize_base_directories(directories_raw)
+    chatgpt_api_key_raw = await settings_service.get("integrations", "chatgpt_api_key", user_id=1)
+    chatgpt_api_key = chatgpt_api_key_raw if isinstance(chatgpt_api_key_raw, str) else ""
     scanner = ModelScanner()
     registry = ModelRegistry()
 
     discovered = scanner.scan_directories(directories)
+    discovered.extend(discover_ollama_models())
+    discovered.extend(discover_openai_models(api_key=chatgpt_api_key))
     inserted = 0
     all_rows = cast(
         list[ModelConfig],
@@ -362,6 +562,17 @@ async def list_models(
     relevance_flags_raw = await settings_service.get("model", "relevance_flags", user_id=user_id)
     relevance_flags = cast(dict[str, str], relevance_flags_raw if isinstance(relevance_flags_raw, dict) else {})
     loader_registry = ModelLoaderRegistry()
+    chatgpt_api_key_raw = await settings_service.get("integrations", "chatgpt_api_key", user_id=user_id)
+    chatgpt_api_key = resolve_openai_api_key(chatgpt_api_key_raw if isinstance(chatgpt_api_key_raw, str) else None)
+    ollama_local_models = get_ollama_local_models_payload()
+    ollama_installed_names = {
+        _normalize_name
+        for _normalize_name in (
+            str(item.get("model") or item.get("name") or "").strip().lower()
+            for item in ollama_local_models
+        )
+        if _normalize_name
+    }
     items: list[dict[str, object]] = []
 
     for row in rows:
@@ -373,16 +584,44 @@ async def list_models(
         model_format = str(metadata.get("model_format") or row.model_format or "unknown")
         task_type = str(metadata.get("task_type") or row.model_type or "text_generation")
         model_family = str(metadata.get("model_family") or "unknown")
+        model_name, source_kind, pull_status = _ollama_pull_payload(metadata, row.model_path)
+        openai_model_name, openai_source_kind = _openai_payload(metadata, row.model_path)
+        ollama_installed = bool(metadata.get("ollama_installed"))
+        if source_kind == "ollama_cloud" and model_name:
+            ollama_installed = ollama_installed or model_name.lower() in ollama_installed_names
+            metadata["ollama_installed"] = ollama_installed
 
         loader = loader_registry.resolve(model_format=model_format, task_type=task_type)
         loader_id = loader.loader_id if loader is not None else None
         loader_available = bool(loader.available) if loader is not None else False
         reason_unavailable = loader.reason_unavailable if loader is not None else "Kein kompatibler Loader registriert."
 
+        if model_format == "openai":
+            loader_available = bool(chatgpt_api_key)
+            reason_unavailable = None if chatgpt_api_key else "ChatGPT/OpenAI API-Key fehlt in den Integrationen."
+
         custom_code_reason = _custom_code_gate(metadata)
         if custom_code_reason is not None:
             loader_available = False
             reason_unavailable = custom_code_reason
+
+        if source_kind == "ollama_cloud" and not ollama_installed:
+            loader_available = False
+            reason_unavailable = "Noch nicht lokal heruntergeladen. Bitte zuerst herunterladen."
+
+        if openai_source_kind == "remote" and openai_model_name and not chatgpt_api_key:
+            loader_available = False
+            reason_unavailable = "ChatGPT/OpenAI API-Key fehlt in den Integrationen."
+
+        if pull_status is not None and str(pull_status.get("state") or "") in ACTIVE_PULL_STATES:
+            loader_available = False
+            reason_unavailable = str(pull_status.get("detail") or "Download laeuft")
+        elif pull_status is not None and str(pull_status.get("state") or "") == "cancelled" and not ollama_installed:
+            loader_available = False
+            reason_unavailable = "Download abgebrochen. Erneut herunterladen, um das Modell zu aktivieren."
+        elif pull_status is not None and str(pull_status.get("state") or "") == "error" and not ollama_installed:
+            loader_available = False
+            reason_unavailable = str(pull_status.get("detail") or "Download fehlgeschlagen. Bitte erneut versuchen.")
 
         loadable = loader_available
         user_flag = relevance_flags.get(str(row.id))
@@ -396,6 +635,8 @@ async def list_models(
         )
 
         group = str(metadata.get("group") or "Hilfsmodelle")
+        source_kind, source_label = _source_for_row(row, metadata)
+        context_length = metadata.get("context_length")
         items.append(
             {
                 "id": row.id,
@@ -404,10 +645,21 @@ async def list_models(
                 "backend": row.backend,
                 "load_status": row.load_status,
                 "is_active": row.is_active,
+            "source_kind": source_kind,
+            "source_label": source_label,
                 "model_format": model_format,
                 "model_family": model_family,
                 "task_type": task_type,
                 "group": group,
+                "ollama_installed": ollama_installed,
+                "ollama_capabilities": metadata.get("ollama_capabilities") if isinstance(metadata.get("ollama_capabilities"), list) else [],
+                "tool_calling": _as_bool(metadata.get("tool_calling")),
+                "structured_output": _as_bool(metadata.get("structured_output")),
+                "reasoning": _as_bool(metadata.get("reasoning")),
+                "parameter_size": str(metadata.get("parameter_size") or "") or None,
+                "quantization_level": str(metadata.get("quantization_level") or "") or None,
+                "context_length": context_length if isinstance(context_length, int) else None,
+                "pull_status": pull_status,
                 "loader": loader_id,
                 "relevance": relevance,
                 "relevance_flag": user_flag,
@@ -476,6 +728,8 @@ async def activate_model(model_id: int, session: AsyncSession = Depends(db_sessi
     settings_service = SettingsService(session)
     directories_raw = await settings_service.get("model", "base_directories")
     directories = normalize_base_directories(directories_raw)
+    chatgpt_api_key_raw = await settings_service.get("integrations", "chatgpt_api_key", user_id=1)
+    chatgpt_api_key = resolve_openai_api_key(chatgpt_api_key_raw if isinstance(chatgpt_api_key_raw, str) else None)
 
     model = (await session.execute(select(ModelConfig).where(ModelConfig.id == model_id))).scalar_one_or_none()
     if model is None:
@@ -484,6 +738,15 @@ async def activate_model(model_id: int, session: AsyncSession = Depends(db_sessi
     metadata = _parse_metadata(model.metadata_json)
     if not metadata:
         metadata = dict(infer_model_capabilities(name=model.name, model_path=Path(model.model_path)))
+
+    _, source_kind, pull_status = _ollama_pull_payload(metadata, model.model_path)
+    if source_kind == "ollama_cloud" and pull_status is not None and str(pull_status.get("state") or "") in ACTIVE_PULL_STATES:
+        raise api_http_error(
+            status_code=409,
+            code="model.pull_in_progress",
+            message=str(pull_status.get("detail") or "Ollama-Download laeuft noch."),
+            details={"model_id": model.id, "pull_status": pull_status},
+        )
 
     model_format = str(metadata.get("model_format") or model.model_format or "unknown")
     task_type = str(metadata.get("task_type") or model.model_type or "text_generation")
@@ -497,7 +760,14 @@ async def activate_model(model_id: int, session: AsyncSession = Depends(db_sessi
             message="No compatible loader registered for this model",
             details={"model_id": model.id, "model_format": model_format, "task_type": task_type},
         )
-    if not loader.available:
+    if model_format == "openai" and not chatgpt_api_key:
+        raise api_http_error(
+            status_code=409,
+            code="model.api_key_missing",
+            message="ChatGPT/OpenAI API-Key fehlt in den Integrationen.",
+            details={"model_id": model.id, "loader_id": loader.loader_id, "model_format": model_format, "task_type": task_type},
+        )
+    if model_format != "openai" and not loader.available:
         raise api_http_error(
             status_code=409,
             code="model.loader_unavailable",
@@ -542,12 +812,23 @@ async def activate_model(model_id: int, session: AsyncSession = Depends(db_sessi
     model.last_error = None
     await session.flush()
 
+    runtime_config: dict[str, object] = {"metadata": metadata}
+    if model.backend == "openai":
+        if not chatgpt_api_key:
+            raise api_http_error(
+                status_code=409,
+                code="model.api_key_missing",
+                message="ChatGPT/OpenAI API-Key fehlt in den Integrationen.",
+                details={"model_id": model.id},
+            )
+        runtime_config["api_key"] = chatgpt_api_key
+
     try:
         await model_manager.load_model(
             model_id=model.id,
             model_path=model.model_path,
             backend_name=model.backend,
-            config={"metadata": metadata},
+            config=runtime_config,
         )
         if not check_backend_health(model_manager.active_backend):
             raise RuntimeError("health_check_failed")
@@ -581,11 +862,12 @@ async def activate_model(model_id: int, session: AsyncSession = Depends(db_sessi
 
         await session.commit()
 
-        detail = "Model activation failed"
+        root_cause = str(exc).strip() or "unknown_error"
+        detail = f"Model activation failed: {root_cause}"
         if rollback_restored and active_id is not None:
-            detail = f"Model activation failed; rolled back to model {active_id}"
+            detail = f"Model activation failed: {root_cause}; rolled back to model {active_id}"
         elif rollback_error:
-            detail = f"Model activation failed; rollback failed: {rollback_error}"
+            detail = f"Model activation failed: {root_cause}; rollback failed: {rollback_error}"
 
         raise HTTPException(status_code=409, detail=detail) from exc
 
@@ -614,6 +896,77 @@ async def deactivate_model(session: AsyncSession = Depends(db_session_dependency
     await settings_service.update("model", "active_model_id", None)
     await session.commit()
     return {"updated": True}
+
+
+@router.post("/{model_id}/pull")
+async def pull_ollama_model(model_id: int, session: AsyncSession = Depends(db_session_dependency)) -> dict[str, object]:
+    model = (await session.execute(select(ModelConfig).where(ModelConfig.id == model_id))).scalar_one_or_none()
+    if model is None:
+        raise api_http_error(status_code=404, code="model.not_found", message="Model not found")
+
+    metadata = _parse_metadata(model.metadata_json)
+    if str(metadata.get("backend") or model.backend) != "ollama":
+        raise api_http_error(status_code=400, code="model.not_ollama", message="Model is not an Ollama model")
+
+    model_name, source_kind = parse_ollama_model_ref(model.model_path, metadata)
+    if source_kind != "ollama_cloud":
+        raise api_http_error(status_code=400, code="model.pull_not_supported", message="Nur Ollama-Cloud-Modelle koennen heruntergeladen werden.")
+
+    if is_ollama_model_installed(model_name):
+        metadata["ollama_installed"] = True
+        model.metadata_json = json.dumps(metadata)
+        model.last_error = None
+        await session.commit()
+        ollama_pull_registry.set(model.model_path, state="completed", detail="Modell ist bereits lokal verfuegbar", progress_percent=100)
+        return {"started": False, "state": "completed", "detail": "Modell ist bereits lokal verfuegbar"}
+
+    if ollama_pull_registry.is_active(model.model_path):
+        status = ollama_pull_registry.get(model.model_path)
+        return {"started": False, "state": status.state if status is not None else "queued", "detail": status.detail if status is not None else None}
+
+    existing_status = ollama_pull_registry.get(model.model_path)
+    if existing_status is not None and existing_status.state in TERMINAL_PULL_STATES:
+        ollama_pull_registry.clear(model.model_path)
+
+    model.load_status = "loading"
+    model.last_error = None
+    await session.commit()
+    ollama_pull_registry.set(model.model_path, state="queued", detail="Download wird vorbereitet", progress_percent=0)
+    asyncio.create_task(_run_ollama_pull_task(model_id=model.id, model_path=model.model_path, model_name=model_name))
+    return {"started": True, "state": "queued", "detail": "Download wird vorbereitet"}
+
+
+@router.post("/{model_id}/pull/cancel")
+async def cancel_ollama_model_pull(model_id: int, session: AsyncSession = Depends(db_session_dependency)) -> dict[str, object]:
+    model = (await session.execute(select(ModelConfig).where(ModelConfig.id == model_id))).scalar_one_or_none()
+    if model is None:
+        raise api_http_error(status_code=404, code="model.not_found", message="Model not found")
+
+    metadata = _parse_metadata(model.metadata_json)
+    if str(metadata.get("backend") or model.backend) != "ollama":
+        raise api_http_error(status_code=400, code="model.not_ollama", message="Model is not an Ollama model")
+
+    _, source_kind = parse_ollama_model_ref(model.model_path, metadata)
+    if source_kind != "ollama_cloud":
+        raise api_http_error(status_code=400, code="model.pull_not_supported", message="Nur Ollama-Cloud-Downloads koennen abgebrochen werden.")
+
+    status = ollama_pull_registry.request_cancel(model.model_path)
+    if status is None:
+        current = ollama_pull_registry.get(model.model_path)
+        return {
+            "cancelled": False,
+            "state": current.state if current is not None else "idle",
+            "detail": current.detail if current is not None else "Kein aktiver Download gefunden",
+        }
+
+    model.load_status = "unloaded"
+    model.last_error = None
+    await session.commit()
+    return {
+        "cancelled": True,
+        "state": status.state,
+        "detail": status.detail,
+    }
 
 
 @router.post("/{model_id}/trust-custom-code")

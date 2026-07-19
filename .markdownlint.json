@@ -1,0 +1,50 @@
+{
+  "default": true,
+  "MD013": false,
+  "MD028": false,
+  "MD040": false,
+  "MD051": false,
+  "overrides": [
+    {
+      "files": [
+        "docs/**/*.md"
+      ],
+      "MD040": true,
+      "MD041": true,
+      "MD051": true
+    },
+    {
+      "files": [
+        "plugins/news/README.md",
+        "plugins/offer_generator/README.md",
+        "plugins/ollama_api/README.md",
+        "plugins/openai_api/README.md",
+        "plugins/product_catalog/README.md",
+        "plugins/replicate_api/README.md",
+        "plugins/sql_runner/README.md",
+        "plugins/stock_checker/README.md",
+        "plugins/stock_market/README.md",
+        "plugins/stone_colors/README.md",
+        "plugins/stone_identifier/README.md",
+        "plugins/summarizer/README.md",
+        "plugins/text_analyzer/README.md",
+        "plugins/tone_rewriter/README.md",
+        "plugins/translator/README.md",
+        "plugins/weather/README.md",
+        "plugins/websearch/README.md",
+        "plugins/README.md"
+      ],
+      "MD040": true,
+      "MD041": true,
+      "MD051": true
+    },
+    {
+      "files": [
+        "plugins/bing_search/README.md",
+        "plugins/deepseek_api/README.md",
+        "plugins/wikipedia/README.md"
+      ],
+      "MD041": false
+    }
+  ]
+}

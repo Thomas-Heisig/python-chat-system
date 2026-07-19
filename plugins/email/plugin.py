@@ -78,9 +78,9 @@ class EmailPlugin:
             },
             "provider": {
                 "type": "string",
-                "enum": ["smtp", "sendgrid"],
+                "enum": ["smtp", "microsoft365", "sendgrid"],
                 "default": "smtp",
-                "description": "E-Mail-Provider: smtp oder sendgrid.",
+                "description": "E-Mail-Provider: smtp, microsoft365 oder sendgrid.",
             },
             "communication_channel": {
                 "type": "string",
@@ -137,6 +137,17 @@ class EmailPlugin:
 
     def _is_sendgrid_configured(self) -> bool:
         return bool(self.sendgrid_api_key)
+
+    def _apply_microsoft365_smtp_defaults(self) -> None:
+        # Re-use SMTP transport, but support dedicated M365 env vars.
+        self.smtp_host = os.getenv("M365_SMTP_HOST", self.smtp_host or "smtp.office365.com")
+        self.smtp_port = int(os.getenv("M365_SMTP_PORT", str(self.smtp_port or 587)))
+        if not self.smtp_user:
+            self.smtp_user = os.getenv("M365_SMTP_USER", "")
+        if not self.smtp_pass:
+            self.smtp_pass = os.getenv("M365_SMTP_PASS", "")
+        if not self.sender_email:
+            self.sender_email = os.getenv("M365_SENDER_EMAIL", self.smtp_user)
 
     def _coerce_email_list(self, value: Any) -> list[str]:
         if isinstance(value, list):
@@ -441,6 +452,8 @@ class EmailPlugin:
         if normalized["communication_channel"] == "letter":
             return {
                 "success": True,
+                "status": "skipped",
+                "reason": "unsupported_channel",
                 "message": "communication_channel=letter: E-Mail-Versand uebersprungen.",
                 "validation": validation,
             }
@@ -460,7 +473,19 @@ class EmailPlugin:
             }
 
         provider = normalized["provider"]
-        if provider == "sendgrid":
+        if provider == "microsoft365":
+            self._apply_microsoft365_smtp_defaults()
+            result = await self._send_via_smtp(
+                normalized["to"],
+                normalized["subject"],
+                normalized["body"],
+                normalized["html_body"],
+                normalized["cc"],
+                normalized["bcc"],
+                normalized["reply_to"],
+                normalized["attachments"],
+            )
+        elif provider == "sendgrid":
             result = await self._send_via_sendgrid(
                 normalized["to"],
                 normalized["subject"],

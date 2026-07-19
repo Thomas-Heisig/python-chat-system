@@ -1,0 +1,176 @@
+[
+  {
+    "id": "granit_nero_assoluto",
+    "name": "Nero Assoluto",
+    "type": "Granit",
+    "origin": "Indien",
+    "colors": [
+      "schwarz",
+      "dunkelgrau",
+      "anthrazit"
+    ],
+    "patterns": [
+      "feinkörnig",
+      "gleichmäßig",
+      "glitzernd"
+    ],
+    "finish": [
+      "poliert",
+      "geschliffen",
+      "gebürstet"
+    ],
+    "characteristics": [
+      "hart",
+      "säurebeständig",
+      "kratzfest",
+      "wetterfest"
+    ],
+    "uses": [
+      "Küchenarbeitsplatten",
+      "Böden",
+      "Fassaden",
+      "Grabsteine"
+    ],
+    "texture": "fein bis mittel",
+    "hardness": 7
+  },
+  {
+    "id": "marmor_carrara",
+    "name": "Carrara",
+    "type": "Marmor",
+    "origin": "Italien",
+    "colors": [
+      "weiß",
+      "hellgrau",
+      "creme"
+    ],
+    "patterns": [
+      "feine Adern",
+      "wolkenartig",
+      "leicht durchscheinend"
+    ],
+    "finish": [
+      "poliert",
+      "geschliffen",
+      "gehärtet"
+    ],
+    "characteristics": [
+      "weicher",
+      "säureempfindlich",
+      "porös",
+      "edel"
+    ],
+    "uses": [
+      "Böden",
+      "Wandverkleidungen",
+      "Badezimmer",
+      "Skulpturen"
+    ],
+    "texture": "fein",
+    "hardness": 3
+  },
+  {
+    "id": "quarzit_bianco",
+    "name": "Bianco",
+    "type": "Quarzit",
+    "origin": "Brasilien",
+    "colors": [
+      "weiß",
+      "creme",
+      "hellgrau",
+      "silber"
+    ],
+    "patterns": [
+      "glitzernd",
+      "kristallin",
+      "dezent"
+    ],
+    "finish": [
+      "geschliffen",
+      "poliert"
+    ],
+    "characteristics": [
+      "sehr hart",
+      "säurebeständig",
+      "kratzfest",
+      "langlebig"
+    ],
+    "uses": [
+      "Küchenarbeitsplatten",
+      "Böden",
+      "Wandverkleidungen"
+    ],
+    "texture": "mittel",
+    "hardness": 8
+  },
+  {
+    "id": "schiefer_grau",
+    "name": "Grauer Schiefer",
+    "type": "Schiefer",
+    "origin": "Deutschland",
+    "colors": [
+      "grau",
+      "anthrazit",
+      "schwarz",
+      "blaugrau"
+    ],
+    "patterns": [
+      "geschichtet",
+      "rustikal",
+      "natürlich"
+    ],
+    "finish": [
+      "gebrochen",
+      "gebürstet",
+      "gehärtet"
+    ],
+    "characteristics": [
+      "frostbeständig",
+      "rutschfest",
+      "säurebeständig",
+      "wetterfest"
+    ],
+    "uses": [
+      "Böden",
+      "Fassaden",
+      "Dächer",
+      "Terrassen"
+    ],
+    "texture": "grob",
+    "hardness": 5
+  },
+  {
+    "id": "travertin_classico",
+    "name": "Classico",
+    "type": "Travertin",
+    "origin": "Italien",
+    "colors": [
+      "beige",
+      "creme",
+      "goldbraun"
+    ],
+    "patterns": [
+      "porös",
+      "löcherig",
+      "natürlich"
+    ],
+    "finish": [
+      "gefüllt",
+      "geschliffen",
+      "getrommelt"
+    ],
+    "characteristics": [
+      "porös",
+      "warm",
+      "antik",
+      "pflegeintensiv"
+    ],
+    "uses": [
+      "Böden",
+      "Wandverkleidungen",
+      "Außenbereich"
+    ],
+    "texture": "grob",
+    "hardness": 4
+  }
+]

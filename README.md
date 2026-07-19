@@ -27,6 +27,7 @@ Das Projekt befindet sich in aktiver Entwicklung. Unterstuetzt werden primar:
 - GGUF-/Transformers-Workflows je nach Backend
 - Training-Workbench mit Datensatz- und Job-Management
 - Sicherheits- und Qualitaetschecks via GitHub Actions
+- GitHub Secret-Scan via Gitleaks (`.github/workflows/secret-scan.yml`)
 
 ## Quickstart
 
@@ -92,6 +93,22 @@ Copy-Item .env.example .env
 ```
 
 Wichtig: `SECRET_KEY` in `.env` ersetzen und `.env` nie committen.
+
+### 6) Git-Hooks aktivieren (empfohlen)
+
+Windows PowerShell:
+
+```powershell
+.\scripts\install_git_hooks.ps1
+```
+
+Linux/macOS:
+
+```bash
+./scripts/install_git_hooks.sh
+```
+
+Der Pre-Commit-Hook blockiert versehentliche Commits von `.env`-Dateien und prueft Templates (`.env.example`, `.env.template`, `.env.sample`) auf moegliche echte Secrets.
 
 ## Starten
 

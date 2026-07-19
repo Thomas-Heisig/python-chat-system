@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://python-chat-system.local/schemas/communication.schema.json",
+  "title": "Communication Plugin Contract",
+  "description": "Shared boundary contract for communication plugins.",
+  "type": "object",
+  "properties": {
+    "delivery": {
+      "type": "object",
+      "description": "Channel and delivery related fields.",
+      "properties": {
+        "communication_channel": {
+          "type": "string",
+          "enum": [
+            "letter",
+            "email",
+            "both",
+            "whatsapp",
+            "translator"
+          ]
+        },
+        "to": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ]
+        },
+        "cc": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "bcc": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "phone_number": { "type": "string" },
+        "subject": { "type": "string" },
+        "reply_to": { "type": "string" },
+        "recipient": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "content": {
+      "type": "object",
+      "description": "Content area for channel payloads.",
+      "properties": {
+        "letter_text": { "type": "string" },
+        "email_text": { "type": "string" },
+        "email_html": { "type": "string" },
+        "whatsapp_text": { "type": "string" },
+        "source_text": { "type": "string" },
+        "translated_text": { "type": "string" },
+        "target_lang": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Technical and business context fields.",
+      "properties": {
+        "conversation_id": { "type": "string" },
+        "document_id": { "type": "string" },
+        "request_id": { "type": "string" },
+        "created_by": { "type": "string" },
+        "validate_only": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "validate_only": { "type": "boolean" },
+    "validation": {
+      "$ref": "#/$defs/validation"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "draft",
+        "needs_review",
+        "invalid",
+        "skipped"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "unsupported_channel"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "validation": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "draft",
+            "needs_review",
+            "invalid",
+            "skipped"
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "missing_information": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": [
+        "status",
+        "errors",
+        "warnings",
+        "missing_information"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

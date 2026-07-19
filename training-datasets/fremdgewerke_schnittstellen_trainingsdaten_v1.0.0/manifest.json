@@ -1,0 +1,45 @@
+{
+  "name": "Fremdgewerke & Schnittstellen",
+  "domain": "fremdgewerke_schnittstellen",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "description": "Trainingsdaten zur klaren Abgrenzung des Natursteinbetriebs gegenüber Sanitär, Elektro, Bauphysik, Rohbau, Estrich und weiteren Fremdgewerken.",
+  "source_policy": "Typische Zuständigkeiten werden nicht als konkrete Vertragslage dargestellt. Bei Unklarheit sind Auftrag, Leistungsverzeichnis, Planung, Herstellerangaben und Bauleitung maßgeblich.",
+  "verified_sources": [],
+  "topics": [
+    "sanitaer",
+    "elektro",
+    "bauphysik",
+    "zusammenarbeit"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 24,
+      "size_bytes": 30933,
+      "sha256": "6ce017d3e7d47b800cfe246f5f6f9069aab5414021e83cd27cf58f73d3300963"
+    },
+    "validation.jsonl": {
+      "records": 6,
+      "size_bytes": 7965,
+      "sha256": "7ad0ab7a1eae5c2ab721622d5cc278c0cc6e75f41691bfba2d1f5b3fafe0b37f"
+    },
+    "test.jsonl": {
+      "records": 6,
+      "size_bytes": 7629,
+      "sha256": "f5d5cc4f9eb94b9de55cf57c135b3d66ea95178edcb1827691f1552b8d03a4ab"
+    },
+    "README.md": {
+      "size_bytes": 1520,
+      "sha256": "ee228598e7cb8396f3c235bfd985a3b88c097d42ad433654fecb0a79212e01ad"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true,
+    "do_not_invent_contractual_scope": true,
+    "refer_to_specialist_trade_for_out_of_scope_work": true
+  }
+}

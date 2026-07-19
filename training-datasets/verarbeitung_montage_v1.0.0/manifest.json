@@ -1,0 +1,41 @@
+{
+  "name": "Verarbeitung & Montage – Handwerkliches Wissen",
+  "domain": "verarbeitung_montage",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "system_prompt": "Du bist ein deutschsprachiger Fachassistent für Verarbeitung und Montage von Naturstein. Antworte handwerklich nachvollziehbar, trenne Planung, Prüfung, Ausführung und Dokumentation. Erfinde keine Maße, Normwerte, Produktfreigaben oder Baustellenbedingungen. Eine allgemeine Antwort ersetzt keine Prüfung von Natursteinsorte, Bauteil, Untergrund, Verlegesystem und Herstellerangaben.",
+  "topics": [
+    "arbeitsvorbereitung",
+    "untergrund",
+    "bettung",
+    "bewegungsfugen",
+    "ausschnitte",
+    "fensterbank",
+    "treppen",
+    "gefaelle"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 32,
+      "size_bytes": 35183,
+      "sha256": "7f7918d63f0310299f37df8279eab7a08ca56878aa53137b528027006f3d6cb4"
+    },
+    "validation.jsonl": {
+      "records": 8,
+      "size_bytes": 7662,
+      "sha256": "f5f59aa3f075c53c75325dc72669940eacacfa2988603e34f447947b239977b9"
+    },
+    "test.jsonl": {
+      "records": 8,
+      "size_bytes": 7727,
+      "sha256": "19f5cc8914e36c3909cb9532ba11ec0c67fa529cb605acfb49705824b0067140"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true
+  }
+}

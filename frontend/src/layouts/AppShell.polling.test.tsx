@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -29,6 +29,7 @@ const backend = vi.hoisted(() => ({
   adminUnlockUser: vi.fn(),
   adminUpdateUser: vi.fn(),
   createConversation: vi.fn(),
+  assignConversationProject: vi.fn(),
   deleteConversation: vi.fn(),
   deactivateModel: vi.fn(),
   getCapabilities: vi.fn(),
@@ -267,5 +268,175 @@ describe("AppShell polling regression", () => {
         (call: unknown[]) => call[0] === "system" && call[1] === "timezone" && call[2] === 4,
       ),
     ).toBe(true);
+  });
+
+  it("allows assigning a project to a visible conversation even when the current user is not the owner", async () => {
+    backend.getWorkspaceProjects.mockResolvedValue([
+      {
+        id: 10,
+        name: "Team / Alpha",
+        chats: 0,
+        documents: 0,
+        parent_project_id: null,
+        scope_kind: "project",
+        depth: 0,
+      },
+    ]);
+    backend.getConversations.mockResolvedValue([
+      {
+        id: 100,
+        title: "Shared Chat",
+        updatedAt: "2026-07-10T00:00:00Z",
+        lastMessage: null,
+        ownerUserId: 2,
+        ownerUsername: "other-user",
+        projectId: null,
+      },
+    ]);
+
+    renderAppShell(1);
+
+    const actionsButton = await screen.findByLabelText("Chat Shared Chat Aktionen");
+    fireEvent.click(actionsButton);
+
+    const projectSelect = await screen.findByLabelText("Projektzuordnung");
+    fireEvent.change(projectSelect, { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: "Projekt speichern" }));
+
+    await waitFor(() => {
+      expect(backend.assignConversationProject).toHaveBeenCalledWith(100, 10, 1);
+    });
+  });
+
+  it("renders project folder controls in the chat sidebar", async () => {
+    backend.getWorkspaceProjects.mockResolvedValue([
+      {
+        id: 10,
+        name: "Heisig Naturstein",
+        chats: 0,
+        documents: 0,
+        parent_project_id: null,
+        scope_kind: "project",
+        depth: 0,
+      },
+      {
+        id: 11,
+        name: "Angebote",
+        chats: 0,
+        documents: 0,
+        parent_project_id: 10,
+        scope_kind: "project",
+        depth: 1,
+      },
+      {
+        id: 12,
+        name: "Kläner",
+        chats: 0,
+        documents: 0,
+        parent_project_id: 11,
+        scope_kind: "project",
+        depth: 2,
+      },
+    ]);
+    backend.getConversations.mockResolvedValue([
+      {
+        id: 100,
+        title: "Angebot Kläner Lemwerder",
+        updatedAt: "2026-07-10T00:00:00Z",
+        lastMessage: null,
+        ownerUserId: 1,
+        ownerUsername: "tester",
+        projectId: 12,
+      },
+    ]);
+    backend.getWorkspaceSources.mockResolvedValue([
+      {
+        id: 1,
+        file: "angebot-klaener-lemwerder.md",
+        position: "Zeile 1",
+        relevance: "95%",
+        project_id: 12,
+        project_name: "Kläner",
+      },
+      {
+        id: 2,
+        file: "angebote-vorlage.md",
+        position: "Zeile 8",
+        relevance: "81%",
+        project_id: 11,
+        project_name: "Angebote",
+      },
+    ]);
+
+    renderAppShell(1);
+
+    expect(await screen.findByRole("button", { name: "Projektordner Heisig Naturstein" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Alle Chats" })).toBeTruthy();
+  });
+
+  it("keeps the selected project filter when selecting a chat", async () => {
+    backend.getWorkspaceProjects.mockResolvedValue([
+      {
+        id: 10,
+        name: "Heisig Naturstein",
+        chats: 0,
+        documents: 0,
+        parent_project_id: null,
+        scope_kind: "project",
+        depth: 0,
+      },
+      {
+        id: 11,
+        name: "Angebote",
+        chats: 0,
+        documents: 0,
+        parent_project_id: 10,
+        scope_kind: "project",
+        depth: 1,
+      },
+      {
+        id: 12,
+        name: "Kläner",
+        chats: 0,
+        documents: 0,
+        parent_project_id: 11,
+        scope_kind: "project",
+        depth: 2,
+      },
+    ]);
+    backend.getConversations.mockResolvedValue([
+      {
+        id: 100,
+        title: "Angebot Kläner Lemwerder",
+        updatedAt: "2026-07-10T00:00:00Z",
+        lastMessage: null,
+        ownerUserId: 1,
+        ownerUsername: "tester",
+        projectId: 12,
+      },
+      {
+        id: 101,
+        title: "Rueckfragen Material",
+        updatedAt: "2026-07-10T00:01:00Z",
+        lastMessage: null,
+        ownerUserId: 1,
+        ownerUsername: "tester",
+        projectId: 12,
+      },
+    ]);
+
+    renderAppShell(1);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Projektordner Heisig Naturstein / Angebote / Kläner" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Projektordner Heisig Naturstein / Angebote / Kläner" }).getAttribute("aria-pressed")).toBe("true");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Rueckfragen Material" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Projektordner Heisig Naturstein / Angebote / Kläner" }).getAttribute("aria-pressed")).toBe("true");
+    });
   });
 });

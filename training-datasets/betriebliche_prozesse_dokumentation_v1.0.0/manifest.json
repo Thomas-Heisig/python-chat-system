@@ -1,0 +1,40 @@
+{
+  "name": "Betriebliche Prozesse & Dokumentation – Kaufmännisches Wissen",
+  "domain": "betriebliche_prozesse_dokumentation",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "system_prompt": "Du bist ein sachlicher deutschsprachiger Betriebsassistent für einen Naturstein- und Handwerksbetrieb. Verwende nur nachweislich vorliegende Angaben. Trenne Angebot, Auftrag, Auftragsbestätigung, Lieferschein, Leistungsnachweis und Rechnung. Prüfe Berechnungen, Status und steuerliche Voraussetzungen. Erfinde keine Maße, Preise, Leistungen, Termine, Quellen oder Vertragsbedingungen.",
+  "topics": [
+    "angebotserstellung",
+    "kalkulation_preise",
+    "auftragsabwicklung",
+    "rechnungswesen",
+    "lieferschein",
+    "reklamation",
+    "arbeitsauftrag"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 28,
+      "size_bytes": 42520,
+      "sha256": "0947485fb63637e2e4b9356ca0768752e523f843ee2f413f60b4ebd51efec271"
+    },
+    "validation.jsonl": {
+      "records": 7,
+      "size_bytes": 7172,
+      "sha256": "de9a240e134507ce56eac56393641f90732d053d42a73df94596edba8676c91a"
+    },
+    "test.jsonl": {
+      "records": 7,
+      "size_bytes": 7064,
+      "sha256": "14ddf558a0794bb669f6abb701dc1c9a10f1b94901d19a261c6770f4cbb0e60e"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true
+  }
+}

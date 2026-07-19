@@ -1,0 +1,26 @@
+{
+  "xrechnung": {
+    "validator_configuration": {
+      "version": "v2026-01-31",
+      "file": "xrechnung-3.0.2-validator-configuration-2026-01-31.zip",
+      "url": "https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/download/v2026-01-31/xrechnung-3.0.2-validator-configuration-2026-01-31.zip",
+      "sha256": "6a5a5911a421b25fbc423f62f93f894df7b236f5d73ca4f84bb222a945082704"
+    },
+    "schematron": {
+      "version": "v2.5.0",
+      "file": "xrechnung-3.0.2-schematron-2.5.0.zip",
+      "url": "https://github.com/itplr-kosit/xrechnung-schematron/releases/download/v2.5.0/xrechnung-3.0.2-schematron-2.5.0.zip",
+      "sha256": "a0f3d82737759bee8591c298ff24983a8f1c667f85e45a34863c75a242bc6f43"
+    }
+  },
+  "verapdf": {
+    "docker_image": "verapdf/cli@sha256:d5ee329657cf9bc4b2400392dd54c7d0a0ce9980ff6fa2da5590eebeec007cdb",
+    "docker_tag": "v1.30.2",
+    "release_artifact": {
+      "version": "1.30.2",
+      "file": "verapdf-greenfield-1.30.2-installer.zip",
+      "url": "https://software.verapdf.org/releases/1.30/verapdf-greenfield-1.30.2-installer.zip",
+      "sha256": "6cc6341cb1af644044054b81f00a6590a7918abb18f762243de115258bcad838"
+    }
+  }
+}

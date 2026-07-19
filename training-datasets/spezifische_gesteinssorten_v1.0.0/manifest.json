@@ -1,0 +1,46 @@
+{
+  "name": "Spezifische Gesteinssorten",
+  "domain": "spezifische_gesteinssorten",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "source_policy": "Konkrete Handelsnamen werden nur mit Lieferanten-, Herkunfts- und Produktnachweis eindeutig zugeordnet.",
+  "verified_sources": [
+    {
+      "title": "LGRBwissen – Weißjura-Kalkstein und Naturwerksteine",
+      "url": "https://lgrbwissen.lgrb-bw.de/rohstoffgeologie/buch-naturwerksteine-aus-baden-wuerttemberg-2013/weissjura-kalkstein"
+    }
+  ],
+  "topics": [
+    "carrara_statuario",
+    "nero_assoluto",
+    "jura_kalkstein",
+    "padang_dunkel",
+    "gneis_sorten",
+    "sortenpruefung"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 24,
+      "size_bytes": 26533,
+      "sha256": "80d301a7335b8fa141a5df50aece57bfb3aca48d1fdaf616e509a9cb623a7d39"
+    },
+    "validation.jsonl": {
+      "records": 6,
+      "size_bytes": 6896,
+      "sha256": "b18650f0b0d7bfcd1093f27ddb8d8999f5f3c31f1be76e7116206cb0e42eeb8e"
+    },
+    "test.jsonl": {
+      "records": 6,
+      "size_bytes": 6508,
+      "sha256": "5c5bbb5925810a426a1a0f54f6015133dd917f158a7d86c324d33f1edba2a7d3"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true,
+    "require_supplier_data_for_specific_properties": true
+  }
+}

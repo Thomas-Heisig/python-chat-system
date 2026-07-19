@@ -2,6 +2,7 @@ import asyncio
 
 from app.database.session import get_session_maker
 from app.database.repositories.training_job_repository import TrainingJobRepository
+from app.settings.service import SettingsService
 from app.training.jobs.executor import TrainingJobExecutor
 
 
@@ -53,6 +54,13 @@ class TrainingWorker:
         async with session_maker() as session:
             repo = TrainingJobRepository(session)
             await repo.cancel_pending_queued()
+            next_job = await repo.peek_next_queued()
+            if next_job is not None:
+                settings = SettingsService(session)
+                auto_start = await settings.get("training", "auto_start_queue", user_id=next_job.user_id)
+                if not bool(auto_start):
+                    await session.commit()
+                    return None
             job = await repo.claim_next_queued()
             if job is None:
                 await session.commit()

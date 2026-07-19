@@ -11,6 +11,9 @@ class ModelRegistry:
         allowed_base_directories: list[str] | None = None,
     ) -> tuple[bool, str | None]:
         model_path = str(model.get("model_path", ""))
+        if model.get("model_format") in {"ollama", "openai"}:
+            return True, None
+
         if allowed_base_directories is not None:
             valid, reason = validate_model_path_against_allowed_bases(model_path, allowed_base_directories)
             if not valid:

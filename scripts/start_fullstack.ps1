@@ -16,6 +16,31 @@ function Assert-CommandAvailable {
     }
 }
 
+function Resolve-ShellExecutable {
+    foreach ($candidate in @("pwsh", "powershell")) {
+        if (Get-Command $candidate -ErrorAction SilentlyContinue) {
+            return $candidate
+        }
+    }
+
+    throw "Required shell not found. Expected 'pwsh' or 'powershell'."
+}
+
+function Resolve-NpmCommand {
+    $npmCommand = Get-Command "npm" -ErrorAction SilentlyContinue
+    if ($null -eq $npmCommand) {
+        throw "Required command not found: npm"
+    }
+
+    $npmDir = Split-Path -Parent $npmCommand.Source
+    $npmCmd = Join-Path $npmDir "npm.cmd"
+    if (Test-Path $npmCmd) {
+        return $npmCmd
+    }
+
+    return $npmCommand.Source
+}
+
 function Resolve-BackendPython {
     param([string]$ProjectRoot)
 
@@ -140,12 +165,37 @@ function Stop-ProcessesByPort {
     return $true
 }
 
+function Wait-BackendReady {
+    param(
+        [string]$BackendHostName,
+        [int]$Port,
+        [int]$TimeoutSeconds = 30
+    )
+
+    $healthUrl = "http://127.0.0.1:$Port/api/health/live"
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $response = Invoke-WebRequest -Uri $healthUrl -Method Get -TimeoutSec 3 -UseBasicParsing
+            if ($response.StatusCode -eq 200) {
+                return $true
+            }
+        }
+        catch {
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    return $false
+}
+
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
 $frontendRoot = Join-Path $projectRoot "frontend"
 
 Assert-CommandAvailable -CommandName "npm"
-Assert-CommandAvailable -CommandName "npx"
 
 $reloadFlag = "--reload"
 if ($NoReload.IsPresent) {
@@ -155,7 +205,8 @@ if ($NoReload.IsPresent) {
 $backendPython = Resolve-BackendPython -ProjectRoot $projectRoot
 $backendCommand = "Set-Location '$projectRoot'; & '$backendPython' start.py --host $BackendHost --port $BackendPort $reloadFlag"
 $frontendBackendTarget = "http://127.0.0.1:$BackendPort"
-$frontendCommand = "Set-Location '$frontendRoot'; if (-not (Test-Path 'node_modules')) { npm install }; `$env:VITE_DEV_BACKEND_TARGET='$frontendBackendTarget'; npx vite --host $FrontendHost --port $FrontendPort"
+$npmCommandPath = Resolve-NpmCommand
+$shellExecutable = Resolve-ShellExecutable
 
 if ($StopExisting.IsPresent) {
     $backendStopped = Stop-ProcessesByPort -Port $BackendPort -Name "Backend"
@@ -170,14 +221,25 @@ if (Test-PortInUse -Port $BackendPort) {
     Write-Warning "Backend-Port $BackendPort ist bereits belegt. Backend wird nicht erneut gestartet."
 }
 else {
-    Start-Process -FilePath "pwsh" -ArgumentList "-NoExit", "-Command", $backendCommand | Out-Null
+    Start-Process -FilePath $shellExecutable -ArgumentList "-NoExit", "-Command", $backendCommand | Out-Null
     Write-Host "Backend started in new terminal: http://localhost:$BackendPort"
+
+    if (Wait-BackendReady -BackendHostName $BackendHost -Port $BackendPort -TimeoutSeconds 30) {
+        Write-Host "Backend ready: http://127.0.0.1:$BackendPort/api/health/live"
+    }
+    else {
+        Write-Warning "Backend meldet sich nicht auf /api/health/live. Pruefe das Backend-Terminal auf Fehler."
+    }
 }
 
 if (Test-PortInUse -Port $FrontendPort) {
     Write-Warning "Frontend-Port $FrontendPort ist bereits belegt. Frontend wird nicht erneut gestartet."
 }
 else {
-    Start-Process -FilePath "pwsh" -ArgumentList "-NoExit", "-Command", $frontendCommand | Out-Null
+    if (-not (Test-Path (Join-Path $frontendRoot "node_modules"))) {
+        & $npmCommandPath install
+    }
+
+    Start-Process -FilePath $npmCommandPath -ArgumentList @("run", "dev", "--", "--host", $FrontendHost, "--port", $FrontendPort) -WorkingDirectory $frontendRoot -Environment @{ VITE_DEV_BACKEND_TARGET = $frontendBackendTarget } | Out-Null
     Write-Host "Frontend started in new terminal: http://localhost:$FrontendPort"
 }

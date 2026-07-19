@@ -1,0 +1,77 @@
+{
+  "name": "Fremdgewerke & Schnittstellen",
+  "domain": "fremdgewerke_schnittstellen",
+  "version": "1.3.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "description": "Trainingsdaten zur Leistungsabgrenzung, mehrstufigen Klärung, höflichen Fehlerkorrektur sowie zur sachlichen und nachvollziehbaren Baustellendokumentation.",
+  "source_policy": "Typische Zuständigkeiten und Dokumentationsmuster ersetzen keine Vertragsprüfung. Konkrete Tatsachen, Mengen, Zeiten, Ursachen, Freigaben und Verantwortlichkeiten dürfen nur aus vorliegenden Angaben übernommen werden.",
+  "verified_sources": [],
+  "topics": [
+    "sanitaer",
+    "elektro",
+    "bauphysik",
+    "zusammenarbeit",
+    "missverstaendnis",
+    "hoefliche_korrektur",
+    "laienbegriff",
+    "premise_multi",
+    "tagesbericht",
+    "leistungsnachweis",
+    "maengelmeldung",
+    "fotodokumentation"
+  ],
+  "methodical_features": [
+    "single_turn",
+    "multi_turn_context_follow_up",
+    "scope_boundary",
+    "clarification_and_escalation",
+    "polite_correction",
+    "premise_challenge",
+    "lay_term_disambiguation",
+    "structured_documentation",
+    "missing_information_handling",
+    "neutral_defect_reporting",
+    "photo_documentation"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 56,
+      "multi_turn_records": 15,
+      "size_bytes": 98591,
+      "sha256": "f3fe16da140168044dff7336aa9ad53dcb38c1b6b5f84f4eec840d0102113ca0"
+    },
+    "validation.jsonl": {
+      "records": 14,
+      "multi_turn_records": 4,
+      "size_bytes": 24925,
+      "sha256": "a4707cbc86dcd7e555dbb579efe2a4de3387def1745e0c064eae54e236fc2d8a"
+    },
+    "test.jsonl": {
+      "records": 14,
+      "multi_turn_records": 4,
+      "size_bytes": 24465,
+      "sha256": "a7398bc1d43156c2ca00a19a12754044c84e10f878ef18db7f46d438ca62abc2"
+    },
+    "README.md": {
+      "size_bytes": 1650,
+      "sha256": "e80719db0f0b91e1a93adb585f33d823cea8d9383e179329228a33c8cb49da80"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true,
+    "do_not_invent_contractual_scope": true,
+    "do_not_confirm_false_premises": true,
+    "ask_for_clarification_when_terms_are_ambiguous": true,
+    "require_product_or_supplier_evidence_for_specific_properties": true,
+    "refer_to_specialist_trade_for_out_of_scope_work": true,
+    "maintain_context_in_multi_turn_dialogues": true,
+    "do_not_invent_documentation_facts": true,
+    "avoid_unverified_blame": true,
+    "mark_missing_fields_explicitly": true,
+    "respect_photo_privacy": true
+  }
+}

@@ -19,9 +19,22 @@ class ModelManager:
         backend_name: str,
         config: dict[str, Any] | None,
     ) -> None:
-        new_backend = create_backend(backend_name)
         runtime_config = self._build_runtime_config(config)
-        active = await self.lifecycle.switch_model(self.active_backend, new_backend, model_path, runtime_config)
+        new_backend = create_backend(backend_name)
+        try:
+            active = await self.lifecycle.switch_model(self.active_backend, new_backend, model_path, runtime_config)
+        except Exception as exc:
+            # Retry on CPU if CUDA load failed because of OOM.
+            if not self._is_cuda_oom(exc) or str(runtime_config.get("device", "")).lower() != "cuda":
+                raise
+
+            cpu_backend = create_backend(backend_name)
+            cpu_config = dict(runtime_config)
+            cpu_config["prefer_gpu"] = False
+            cpu_config["device"] = "cpu"
+            cpu_config["n_gpu_layers"] = 0
+            active = await self.lifecycle.switch_model(self.active_backend, cpu_backend, model_path, cpu_config)
+
         self.active_backend = active
         self.active_model_id = model_id
         self.active_backend_name = backend_name
@@ -57,6 +70,10 @@ class ModelManager:
             return bool(torch.cuda.is_available())
         except Exception:
             return False
+
+    def _is_cuda_oom(self, exc: Exception) -> bool:
+        text = str(exc).lower()
+        return "cuda out of memory" in text or "cublas_status_alloc_failed" in text
 
 
 model_manager = ModelManager()

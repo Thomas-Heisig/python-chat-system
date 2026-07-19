@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChatWorkspace } from "../components/chat/ChatWorkspace";
 import { Footer } from "../components/footer/Footer";
@@ -16,6 +16,10 @@ import {
 } from "../settings/generalSettings";
 import {
   activateModel,
+  archiveTrainingDataset,
+  archiveTrainingJob,
+  assignTrainingProject,
+  assignWorkspaceSourceProject,
   assignConversationProject,
   adminCreateUser,
   adminDeleteUser,
@@ -24,15 +28,21 @@ import {
   adminUpdateUser,
   createConversation,
   createTrainingDataset,
+  startTrainingFolderBatch,
   getTrainingDatasetFiles,
   importTrainingDatasetFromUrl,
+  unarchiveTrainingDataset,
+  unarchiveTrainingJob,
   registerTrainingDatasetFile,
   createTrainingJob,
   cancelTrainingJob,
+  cancelOllamaModelPull,
   runTrainingPreflight,
   createWorkspaceProject,
   deleteWorkspaceProject,
   deleteConversation,
+  deleteTrainingDataset,
+  deleteTrainingJob,
   deactivateModel,
   getConversations,
   getTrainingDatasets,
@@ -42,13 +52,18 @@ import {
   getHealthModel,
   getMessages,
   getModels,
+  getPlugins,
+  pullOllamaModel,
   getWorkspaceAppointments,
   getCapabilities,
   getContextUsage,
   downloadDiagnosticsReport,
+  executePlugin,
   getWorkspaceProjects,
   retryTrainingJob,
+  resetWorkspaceForCleanStart,
   renameWorkspaceProject,
+  updateWorkspaceProjectHierarchy,
   getWorkspaceSources,
   uploadWorkspaceSource,
   getUsersPresence,
@@ -60,7 +75,11 @@ import {
   renameConversation,
   scanModels,
   sendMessageStream,
+  cleanupObsoleteChatSettings,
+  PluginSettingsValidationError,
+  updatePluginSettings,
   updateSetting,
+  uploadTrainingDatasetBundle,
   uploadTrainingDataset,
 } from "../services/backend";
 import type {
@@ -76,6 +95,9 @@ import type {
   TrainingPreflightResult,
   TrainingTrainerOption,
   UiModelEntry,
+  PluginCatalogEntry,
+  PluginSettingsDrafts,
+  PluginSettingField,
 } from "../types/api";
 
 type OutgoingImageAttachment = {
@@ -113,24 +135,55 @@ type TrainingSettingsDraft = {
   enabled: boolean;
   defaultTrainer: string;
   baseModel: string;
+  projectId: string;
   artifactsDirectory: string;
   datasetsDirectory: string;
   maxConcurrentJobs: string;
   autoStartQueue: boolean;
   autoEvaluate: boolean;
   autoRegisterModel: boolean;
+  autoActivateModel: boolean;
+  continualTraining: boolean;
+  continualModelId: string;
+  archiveOnSuccess: boolean;
+  deduplicateJobs: boolean;
+  trainingPreset: "safe" | "balanced" | "intensive" | "custom";
+  numTrainEpochs: string;
+  learningRate: string;
+  batchSize: string;
+  gradientAccumulationSteps: string;
+  maxSequenceLength: string;
+  loraR: string;
+  loraAlpha: string;
+  loraDropout: string;
+  warmupRatio: string;
+  weightDecay: string;
+  targetModules: string;
+  loadIn4bit: boolean;
+  evalSteps: string;
+  saveSteps: string;
+  loggingSteps: string;
+  loggingFirstStep: boolean;
+  maxSteps: string;
+  validationSplit: string;
+  loadBestModelAtEnd: boolean;
+  metricForBestModel: string;
+  greaterIsBetter: boolean;
+  seed: string;
 };
 
 type ChatSettingsDraft = {
-  temperature: string;
-  maxNewTokens: string;
-  topP: string;
-  topK: string;
-  repetitionPenalty: string;
-  doSample: boolean;
-  seed: string;
+  pluginOrchestrationEnabled: boolean;
+  autoSpecialistEnabled: boolean;
   contextLimitTokens: string;
   contextSafetyMarginTokens: string;
+};
+
+type ChatCleanupStats = {
+  matchedCount: number;
+  deletedCount: number;
+  remainingCount: number;
+  dryRun: boolean;
 };
 
 type KnowledgeSettingsDraft = {
@@ -143,6 +196,97 @@ type KnowledgeSettingsDraft = {
 type LogsSettingsDraft = {
   logLevel: "DEBUG" | "INFO" | "WARNING" | "ERROR";
 };
+
+type IntegrationSettingsDraft = {
+  chatgptApiKey: string;
+  deeplApiKey: string;
+  anthropicApiKey: string;
+  googleAiApiKey: string;
+  mistralApiKey: string;
+  cohereApiKey: string;
+  perplexityApiKey: string;
+  groqApiKey: string;
+  togetherApiKey: string;
+  openrouterApiKey: string;
+  huggingfaceApiKey: string;
+  replicateApiKey: string;
+  deepseekApiKey: string;
+  xaiApiKey: string;
+  elevenlabsApiKey: string;
+  assemblyaiApiKey: string;
+  tavilyApiKey: string;
+  serpapiApiKey: string;
+  googleMapsApiKey: string;
+  mapboxApiKey: string;
+  openweatherApiKey: string;
+  weatherapiApiKey: string;
+  tomorrowioApiKey: string;
+  newsapiApiKey: string;
+  twilioApiKey: string;
+  sendgridApiKey: string;
+  slackBotToken: string;
+  discordBotToken: string;
+  githubToken: string;
+  notionApiKey: string;
+  airtableApiKey: string;
+  stripeSecretKey: string;
+  azureOpenaiApiKey: string;
+  awsBedrockApiKey: string;
+  deepinfraApiKey: string;
+  nvidiaNimApiKey: string;
+  octoaiApiKey: string;
+  fireworksApiKey: string;
+  githubCopilotApiKey: string;
+  stabilityApiKey: string;
+  runwayApiKey: string;
+  pikaApiKey: string;
+  heygenApiKey: string;
+  falApiKey: string;
+  unstructuredApiKey: string;
+  llamaparseApiKey: string;
+  firecrawlApiKey: string;
+  pineconeApiKey: string;
+  weaviateApiKey: string;
+  qdrantApiKey: string;
+  cloudconvertApiKey: string;
+  exaApiKey: string;
+  braveSearchApiKey: string;
+  bingSearchApiKey: string;
+  gnewsApiKey: string;
+  scrapingbeeApiKey: string;
+  apifyApiKey: string;
+  alphaVantageApiKey: string;
+  yahooFinanceApiKey: string;
+  openexchangeratesApiKey: string;
+  whatsappBusinessApiKey: string;
+  telegramBotToken: string;
+  microsoftTeamsApiKey: string;
+  calendlyApiKey: string;
+  virustotalApiKey: string;
+  hibpApiKey: string;
+  ollamaLocalEnabled: boolean;
+  customProviderKeysJson: string;
+};
+
+type IntegrationTestableKey =
+  | "openweatherApiKey"
+  | "weatherapiApiKey"
+  | "tomorrowioApiKey"
+  | "exaApiKey"
+  | "braveSearchApiKey"
+  | "bingSearchApiKey";
+
+type IntegrationBatchResult = {
+  status: "ok" | "error" | "skipped";
+  message: string;
+  testedAt?: string;
+  durationMs?: number;
+};
+
+type IntegrationTestResults = Partial<Record<IntegrationTestableKey, IntegrationBatchResult>>;
+
+type PluginSettingsDraft = Record<string, unknown>;
+type PluginFieldErrors = Record<string, string>;
 
 const CONVERSATION_VISIBILITY_SETTING_KEY = "conversation_visibility_map";
 const CONVERSATION_AI_PARTICIPATION_SETTING_KEY = "conversation_ai_participation_map";
@@ -172,6 +316,7 @@ const QUERY_KEY_TRAINING_DATASET_FILES = ["training-dataset-files"] as const;
 const QUERY_KEY_TRAINING_JOBS = ["training-jobs"] as const;
 const QUERY_KEY_TRAINING_TRAINERS = ["training-trainers"] as const;
 const QUERY_KEY_TRAINING_COMPATIBILITY = ["training-compatibility"] as const;
+const TRAINING_JOBS_LIVE_REFETCH_MS = 2000;
 
 function buildSettingQueryKey(category: string, key: string, userId?: number | null, teamId?: number | null) {
   return ["setting", category, key, userId ?? null, teamId ?? null] as const;
@@ -198,6 +343,38 @@ function errorContainsStatus(error: unknown, status: number): boolean {
   return message.includes(`(${status})`);
 }
 
+function getDefaultValueForType(type: PluginSettingField["type"]): unknown {
+  switch (type) {
+    case "boolean":
+      return false;
+    case "number":
+      return 0;
+    default:
+      return "";
+  }
+}
+
+function buildPluginDrafts(
+  plugins: PluginCatalogEntry[],
+  savedSettingsByPlugin: Record<string, Record<string, unknown>>,
+): PluginSettingsDrafts {
+  const drafts: PluginSettingsDrafts = {};
+
+  for (const plugin of plugins) {
+    const values: Record<string, unknown> = {};
+    const savedSettings = savedSettingsByPlugin[plugin.id] ?? plugin.settings ?? {};
+
+    for (const field of plugin.settings_fields ?? []) {
+      values[field.key] =
+        savedSettings[field.key] !== undefined ? savedSettings[field.key] : field.default ?? getDefaultValueForType(field.type);
+    }
+
+    drafts[plugin.id] = values;
+  }
+
+  return drafts;
+}
+
 export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onLogout: () => void }) {
     const projectsQueryKey = [...QUERY_KEY_PROJECTS, currentUser.id] as const;
   const queryClient = useQueryClient();
@@ -212,6 +389,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
   const [activeNav, setActiveNav] = useState<NavView>("Chats");
   const [sendState, setSendState] = useState<SendWorkflowState>("disabled");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [liveReasoning, setLiveReasoning] = useState<string>("");
   const [lastSubmittedDraft, setLastSubmittedDraft] = useState<string>("");
   const [lastSubmittedImages, setLastSubmittedImages] = useState<EncodedImageAttachment[]>([]);
   const [lastSubmittedIdempotencyKey, setLastSubmittedIdempotencyKey] = useState<string | null>(null);
@@ -245,28 +423,56 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
   });
   const [modelProfilePending, setModelProfilePending] = useState(false);
   const [generalSettingsPending, setGeneralSettingsPending] = useState(false);
+  const [workspaceResetPending, setWorkspaceResetPending] = useState(false);
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings>(DEFAULT_GENERAL_SETTINGS);
   const [trainingSettingsPending, setTrainingSettingsPending] = useState(false);
+  const [trainingBatchPending, setTrainingBatchPending] = useState(false);
   const [trainingSettings, setTrainingSettings] = useState<TrainingSettingsDraft>({
     enabled: false,
     defaultTrainer: "peft_lora",
     baseModel: "",
+    projectId: "",
     artifactsDirectory: "./training-artifacts",
     datasetsDirectory: "./training-datasets",
     maxConcurrentJobs: "1",
     autoStartQueue: true,
     autoEvaluate: true,
     autoRegisterModel: false,
+    autoActivateModel: true,
+    continualTraining: true,
+    continualModelId: "",
+    archiveOnSuccess: true,
+    deduplicateJobs: true,
+    trainingPreset: "safe",
+    numTrainEpochs: "4",
+    learningRate: "0.0001",
+    batchSize: "1",
+    gradientAccumulationSteps: "4",
+    maxSequenceLength: "768",
+    loraR: "16",
+    loraAlpha: "32",
+    loraDropout: "0.05",
+    warmupRatio: "0.05",
+    weightDecay: "0.01",
+    targetModules: "auto",
+    loadIn4bit: true,
+    evalSteps: "10",
+    saveSteps: "10",
+    loggingSteps: "1",
+    loggingFirstStep: true,
+    maxSteps: "0",
+    validationSplit: "0.1",
+    loadBestModelAtEnd: true,
+    metricForBestModel: "eval_loss",
+    greaterIsBetter: false,
+    seed: "42",
   });
   const [chatSettingsPending, setChatSettingsPending] = useState(false);
+  const [chatCleanupPending, setChatCleanupPending] = useState(false);
+  const [chatCleanupStats, setChatCleanupStats] = useState<ChatCleanupStats | null>(null);
   const [chatSettings, setChatSettings] = useState<ChatSettingsDraft>({
-    temperature: "0.3",
-    maxNewTokens: "512",
-    topP: "0.9",
-    topK: "40",
-    repetitionPenalty: "1.1",
-    doSample: true,
-    seed: "42",
+    pluginOrchestrationEnabled: true,
+    autoSpecialistEnabled: false,
     contextLimitTokens: "8192",
     contextSafetyMarginTokens: "128",
   });
@@ -281,6 +487,82 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
   const [logsSettings, setLogsSettings] = useState<LogsSettingsDraft>({
     logLevel: "INFO",
   });
+  const [integrationSettingsPending, setIntegrationSettingsPending] = useState(false);
+  const [integrationSettings, setIntegrationSettings] = useState<IntegrationSettingsDraft>({
+    chatgptApiKey: "",
+    deeplApiKey: "",
+    anthropicApiKey: "",
+    googleAiApiKey: "",
+    mistralApiKey: "",
+    cohereApiKey: "",
+    perplexityApiKey: "",
+    groqApiKey: "",
+    togetherApiKey: "",
+    openrouterApiKey: "",
+    huggingfaceApiKey: "",
+    replicateApiKey: "",
+    deepseekApiKey: "",
+    xaiApiKey: "",
+    elevenlabsApiKey: "",
+    assemblyaiApiKey: "",
+    tavilyApiKey: "",
+    serpapiApiKey: "",
+    googleMapsApiKey: "",
+    mapboxApiKey: "",
+    openweatherApiKey: "",
+    weatherapiApiKey: "",
+    tomorrowioApiKey: "",
+    newsapiApiKey: "",
+    twilioApiKey: "",
+    sendgridApiKey: "",
+    slackBotToken: "",
+    discordBotToken: "",
+    githubToken: "",
+    notionApiKey: "",
+    airtableApiKey: "",
+    stripeSecretKey: "",
+    azureOpenaiApiKey: "",
+    awsBedrockApiKey: "",
+    deepinfraApiKey: "",
+    nvidiaNimApiKey: "",
+    octoaiApiKey: "",
+    fireworksApiKey: "",
+    githubCopilotApiKey: "",
+    stabilityApiKey: "",
+    runwayApiKey: "",
+    pikaApiKey: "",
+    heygenApiKey: "",
+    falApiKey: "",
+    unstructuredApiKey: "",
+    llamaparseApiKey: "",
+    firecrawlApiKey: "",
+    pineconeApiKey: "",
+    weaviateApiKey: "",
+    qdrantApiKey: "",
+    cloudconvertApiKey: "",
+    exaApiKey: "",
+    braveSearchApiKey: "",
+    bingSearchApiKey: "",
+    gnewsApiKey: "",
+    scrapingbeeApiKey: "",
+    apifyApiKey: "",
+    alphaVantageApiKey: "",
+    yahooFinanceApiKey: "",
+    openexchangeratesApiKey: "",
+    whatsappBusinessApiKey: "",
+    telegramBotToken: "",
+    microsoftTeamsApiKey: "",
+    calendlyApiKey: "",
+    virustotalApiKey: "",
+    hibpApiKey: "",
+    ollamaLocalEnabled: false,
+    customProviderKeysJson: "",
+  });
+  const [integrationTestResults, setIntegrationTestResults] = useState<IntegrationTestResults>({});
+  const [pluginDescriptors, setPluginDescriptors] = useState<PluginCatalogEntry[]>([]);
+  const [pluginSettingsDrafts, setPluginSettingsDrafts] = useState<PluginSettingsDrafts>({});
+  const [pluginSettingsErrors, setPluginSettingsErrors] = useState<Record<string, PluginFieldErrors>>({});
+  const [savingPluginId, setSavingPluginId] = useState<string | null>(null);
   const [trainingPreflightPending, setTrainingPreflightPending] = useState(false);
   const [trainingPreflightResult, setTrainingPreflightResult] = useState<TrainingPreflightResult | null>(null);
   const conversationTreeSettingKey = useMemo(() => buildConversationTreeSettingKey(currentUser.id), [currentUser.id]);
@@ -291,6 +573,14 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
   const presencePollTimerRef = useRef<number | null>(null);
   const presencePollInFlightRef = useRef(false);
 
+  const resetSendStateLater = (delayMs: number): void => {
+    window.setTimeout(() => {
+      startTransition(() => {
+        setSendState(modelLoaded ? "idle" : "disabled");
+      });
+    }, delayMs);
+  };
+
   const capabilitiesQuery = useQuery({
     queryKey: QUERY_KEY_CAPABILITIES,
     queryFn: async () => getCapabilities().catch(() => null),
@@ -299,6 +589,15 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
   const modelsQuery = useQuery({
     queryKey: QUERY_KEY_MODELS,
     queryFn: getModels,
+    refetchInterval: (query) => {
+      const currentModels = query.state.data as UiModelEntry[] | undefined;
+      return currentModels?.some((model) => {
+        const state = model.pullStatus?.state;
+        return state === "queued" || state === "pulling";
+      })
+        ? 1000
+        : false;
+    },
   });
 
   const healthModelQuery = useQuery({
@@ -346,7 +645,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
 
   const trainingDatasetsQuery = useQuery({
     queryKey: [...QUERY_KEY_TRAINING_DATASETS, currentUser.id],
-    queryFn: () => getTrainingDatasets(currentUser.id),
+    queryFn: () => getTrainingDatasets(currentUser.id, true),
     enabled: activeNav === "Einstellungen",
   });
 
@@ -358,8 +657,21 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
 
   const trainingJobsQuery = useQuery({
     queryKey: [...QUERY_KEY_TRAINING_JOBS, currentUser.id],
-    queryFn: () => getTrainingJobs(currentUser.id),
+    queryFn: () => getTrainingJobs(currentUser.id, true),
     enabled: activeNav === "Einstellungen",
+    refetchInterval: (query) => {
+      if (activeNav !== "Einstellungen") {
+        return false;
+      }
+      const jobs = query.state.data as TrainingJobSummary[] | undefined;
+      const hasActiveJob =
+        jobs?.some((job) => {
+          const status = job.status.trim().toLowerCase();
+          return status === "queued" || status === "running" || status === "in_progress" || status === "processing";
+        }) ?? false;
+      return hasActiveJob ? TRAINING_JOBS_LIVE_REFETCH_MS : false;
+    },
+    refetchIntervalInBackground: true,
   });
 
   const trainingTrainersQuery = useQuery({
@@ -377,6 +689,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
 
   const capabilities = capabilitiesQuery.data ?? null;
   const models = modelsQuery.data ?? [];
+  const chatSelectableModels = models.filter((model) => model.capabilities?.supportsChat ?? true);
   const modelLoaded = healthModelQuery.data?.loaded ?? false;
   const projects = projectsQuery.data ?? [];
   const appointments = appointmentsQuery.data ?? [];
@@ -408,10 +721,92 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
   const selectedConversation = conversations.find((item) => item.id === activeConversationId) ?? null;
   const canModifySelectedConversation =
     selectedConversation != null && selectedConversation.ownerUserId === currentUser.id;
+  const canAssignSelectedConversationProject = selectedConversation != null;
   const selectedChatTitle = selectedConversation?.title ?? "Neue Konversation";
   const selectedChatProjectId = selectedConversation?.projectId ?? null;
-  const selectedProject = projects.find((project) => project.id === (selectedChatProjectId ?? selectedProjectId ?? -1)) ?? null;
-  const selectedProjectLabel = selectedProject?.name ?? "Kein Projekt";
+  const projectById = useMemo(() => new Map(projects.map((project) => [project.id, project] as const)), [projects]);
+
+  const handleSelectProject = (projectId: number | null) => {
+    setSelectedProjectId(projectId);
+  };
+
+  const buildProjectDisplayName = (projectId: number): string => {
+    const lineage: string[] = [];
+    const seen = new Set<number>();
+    let cursor: number | null = projectId;
+
+    while (cursor != null && !seen.has(cursor)) {
+      seen.add(cursor);
+      const project = projectById.get(cursor);
+      if (project == null) {
+        break;
+      }
+      lineage.push(project.name);
+      cursor = typeof project.parent_project_id === "number" && project.parent_project_id > 0 ? project.parent_project_id : null;
+    }
+
+    if (lineage.length === 0) {
+      return String(projectId);
+    }
+
+    return lineage.reverse().join(" / ");
+  };
+
+  const selectedProjectIdForLabel = selectedChatProjectId ?? selectedProjectId ?? -1;
+  const selectedProject = projects.find((project) => project.id === selectedProjectIdForLabel) ?? null;
+  const selectedProjectLabel = selectedProject != null ? buildProjectDisplayName(selectedProject.id) : "Kein Projekt";
+  const selectedChatScope = useMemo(() => {
+    const lineage: number[] = [];
+    const seen = new Set<number>();
+    let cursor: number | null = selectedChatProjectId;
+
+    while (cursor != null && !seen.has(cursor)) {
+      seen.add(cursor);
+      const project = projectById.get(cursor);
+      if (project == null) {
+        break;
+      }
+      lineage.push(project.id);
+      cursor = typeof project.parent_project_id === "number" && project.parent_project_id > 0 ? project.parent_project_id : null;
+    }
+
+    const orderedLineage = lineage.reverse();
+    const scopeDepthByProjectId = new Map<number, number>();
+    orderedLineage.forEach((projectId, index) => {
+      scopeDepthByProjectId.set(projectId, index);
+    });
+
+    return {
+      projectIds: new Set<number>(orderedLineage),
+      scopeDepthByProjectId,
+    };
+  }, [projectById, selectedChatProjectId]);
+
+  const chatSources = useMemo(() => {
+    if (selectedChatProjectId == null) {
+      return sources
+        .filter((source) => source.project_id == null)
+        .map((source) => ({
+          ...source,
+          projectLabel: "Unzugeordnet",
+          scopeDepth: null,
+        }));
+    }
+
+    return sources
+      .filter((source) => typeof source.project_id === "number" && selectedChatScope.projectIds.has(source.project_id))
+      .map((source) => ({
+        ...source,
+        projectLabel:
+          typeof source.project_id === "number"
+            ? buildProjectDisplayName(source.project_id)
+            : "Unzugeordnet",
+        scopeDepth:
+          typeof source.project_id === "number"
+            ? selectedChatScope.scopeDepthByProjectId.get(source.project_id) ?? null
+            : null,
+      }));
+  }, [buildProjectDisplayName, selectedChatProjectId, selectedChatScope, sources]);
 
   const reloadModelState = async (preferredModelId?: string) => {
     await Promise.all([
@@ -470,6 +865,36 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
     } catch (error) {
       const detail = extractErrorMessage(error);
       pushToast("error", `Modellwechsel fehlgeschlagen: ${detail}`);
+    } finally {
+      setModelActionPending(false);
+    }
+  };
+
+  const handlePullModel = async (modelId: string) => {
+    setModelActionPending(true);
+    try {
+      const result = await pullOllamaModel(modelId);
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEY_MODELS });
+      if (result.started) {
+        pushToast("info", result.detail ?? "Ollama-Download gestartet.");
+      } else {
+        pushToast("info", result.detail ?? "Ollama-Modell ist bereits lokal verfuegbar.");
+      }
+    } catch (error) {
+      pushToast("error", `Ollama-Download konnte nicht gestartet werden: ${extractErrorMessage(error)}`);
+    } finally {
+      setModelActionPending(false);
+    }
+  };
+
+  const handleCancelPullModel = async (modelId: string) => {
+    setModelActionPending(true);
+    try {
+      const result = await cancelOllamaModelPull(modelId);
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEY_MODELS });
+      pushToast("info", result.detail ?? (result.cancelled ? "Ollama-Download wird abgebrochen." : "Kein aktiver Download gefunden."));
+    } catch (error) {
+      pushToast("error", `Ollama-Download konnte nicht abgebrochen werden: ${extractErrorMessage(error)}`);
     } finally {
       setModelActionPending(false);
     }
@@ -729,22 +1154,80 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       enabledValue,
       defaultTrainerValue,
       baseModelValue,
+      projectIdValue,
       artifactsDirectoryValue,
       datasetsDirectoryValue,
       maxConcurrentJobsValue,
       autoStartQueueValue,
       autoEvaluateValue,
       autoRegisterModelValue,
+      continualTrainingValue,
+      autoActivateModelValue,
+      continualModelIdValue,
+      archiveOnSuccessValue,
+      deduplicateJobsValue,
+      trainingPresetValue,
+      numTrainEpochsValue,
+      learningRateValue,
+      batchSizeValue,
+      gradientAccumulationStepsValue,
+      maxSequenceLengthValue,
+      loraRValue,
+      loraAlphaValue,
+      loraDropoutValue,
+      warmupRatioValue,
+      weightDecayValue,
+      targetModulesValue,
+      loadIn4bitValue,
+      evalStepsValue,
+      saveStepsValue,
+      loggingStepsValue,
+      loggingFirstStepValue,
+      maxStepsValue,
+      validationSplitValue,
+      loadBestModelAtEndValue,
+      metricForBestModelValue,
+      greaterIsBetterValue,
+      seedValue,
     ] = await Promise.all([
       getSettingCached("training", "enabled", currentUser.id),
       getSettingCached("training", "default_trainer", currentUser.id),
       getSettingCached("training", "base_model", currentUser.id),
+      getSettingCached("training", "project_id", currentUser.id),
       getSettingCached("training", "artifacts_directory", currentUser.id),
       getSettingCached("training", "datasets_directory", currentUser.id),
       getSettingCached("training", "max_concurrent_jobs", currentUser.id),
       getSettingCached("training", "auto_start_queue", currentUser.id),
       getSettingCached("training", "auto_evaluate", currentUser.id),
       getSettingCached("training", "auto_register_model", currentUser.id),
+      getSettingCached("training", "continual_training", currentUser.id),
+      getSettingCached("training", "auto_activate_model", currentUser.id),
+      getSettingCached("training", "continual_model_id", currentUser.id),
+      getSettingCached("training", "archive_on_success", currentUser.id),
+      getSettingCached("training", "deduplicate_jobs", currentUser.id),
+      getSettingCached("training", "training_preset", currentUser.id),
+      getSettingCached("training", "num_train_epochs", currentUser.id),
+      getSettingCached("training", "learning_rate", currentUser.id),
+      getSettingCached("training", "per_device_train_batch_size", currentUser.id),
+      getSettingCached("training", "gradient_accumulation_steps", currentUser.id),
+      getSettingCached("training", "max_sequence_length", currentUser.id),
+      getSettingCached("training", "lora_r", currentUser.id),
+      getSettingCached("training", "lora_alpha", currentUser.id),
+      getSettingCached("training", "lora_dropout", currentUser.id),
+      getSettingCached("training", "warmup_ratio", currentUser.id),
+      getSettingCached("training", "weight_decay", currentUser.id),
+      getSettingCached("training", "target_modules", currentUser.id),
+      getSettingCached("training", "load_in_4bit", currentUser.id),
+      getSettingCached("training", "eval_steps", currentUser.id),
+      getSettingCached("training", "save_steps", currentUser.id),
+      getSettingCached("training", "logging_steps", currentUser.id),
+      getSettingCached("training", "logging_first_step", currentUser.id),
+      getSettingCached("training", "max_steps", currentUser.id),
+      getSettingCached("training", "validation_split", currentUser.id),
+      getSettingCached("training", "load_best_model_at_end", currentUser.id),
+      getSettingCached("training", "metric_for_best_model", currentUser.id),
+      getSettingCached("training", "greater_is_better", currentUser.id),
+      getSettingCached("training", "seed", currentUser.id),
     ]);
 
     setTrainingSettings({
@@ -754,6 +1237,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
           ? defaultTrainerValue.trim()
           : "peft_lora",
       baseModel: typeof baseModelValue === "string" ? baseModelValue.trim() : "",
+      projectId: typeof projectIdValue === "number" ? String(projectIdValue) : "",
       artifactsDirectory:
         typeof artifactsDirectoryValue === "string" && artifactsDirectoryValue.trim().length > 0
           ? artifactsDirectoryValue.trim()
@@ -766,6 +1250,40 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       autoStartQueue: typeof autoStartQueueValue === "boolean" ? autoStartQueueValue : true,
       autoEvaluate: typeof autoEvaluateValue === "boolean" ? autoEvaluateValue : true,
       autoRegisterModel: typeof autoRegisterModelValue === "boolean" ? autoRegisterModelValue : false,
+      continualTraining: typeof continualTrainingValue === "boolean" ? continualTrainingValue : true,
+      autoActivateModel: typeof autoActivateModelValue === "boolean" ? autoActivateModelValue : true,
+      continualModelId: typeof continualModelIdValue === "number" ? String(continualModelIdValue) : "",
+      archiveOnSuccess: typeof archiveOnSuccessValue === "boolean" ? archiveOnSuccessValue : true,
+      deduplicateJobs: typeof deduplicateJobsValue === "boolean" ? deduplicateJobsValue : true,
+      trainingPreset:
+        trainingPresetValue === "balanced" || trainingPresetValue === "intensive" || trainingPresetValue === "custom"
+          ? trainingPresetValue
+          : "safe",
+      numTrainEpochs: String(typeof numTrainEpochsValue === "number" ? numTrainEpochsValue : 4),
+      learningRate: String(typeof learningRateValue === "number" ? learningRateValue : 0.0001),
+      batchSize: String(typeof batchSizeValue === "number" ? batchSizeValue : 1),
+      gradientAccumulationSteps: String(typeof gradientAccumulationStepsValue === "number" ? gradientAccumulationStepsValue : 4),
+      maxSequenceLength: String(typeof maxSequenceLengthValue === "number" ? maxSequenceLengthValue : 768),
+      loraR: String(typeof loraRValue === "number" ? loraRValue : 16),
+      loraAlpha: String(typeof loraAlphaValue === "number" ? loraAlphaValue : 32),
+      loraDropout: String(typeof loraDropoutValue === "number" ? loraDropoutValue : 0.05),
+      warmupRatio: String(typeof warmupRatioValue === "number" ? warmupRatioValue : 0.05),
+      weightDecay: String(typeof weightDecayValue === "number" ? weightDecayValue : 0.01),
+      targetModules: Array.isArray(targetModulesValue) ? targetModulesValue.join(", ") : "auto",
+      loadIn4bit: typeof loadIn4bitValue === "boolean" ? loadIn4bitValue : true,
+      evalSteps: String(typeof evalStepsValue === "number" ? evalStepsValue : 10),
+      saveSteps: String(typeof saveStepsValue === "number" ? saveStepsValue : 10),
+      loggingSteps: String(typeof loggingStepsValue === "number" ? loggingStepsValue : 1),
+      loggingFirstStep: typeof loggingFirstStepValue === "boolean" ? loggingFirstStepValue : true,
+      maxSteps: String(typeof maxStepsValue === "number" ? maxStepsValue : 0),
+      validationSplit: String(typeof validationSplitValue === "number" ? validationSplitValue : 0.1),
+      loadBestModelAtEnd: typeof loadBestModelAtEndValue === "boolean" ? loadBestModelAtEndValue : true,
+      metricForBestModel:
+        typeof metricForBestModelValue === "string" && metricForBestModelValue.trim().length > 0
+          ? metricForBestModelValue.trim()
+          : "eval_loss",
+      greaterIsBetter: typeof greaterIsBetterValue === "boolean" ? greaterIsBetterValue : false,
+      seed: String(typeof seedValue === "number" ? seedValue : 42),
     });
   };
 
@@ -779,34 +1297,123 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
         return;
       }
       const normalizedBaseModel = profile.baseModel.trim();
+      const projectId = Number(profile.projectId);
+      const normalizedProjectId = Number.isInteger(projectId) && projectId > 0 ? projectId : null;
       const normalizedArtifactsDirectory = profile.artifactsDirectory.trim() || "./training-artifacts";
       const normalizedDatasetsDirectory = profile.datasetsDirectory.trim() || "./training-datasets";
       const maxConcurrentJobsNumber = Number(profile.maxConcurrentJobs);
+      const normalizedMaxConcurrentJobs = profile.continualTraining
+        ? 1
+        : (Number.isFinite(maxConcurrentJobsNumber) ? Math.max(1, Math.round(maxConcurrentJobsNumber)) : 1);
+      const clampNumber = (value: string, fallback: number, minimum: number, maximum: number) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback;
+      };
+      const clampInteger = (value: string, fallback: number, minimum: number, maximum: number) =>
+        Math.round(clampNumber(value, fallback, minimum, maximum));
+      const targetModules = profile.targetModules.split(",").map((item) => item.trim()).filter(Boolean);
+      const continualModelId = Number(profile.continualModelId);
+      const normalizedHyperparameters = {
+        numTrainEpochs: clampNumber(profile.numTrainEpochs, 4, 0.1, 20),
+        learningRate: clampNumber(profile.learningRate, 0.0001, 0.0000001, 1),
+        batchSize: clampInteger(profile.batchSize, 1, 1, 64),
+        gradientAccumulationSteps: clampInteger(profile.gradientAccumulationSteps, 4, 1, 256),
+        maxSequenceLength: clampInteger(profile.maxSequenceLength, 768, 128, 32768),
+        loraR: clampInteger(profile.loraR, 16, 1, 1024),
+        loraAlpha: clampInteger(profile.loraAlpha, 32, 1, 4096),
+        loraDropout: clampNumber(profile.loraDropout, 0.05, 0, 0.8),
+        warmupRatio: clampNumber(profile.warmupRatio, 0.05, 0, 0.5),
+        weightDecay: clampNumber(profile.weightDecay, 0.01, 0, 1),
+        evalSteps: clampInteger(profile.evalSteps, 10, 1, 1000000),
+        saveSteps: clampInteger(profile.saveSteps, 10, 10, 1000000),
+        loggingSteps: clampInteger(profile.loggingSteps, 1, 1, 1000000),
+        maxSteps: clampInteger(profile.maxSteps, 0, 0, 10000000),
+        validationSplit: clampNumber(profile.validationSplit, 0.1, 0.02, 0.3),
+        seed: clampInteger(profile.seed, 42, 0, 2147483647),
+      };
+      const normalizedMetricForBestModel = profile.metricForBestModel.trim().length > 0 ? profile.metricForBestModel.trim() : "eval_loss";
 
       await Promise.all([
         updateSettingWithCache("training", "enabled", profile.enabled, currentUser.id),
         updateSettingWithCache("training", "default_trainer", normalizedTrainer, currentUser.id),
         updateSettingWithCache("training", "base_model", normalizedBaseModel, currentUser.id),
+        updateSettingWithCache("training", "project_id", normalizedProjectId, currentUser.id),
         updateSettingWithCache("training", "artifacts_directory", normalizedArtifactsDirectory, currentUser.id),
         updateSettingWithCache("training", "datasets_directory", normalizedDatasetsDirectory, currentUser.id),
         updateSettingWithCache(
           "training",
           "max_concurrent_jobs",
-          Number.isFinite(maxConcurrentJobsNumber) ? Math.max(1, Math.round(maxConcurrentJobsNumber)) : 1,
+          normalizedMaxConcurrentJobs,
           currentUser.id,
         ),
         updateSettingWithCache("training", "auto_start_queue", profile.autoStartQueue, currentUser.id),
         updateSettingWithCache("training", "auto_evaluate", profile.autoEvaluate, currentUser.id),
-        updateSettingWithCache("training", "auto_register_model", profile.autoRegisterModel, currentUser.id),
+        updateSettingWithCache("training", "auto_register_model", profile.continualTraining ? true : profile.autoRegisterModel, currentUser.id),
+        updateSettingWithCache("training", "continual_training", profile.continualTraining, currentUser.id),
+        updateSettingWithCache("training", "auto_activate_model", profile.autoActivateModel, currentUser.id),
+        updateSettingWithCache(
+          "training",
+          "continual_model_id",
+          Number.isInteger(continualModelId) && continualModelId > 0 ? continualModelId : null,
+          currentUser.id,
+        ),
+        updateSettingWithCache("training", "archive_on_success", profile.archiveOnSuccess, currentUser.id),
+        updateSettingWithCache("training", "deduplicate_jobs", profile.deduplicateJobs, currentUser.id),
+        updateSettingWithCache("training", "training_preset", profile.trainingPreset, currentUser.id),
+        updateSettingWithCache("training", "num_train_epochs", normalizedHyperparameters.numTrainEpochs, currentUser.id),
+        updateSettingWithCache("training", "learning_rate", normalizedHyperparameters.learningRate, currentUser.id),
+        updateSettingWithCache("training", "per_device_train_batch_size", normalizedHyperparameters.batchSize, currentUser.id),
+        updateSettingWithCache("training", "gradient_accumulation_steps", normalizedHyperparameters.gradientAccumulationSteps, currentUser.id),
+        updateSettingWithCache("training", "max_sequence_length", normalizedHyperparameters.maxSequenceLength, currentUser.id),
+        updateSettingWithCache("training", "lora_r", normalizedHyperparameters.loraR, currentUser.id),
+        updateSettingWithCache("training", "lora_alpha", normalizedHyperparameters.loraAlpha, currentUser.id),
+        updateSettingWithCache("training", "lora_dropout", normalizedHyperparameters.loraDropout, currentUser.id),
+        updateSettingWithCache("training", "warmup_ratio", normalizedHyperparameters.warmupRatio, currentUser.id),
+        updateSettingWithCache("training", "weight_decay", normalizedHyperparameters.weightDecay, currentUser.id),
+        updateSettingWithCache("training", "target_modules", targetModules.length > 0 ? targetModules : ["auto"], currentUser.id),
+        updateSettingWithCache("training", "load_in_4bit", profile.loadIn4bit, currentUser.id),
+        updateSettingWithCache("training", "eval_steps", normalizedHyperparameters.evalSteps, currentUser.id),
+        updateSettingWithCache("training", "save_steps", normalizedHyperparameters.saveSteps, currentUser.id),
+        updateSettingWithCache("training", "logging_steps", normalizedHyperparameters.loggingSteps, currentUser.id),
+        updateSettingWithCache("training", "logging_first_step", profile.loggingFirstStep, currentUser.id),
+        updateSettingWithCache("training", "max_steps", normalizedHyperparameters.maxSteps, currentUser.id),
+        updateSettingWithCache("training", "validation_split", normalizedHyperparameters.validationSplit, currentUser.id),
+        updateSettingWithCache("training", "load_best_model_at_end", profile.loadBestModelAtEnd, currentUser.id),
+        updateSettingWithCache("training", "metric_for_best_model", normalizedMetricForBestModel, currentUser.id),
+        updateSettingWithCache("training", "greater_is_better", profile.greaterIsBetter, currentUser.id),
+        updateSettingWithCache("training", "seed", normalizedHyperparameters.seed, currentUser.id),
       ]);
 
       setTrainingSettings({
         ...profile,
         defaultTrainer: normalizedTrainer,
         baseModel: normalizedBaseModel,
+        projectId: normalizedProjectId === null ? "" : String(normalizedProjectId),
         artifactsDirectory: normalizedArtifactsDirectory,
         datasetsDirectory: normalizedDatasetsDirectory,
-        maxConcurrentJobs: String(Number.isFinite(maxConcurrentJobsNumber) ? Math.max(1, Math.round(maxConcurrentJobsNumber)) : 1),
+        maxConcurrentJobs: String(normalizedMaxConcurrentJobs),
+        autoRegisterModel: profile.continualTraining ? true : profile.autoRegisterModel,
+        continualModelId: Number.isInteger(continualModelId) && continualModelId > 0 ? String(continualModelId) : "",
+        numTrainEpochs: String(normalizedHyperparameters.numTrainEpochs),
+        learningRate: String(normalizedHyperparameters.learningRate),
+        batchSize: String(normalizedHyperparameters.batchSize),
+        gradientAccumulationSteps: String(normalizedHyperparameters.gradientAccumulationSteps),
+        maxSequenceLength: String(normalizedHyperparameters.maxSequenceLength),
+        loraR: String(normalizedHyperparameters.loraR),
+        loraAlpha: String(normalizedHyperparameters.loraAlpha),
+        loraDropout: String(normalizedHyperparameters.loraDropout),
+        warmupRatio: String(normalizedHyperparameters.warmupRatio),
+        weightDecay: String(normalizedHyperparameters.weightDecay),
+        targetModules: (targetModules.length > 0 ? targetModules : ["auto"]).join(", "),
+        evalSteps: String(normalizedHyperparameters.evalSteps),
+        saveSteps: String(normalizedHyperparameters.saveSteps),
+        loggingSteps: String(normalizedHyperparameters.loggingSteps),
+        maxSteps: String(normalizedHyperparameters.maxSteps),
+        validationSplit: String(normalizedHyperparameters.validationSplit),
+        loadBestModelAtEnd: profile.loadBestModelAtEnd,
+        metricForBestModel: normalizedMetricForBestModel,
+        greaterIsBetter: profile.greaterIsBetter,
+        seed: String(normalizedHyperparameters.seed),
       });
       pushToast("success", "Training-Einstellungen gespeichert.");
     } catch {
@@ -818,35 +1425,21 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
 
   const loadChatSettings = async () => {
     const [
-      temperatureValue,
-      maxTokensValue,
-      topPValue,
-      topKValue,
-      repetitionPenaltyValue,
-      doSampleValue,
-      seedValue,
+      pluginOrchestrationEnabledValue,
+      autoSpecialistEnabledValue,
       contextLimitValue,
       contextSafetyMarginValue,
     ] = await Promise.all([
-      getSettingCached("chat", "temperature", currentUser.id),
-      getSettingCached("chat", "max_new_tokens", currentUser.id),
-      getSettingCached("chat", "top_p", currentUser.id),
-      getSettingCached("chat", "top_k", currentUser.id),
-      getSettingCached("chat", "repetition_penalty", currentUser.id),
-      getSettingCached("chat", "do_sample", currentUser.id),
-      getSettingCached("chat", "seed", currentUser.id),
+      getSettingCached("chat", "plugin_orchestration_enabled", currentUser.id),
+      getSettingCached("chat", "auto_specialist_enabled", currentUser.id),
       getSettingCached("chat", "context_limit_tokens", currentUser.id),
       getSettingCached("chat", "context_safety_margin_tokens", currentUser.id),
     ]);
 
     setChatSettings({
-      temperature: String(typeof temperatureValue === "number" ? temperatureValue : 0.3),
-      maxNewTokens: String(typeof maxTokensValue === "number" ? maxTokensValue : 512),
-      topP: String(typeof topPValue === "number" ? topPValue : 0.9),
-      topK: String(typeof topKValue === "number" ? topKValue : 40),
-      repetitionPenalty: String(typeof repetitionPenaltyValue === "number" ? repetitionPenaltyValue : 1.1),
-      doSample: typeof doSampleValue === "boolean" ? doSampleValue : true,
-      seed: String(typeof seedValue === "number" ? seedValue : 42),
+      pluginOrchestrationEnabled:
+        typeof pluginOrchestrationEnabledValue === "boolean" ? pluginOrchestrationEnabledValue : true,
+      autoSpecialistEnabled: typeof autoSpecialistEnabledValue === "boolean" ? autoSpecialistEnabledValue : false,
       contextLimitTokens: String(typeof contextLimitValue === "number" ? contextLimitValue : 8192),
       contextSafetyMarginTokens: String(typeof contextSafetyMarginValue === "number" ? contextSafetyMarginValue : 128),
     });
@@ -855,28 +1448,12 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
   const handleSaveChatSettings = async (profile: ChatSettingsDraft) => {
     setChatSettingsPending(true);
     try {
-      const temperatureNumber = Number(profile.temperature);
-      const maxTokensNumber = Number(profile.maxNewTokens);
-      const topPNumber = Number(profile.topP);
-      const topKNumber = Number(profile.topK);
-      const repetitionPenaltyNumber = Number(profile.repetitionPenalty);
-      const seedNumber = Number(profile.seed);
       const contextLimitNumber = Number(profile.contextLimitTokens);
       const contextSafetyMarginNumber = Number(profile.contextSafetyMarginTokens);
 
       await Promise.all([
-        updateSettingWithCache("chat", "temperature", Number.isFinite(temperatureNumber) ? Math.min(2, Math.max(0, temperatureNumber)) : 0.3, currentUser.id),
-        updateSettingWithCache("chat", "max_new_tokens", Number.isFinite(maxTokensNumber) ? Math.max(1, Math.round(maxTokensNumber)) : 512, currentUser.id),
-        updateSettingWithCache("chat", "top_p", Number.isFinite(topPNumber) ? Math.min(1, Math.max(0.01, topPNumber)) : 0.9, currentUser.id),
-        updateSettingWithCache("chat", "top_k", Number.isFinite(topKNumber) ? Math.max(0, Math.round(topKNumber)) : 40, currentUser.id),
-        updateSettingWithCache(
-          "chat",
-          "repetition_penalty",
-          Number.isFinite(repetitionPenaltyNumber) ? Math.min(2, Math.max(0.5, repetitionPenaltyNumber)) : 1.1,
-          currentUser.id,
-        ),
-        updateSettingWithCache("chat", "do_sample", profile.doSample, currentUser.id),
-        updateSettingWithCache("chat", "seed", Number.isFinite(seedNumber) ? Math.max(0, Math.round(seedNumber)) : 42, currentUser.id),
+        updateSettingWithCache("chat", "plugin_orchestration_enabled", profile.pluginOrchestrationEnabled, currentUser.id),
+        updateSettingWithCache("chat", "auto_specialist_enabled", profile.autoSpecialistEnabled, currentUser.id),
         updateSettingWithCache(
           "chat",
           "context_limit_tokens",
@@ -897,6 +1474,29 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       pushToast("error", `Chat-Einstellungen konnten nicht gespeichert werden: ${extractErrorMessage(error)}`);
     } finally {
       setChatSettingsPending(false);
+    }
+  };
+
+  const handleCleanupObsoleteChatSettings = async () => {
+    setChatCleanupPending(true);
+    try {
+      const preview = await cleanupObsoleteChatSettings(true);
+      const run = await cleanupObsoleteChatSettings(false);
+      const stats: ChatCleanupStats = {
+        matchedCount: typeof preview.matched_count === "number" ? preview.matched_count : 0,
+        deletedCount: typeof run.deleted === "number" ? run.deleted : 0,
+        remainingCount: typeof run.remaining_count === "number" ? run.remaining_count : 0,
+        dryRun: false,
+      };
+      setChatCleanupStats(stats);
+      pushToast(
+        "success",
+        `Legacy-Chat-Keys bereinigt: ${stats.deletedCount} entfernt (${stats.matchedCount} gefunden, ${stats.remainingCount} verbleibend).`,
+      );
+    } catch (error) {
+      pushToast("error", `Legacy-Chat-Keys konnten nicht bereinigt werden: ${extractErrorMessage(error)}`);
+    } finally {
+      setChatCleanupPending(false);
     }
   };
 
@@ -978,6 +1578,387 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
     }
   };
 
+  const loadIntegrationSettings = async () => {
+    const stringKeys: Array<[keyof IntegrationSettingsDraft, string]> = [
+      ["chatgptApiKey", "chatgpt_api_key"],
+      ["deeplApiKey", "deepl_api_key"],
+      ["anthropicApiKey", "anthropic_api_key"],
+      ["googleAiApiKey", "google_ai_api_key"],
+      ["mistralApiKey", "mistral_api_key"],
+      ["cohereApiKey", "cohere_api_key"],
+      ["perplexityApiKey", "perplexity_api_key"],
+      ["groqApiKey", "groq_api_key"],
+      ["togetherApiKey", "together_api_key"],
+      ["openrouterApiKey", "openrouter_api_key"],
+      ["huggingfaceApiKey", "huggingface_api_key"],
+      ["replicateApiKey", "replicate_api_key"],
+      ["deepseekApiKey", "deepseek_api_key"],
+      ["xaiApiKey", "xai_api_key"],
+      ["elevenlabsApiKey", "elevenlabs_api_key"],
+      ["assemblyaiApiKey", "assemblyai_api_key"],
+      ["tavilyApiKey", "tavily_api_key"],
+      ["serpapiApiKey", "serpapi_api_key"],
+      ["googleMapsApiKey", "google_maps_api_key"],
+      ["mapboxApiKey", "mapbox_api_key"],
+      ["openweatherApiKey", "openweather_api_key"],
+      ["weatherapiApiKey", "weatherapi_api_key"],
+      ["tomorrowioApiKey", "tomorrowio_api_key"],
+      ["newsapiApiKey", "newsapi_api_key"],
+      ["twilioApiKey", "twilio_api_key"],
+      ["sendgridApiKey", "sendgrid_api_key"],
+      ["slackBotToken", "slack_bot_token"],
+      ["discordBotToken", "discord_bot_token"],
+      ["githubToken", "github_token"],
+      ["notionApiKey", "notion_api_key"],
+      ["airtableApiKey", "airtable_api_key"],
+      ["stripeSecretKey", "stripe_secret_key"],
+      ["azureOpenaiApiKey", "azure_openai_api_key"],
+      ["awsBedrockApiKey", "aws_bedrock_api_key"],
+      ["deepinfraApiKey", "deepinfra_api_key"],
+      ["nvidiaNimApiKey", "nvidia_nim_api_key"],
+      ["octoaiApiKey", "octoai_api_key"],
+      ["fireworksApiKey", "fireworks_api_key"],
+      ["githubCopilotApiKey", "github_copilot_api_key"],
+      ["stabilityApiKey", "stability_api_key"],
+      ["runwayApiKey", "runway_api_key"],
+      ["pikaApiKey", "pika_api_key"],
+      ["heygenApiKey", "heygen_api_key"],
+      ["falApiKey", "fal_api_key"],
+      ["unstructuredApiKey", "unstructured_api_key"],
+      ["llamaparseApiKey", "llamaparse_api_key"],
+      ["firecrawlApiKey", "firecrawl_api_key"],
+      ["pineconeApiKey", "pinecone_api_key"],
+      ["weaviateApiKey", "weaviate_api_key"],
+      ["qdrantApiKey", "qdrant_api_key"],
+      ["cloudconvertApiKey", "cloudconvert_api_key"],
+      ["exaApiKey", "exa_api_key"],
+      ["braveSearchApiKey", "brave_search_api_key"],
+      ["bingSearchApiKey", "bing_search_api_key"],
+      ["gnewsApiKey", "gnews_api_key"],
+      ["scrapingbeeApiKey", "scrapingbee_api_key"],
+      ["apifyApiKey", "apify_api_key"],
+      ["alphaVantageApiKey", "alpha_vantage_api_key"],
+      ["yahooFinanceApiKey", "yahoo_finance_api_key"],
+      ["openexchangeratesApiKey", "openexchangerates_api_key"],
+      ["whatsappBusinessApiKey", "whatsapp_business_api_key"],
+      ["telegramBotToken", "telegram_bot_token"],
+      ["microsoftTeamsApiKey", "microsoft_teams_api_key"],
+      ["calendlyApiKey", "calendly_api_key"],
+      ["virustotalApiKey", "virustotal_api_key"],
+      ["hibpApiKey", "hibp_api_key"],
+      ["customProviderKeysJson", "custom_provider_keys_json"],
+    ];
+
+    const [testResultsValue, ollamaLocalEnabledValue, ...stringValues] = await Promise.all([
+      getSettingCached("integrations", "integration_test_results", currentUser.id),
+      getSettingCached("integrations", "ollama_local_enabled", currentUser.id),
+      ...stringKeys.map(([, settingKey]) => getSettingCached("integrations", settingKey, currentUser.id)),
+    ]);
+
+    const draft: IntegrationSettingsDraft = {
+      chatgptApiKey: "",
+      deeplApiKey: "",
+      anthropicApiKey: "",
+      googleAiApiKey: "",
+      mistralApiKey: "",
+      cohereApiKey: "",
+      perplexityApiKey: "",
+      groqApiKey: "",
+      togetherApiKey: "",
+      openrouterApiKey: "",
+      huggingfaceApiKey: "",
+      replicateApiKey: "",
+      deepseekApiKey: "",
+      xaiApiKey: "",
+      elevenlabsApiKey: "",
+      assemblyaiApiKey: "",
+      tavilyApiKey: "",
+      serpapiApiKey: "",
+      googleMapsApiKey: "",
+      mapboxApiKey: "",
+      openweatherApiKey: "",
+      weatherapiApiKey: "",
+      tomorrowioApiKey: "",
+      newsapiApiKey: "",
+      twilioApiKey: "",
+      sendgridApiKey: "",
+      slackBotToken: "",
+      discordBotToken: "",
+      githubToken: "",
+      notionApiKey: "",
+      airtableApiKey: "",
+      stripeSecretKey: "",
+      azureOpenaiApiKey: "",
+      awsBedrockApiKey: "",
+      deepinfraApiKey: "",
+      nvidiaNimApiKey: "",
+      octoaiApiKey: "",
+      fireworksApiKey: "",
+      githubCopilotApiKey: "",
+      stabilityApiKey: "",
+      runwayApiKey: "",
+      pikaApiKey: "",
+      heygenApiKey: "",
+      falApiKey: "",
+      unstructuredApiKey: "",
+      llamaparseApiKey: "",
+      firecrawlApiKey: "",
+      pineconeApiKey: "",
+      weaviateApiKey: "",
+      qdrantApiKey: "",
+      cloudconvertApiKey: "",
+      exaApiKey: "",
+      braveSearchApiKey: "",
+      bingSearchApiKey: "",
+      gnewsApiKey: "",
+      scrapingbeeApiKey: "",
+      apifyApiKey: "",
+      alphaVantageApiKey: "",
+      yahooFinanceApiKey: "",
+      openexchangeratesApiKey: "",
+      whatsappBusinessApiKey: "",
+      telegramBotToken: "",
+      microsoftTeamsApiKey: "",
+      calendlyApiKey: "",
+      virustotalApiKey: "",
+      hibpApiKey: "",
+      ollamaLocalEnabled: ollamaLocalEnabledValue === true,
+      customProviderKeysJson: "",
+    };
+
+    stringKeys.forEach(([fieldKey], index) => {
+      const value = stringValues[index];
+      (draft as Record<string, unknown>)[fieldKey] = typeof value === "string" ? value : "";
+    });
+
+    setIntegrationSettings(draft);
+
+    const normalized: IntegrationTestResults = {};
+    if (typeof testResultsValue === "object" && testResultsValue !== null) {
+      const validKeys = new Set<IntegrationTestableKey>([
+        "openweatherApiKey",
+        "weatherapiApiKey",
+        "tomorrowioApiKey",
+        "exaApiKey",
+        "braveSearchApiKey",
+        "bingSearchApiKey",
+      ]);
+
+      for (const [rawKey, rawValue] of Object.entries(testResultsValue as Record<string, unknown>)) {
+        if (!validKeys.has(rawKey as IntegrationTestableKey)) {
+          continue;
+        }
+        if (typeof rawValue !== "object" || rawValue === null) {
+          continue;
+        }
+
+        const candidate = rawValue as Record<string, unknown>;
+        const status = candidate.status;
+        const message = candidate.message;
+        const testedAt = candidate.testedAt;
+        const durationMs = candidate.durationMs;
+
+        if (status !== "ok" && status !== "error" && status !== "skipped") {
+          continue;
+        }
+        if (typeof message !== "string") {
+          continue;
+        }
+
+        normalized[rawKey as IntegrationTestableKey] = {
+          status,
+          message,
+          testedAt: typeof testedAt === "string" ? testedAt : undefined,
+          durationMs: typeof durationMs === "number" && Number.isFinite(durationMs) ? durationMs : undefined,
+        };
+      }
+    }
+
+    setIntegrationTestResults(normalized);
+  };
+
+  const handleSaveIntegrationSettings = async (profile: IntegrationSettingsDraft) => {
+    setIntegrationSettingsPending(true);
+    try {
+      const stringEntries: Array<[string, string]> = [
+        ["chatgpt_api_key", profile.chatgptApiKey],
+        ["deepl_api_key", profile.deeplApiKey],
+        ["anthropic_api_key", profile.anthropicApiKey],
+        ["google_ai_api_key", profile.googleAiApiKey],
+        ["mistral_api_key", profile.mistralApiKey],
+        ["cohere_api_key", profile.cohereApiKey],
+        ["perplexity_api_key", profile.perplexityApiKey],
+        ["groq_api_key", profile.groqApiKey],
+        ["together_api_key", profile.togetherApiKey],
+        ["openrouter_api_key", profile.openrouterApiKey],
+        ["huggingface_api_key", profile.huggingfaceApiKey],
+        ["replicate_api_key", profile.replicateApiKey],
+        ["deepseek_api_key", profile.deepseekApiKey],
+        ["xai_api_key", profile.xaiApiKey],
+        ["elevenlabs_api_key", profile.elevenlabsApiKey],
+        ["assemblyai_api_key", profile.assemblyaiApiKey],
+        ["tavily_api_key", profile.tavilyApiKey],
+        ["serpapi_api_key", profile.serpapiApiKey],
+        ["google_maps_api_key", profile.googleMapsApiKey],
+        ["mapbox_api_key", profile.mapboxApiKey],
+        ["openweather_api_key", profile.openweatherApiKey],
+        ["weatherapi_api_key", profile.weatherapiApiKey],
+        ["tomorrowio_api_key", profile.tomorrowioApiKey],
+        ["newsapi_api_key", profile.newsapiApiKey],
+        ["twilio_api_key", profile.twilioApiKey],
+        ["sendgrid_api_key", profile.sendgridApiKey],
+        ["slack_bot_token", profile.slackBotToken],
+        ["discord_bot_token", profile.discordBotToken],
+        ["github_token", profile.githubToken],
+        ["notion_api_key", profile.notionApiKey],
+        ["airtable_api_key", profile.airtableApiKey],
+        ["stripe_secret_key", profile.stripeSecretKey],
+        ["azure_openai_api_key", profile.azureOpenaiApiKey],
+        ["aws_bedrock_api_key", profile.awsBedrockApiKey],
+        ["deepinfra_api_key", profile.deepinfraApiKey],
+        ["nvidia_nim_api_key", profile.nvidiaNimApiKey],
+        ["octoai_api_key", profile.octoaiApiKey],
+        ["fireworks_api_key", profile.fireworksApiKey],
+        ["github_copilot_api_key", profile.githubCopilotApiKey],
+        ["stability_api_key", profile.stabilityApiKey],
+        ["runway_api_key", profile.runwayApiKey],
+        ["pika_api_key", profile.pikaApiKey],
+        ["heygen_api_key", profile.heygenApiKey],
+        ["fal_api_key", profile.falApiKey],
+        ["unstructured_api_key", profile.unstructuredApiKey],
+        ["llamaparse_api_key", profile.llamaparseApiKey],
+        ["firecrawl_api_key", profile.firecrawlApiKey],
+        ["pinecone_api_key", profile.pineconeApiKey],
+        ["weaviate_api_key", profile.weaviateApiKey],
+        ["qdrant_api_key", profile.qdrantApiKey],
+        ["cloudconvert_api_key", profile.cloudconvertApiKey],
+        ["exa_api_key", profile.exaApiKey],
+        ["brave_search_api_key", profile.braveSearchApiKey],
+        ["bing_search_api_key", profile.bingSearchApiKey],
+        ["gnews_api_key", profile.gnewsApiKey],
+        ["scrapingbee_api_key", profile.scrapingbeeApiKey],
+        ["apify_api_key", profile.apifyApiKey],
+        ["alpha_vantage_api_key", profile.alphaVantageApiKey],
+        ["yahoo_finance_api_key", profile.yahooFinanceApiKey],
+        ["openexchangerates_api_key", profile.openexchangeratesApiKey],
+        ["whatsapp_business_api_key", profile.whatsappBusinessApiKey],
+        ["telegram_bot_token", profile.telegramBotToken],
+        ["microsoft_teams_api_key", profile.microsoftTeamsApiKey],
+        ["calendly_api_key", profile.calendlyApiKey],
+        ["virustotal_api_key", profile.virustotalApiKey],
+        ["hibp_api_key", profile.hibpApiKey],
+        ["custom_provider_keys_json", profile.customProviderKeysJson],
+      ];
+      await Promise.all([
+        ...stringEntries.map(([key, value]) => updateSettingWithCache("integrations", key, value.trim(), currentUser.id)),
+        updateSettingWithCache("integrations", "ollama_local_enabled", profile.ollamaLocalEnabled, currentUser.id),
+      ]);
+      await loadIntegrationSettings();
+      pushToast("success", "API-Schluessel gespeichert.");
+    } catch (error) {
+      pushToast("error", `API-Schluessel konnten nicht gespeichert werden: ${extractErrorMessage(error)}`);
+    } finally {
+      setIntegrationSettingsPending(false);
+    }
+  };
+
+  const handleSaveIntegrationTestResults = async (results: IntegrationTestResults) => {
+    setIntegrationTestResults(results);
+    try {
+      await updateSettingWithCache("integrations", "integration_test_results", results, currentUser.id);
+    } catch (error) {
+      pushToast("error", `Test-Ergebnisse konnten nicht gespeichert werden: ${extractErrorMessage(error)}`);
+    }
+  };
+
+  const loadPluginSettings = async () => {
+    const descriptors = await getPlugins();
+    setPluginDescriptors(descriptors);
+
+    const profiles = await Promise.all(
+      descriptors.map(async (plugin) => {
+        const value = await getSettingCached("plugins", `${plugin.id}_profile`, currentUser.id);
+        const profile =
+          typeof value === "object" && value !== null ? (value as Record<string, unknown>) : ({} as Record<string, unknown>);
+        return [plugin.id, profile] as const;
+      }),
+    );
+
+    const savedByPlugin = Object.fromEntries(profiles);
+    setPluginSettingsDrafts(buildPluginDrafts(descriptors, savedByPlugin));
+    setPluginSettingsErrors({});
+  };
+
+  const handlePluginSettingChange = (pluginId: string, fieldKey: string, value: unknown) => {
+    setPluginSettingsDrafts((current) => ({
+      ...current,
+      [pluginId]: {
+        ...(current[pluginId] ?? {}),
+        [fieldKey]: value,
+      },
+    }));
+
+    setPluginSettingsErrors((current) => {
+      const pluginErrors = current[pluginId];
+      if (!pluginErrors || pluginErrors[fieldKey] == null) {
+        return current;
+      }
+      const nextPluginErrors = { ...pluginErrors };
+      delete nextPluginErrors[fieldKey];
+      return {
+        ...current,
+        [pluginId]: nextPluginErrors,
+      };
+    });
+  };
+
+  const handleSavePluginSettings = async (pluginId: string) => {
+    const descriptor = pluginDescriptors.find((plugin) => plugin.id === pluginId);
+    if (!descriptor) {
+      pushToast("error", "Plugin-Metadaten nicht verfuegbar.");
+      return;
+    }
+
+    const profile = pluginSettingsDrafts[pluginId] ?? {};
+    setSavingPluginId(pluginId);
+    setPluginSettingsErrors((current) => ({ ...current, [pluginId]: {} }));
+
+    try {
+      await updatePluginSettings(pluginId, {
+        settings: profile,
+        userId: currentUser.id,
+      });
+      await loadPluginSettings();
+      pushToast("success", `Plugin-Einstellungen gespeichert: ${descriptor.name || pluginId}.`);
+    } catch (error) {
+      if (error instanceof PluginSettingsValidationError) {
+        setPluginSettingsErrors((current) => ({
+          ...current,
+          [pluginId]: error.fieldErrors,
+        }));
+        pushToast("error", `Plugin-Einstellungen ungueltig: ${error.message}`);
+        return;
+      }
+      pushToast("error", `Plugin-Einstellungen konnten nicht gespeichert werden: ${extractErrorMessage(error)}`);
+    } finally {
+      setSavingPluginId(null);
+    }
+  };
+
+  const handleExecutePlugin = async (input: {
+    pluginId: string;
+    pluginInput?: Record<string, unknown>;
+    pluginSettings?: Record<string, unknown>;
+    userId?: number;
+  }) => {
+    return executePlugin({
+      pluginId: input.pluginId,
+      pluginInput: input.pluginInput ?? {},
+      pluginSettings: input.pluginSettings ?? {},
+      userId: input.userId ?? currentUser.id,
+    });
+  };
+
   const handleSaveGeneralSettings = async (profile: GeneralSettings) => {
     setGeneralSettingsPending(true);
     try {
@@ -1037,16 +2018,14 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
 
   const handleRegisterTrainingDatasetFile = async (
     name: string,
-    fileName: string,
-    validationFileName: string | undefined,
+    files: Partial<Record<"source" | "training" | "validation" | "test" | "manifest", string>>,
     projectId: number | null,
   ) => {
     try {
       await registerTrainingDatasetFile({
         userId: currentUser.id,
         name,
-        fileName,
-        validationFileName,
+        files,
         projectId,
         metadata: {
           language: "de",
@@ -1063,16 +2042,14 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
 
   const handleUploadTrainingDataset = async (
     name: string,
-    sourceFile: File,
-    validationFile: File | null,
+    files: Partial<Record<"source" | "training" | "validation" | "test" | "manifest", File | null>>,
     projectId: number | null,
   ) => {
     try {
       await uploadTrainingDataset({
         userId: currentUser.id,
         name,
-        sourceFile,
-        validationFile,
+        files,
         projectId,
         metadata: {
           language: "de",
@@ -1089,16 +2066,14 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
 
   const handleImportTrainingDatasetFromUrl = async (
     name: string,
-    sourceUrl: string,
-    validationSourceUrl: string | undefined,
+    files: Partial<Record<"source" | "validation" | "test", string>>,
     projectId: number | null,
   ) => {
     try {
       await importTrainingDatasetFromUrl({
         userId: currentUser.id,
         name,
-        sourceUrl,
-        validationSourceUrl,
+        files,
         projectId,
         metadata: {
           language: "de",
@@ -1110,6 +2085,26 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       pushToast("success", "Dataset von URL importiert.");
     } catch (error) {
       pushToast("error", `URL-Import fehlgeschlagen: ${extractErrorMessage(error)}`);
+    }
+  };
+
+  const handleUploadTrainingDatasetBundle = async (name: string, bundleFile: File, projectId: number | null) => {
+    try {
+      await uploadTrainingDatasetBundle({
+        userId: currentUser.id,
+        name,
+        bundleFile,
+        projectId,
+        metadata: {
+          language: "de",
+          task_type: "domain_qa",
+          format: "messages",
+        },
+      });
+      await reloadTrainingData();
+      pushToast("success", "ZIP-Bundle importiert und als Dataset registriert.");
+    } catch (error) {
+      pushToast("error", `ZIP-Import fehlgeschlagen: ${extractErrorMessage(error)}`);
     }
   };
 
@@ -1138,9 +2133,44 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       });
       await reloadTrainingData();
       pushToast("success", "Training-Job eingereiht.");
-    } catch {
+    } catch (error) {
       pushToast("error", `Training-Job konnte nicht erstellt werden: ${extractErrorMessage(error)}`);
     }
+  };
+
+  const handleBatchCreateTrainingJobs = async (newCycle = false) => {
+    setTrainingBatchPending(true);
+    try {
+      const result = await startTrainingFolderBatch({
+        userId: currentUser.id,
+        newCycle,
+      });
+      await reloadTrainingData();
+      if (result.counts.queued > 0) {
+        pushToast(
+          "success",
+          `${result.counts.queued} Ordner ${newCycle ? "für einen neuen Trainingszyklus" : "als einzelne, sequenzielle Jobs"} eingereiht; ${result.counts.skipped} übersprungen.`,
+        );
+      } else if (result.counts.errors === 0) {
+        pushToast("success", `Keine neuen Jobs erforderlich: ${result.counts.skipped} Ordner bereits verarbeitet oder eingeplant.`);
+      }
+      if (result.counts.errors > 0) {
+        pushToast(
+          "error",
+          `${result.counts.errors} Ordner fehlerhaft: ${result.errors.slice(0, 3).map((item) => `${item.folder}: ${item.reason}`).join(" | ")}`,
+        );
+      }
+    } catch (error) {
+      pushToast("error", `Sammelstart fehlgeschlagen: ${extractErrorMessage(error)}`);
+    } finally {
+      setTrainingBatchPending(false);
+    }
+  };
+
+  const handleAssignTrainingProject = async (projectId: number | null) => {
+    const result = await assignTrainingProject({ userId: currentUser.id, projectId, includeArchived: true });
+    await reloadTrainingData();
+    pushToast("success", `${result.updated} Trainingsdatensätze dem Projekt zugeordnet.`);
   };
 
   const handleRunTrainingPreflight = async (datasetId: number, baseModelId?: string, trainerName?: string) => {
@@ -1186,6 +2216,66 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       pushToast("success", `Retry erstellt (neuer Job #${retried.id}).`);
     } catch {
       pushToast("error", `Retry fuer Job #${jobId} fehlgeschlagen.`);
+    }
+  };
+
+  const handleArchiveTrainingDataset = async (datasetId: number) => {
+    try {
+      await archiveTrainingDataset(datasetId, currentUser.id);
+      await reloadTrainingData();
+      pushToast("success", `Dataset #${datasetId} archiviert.`);
+    } catch (error) {
+      pushToast("error", `Dataset #${datasetId} konnte nicht archiviert werden: ${extractErrorMessage(error)}`);
+    }
+  };
+
+  const handleDeleteTrainingDataset = async (datasetId: number) => {
+    try {
+      await deleteTrainingDataset(datasetId, currentUser.id);
+      await reloadTrainingData();
+      pushToast("success", `Dataset #${datasetId} geloescht.`);
+    } catch (error) {
+      pushToast("error", `Dataset #${datasetId} konnte nicht geloescht werden: ${extractErrorMessage(error)}`);
+    }
+  };
+
+  const handleUnarchiveTrainingDataset = async (datasetId: number) => {
+    try {
+      await unarchiveTrainingDataset(datasetId, currentUser.id);
+      await reloadTrainingData();
+      pushToast("success", `Dataset #${datasetId} wiederhergestellt.`);
+    } catch (error) {
+      pushToast("error", `Dataset #${datasetId} konnte nicht wiederhergestellt werden: ${extractErrorMessage(error)}`);
+    }
+  };
+
+  const handleArchiveTrainingJob = async (jobId: number) => {
+    try {
+      await archiveTrainingJob(jobId, currentUser.id);
+      await reloadTrainingData();
+      pushToast("success", `Job #${jobId} archiviert.`);
+    } catch (error) {
+      pushToast("error", `Job #${jobId} konnte nicht archiviert werden: ${extractErrorMessage(error)}`);
+    }
+  };
+
+  const handleDeleteTrainingJob = async (jobId: number) => {
+    try {
+      await deleteTrainingJob(jobId, currentUser.id);
+      await reloadTrainingData();
+      pushToast("success", `Job #${jobId} geloescht.`);
+    } catch (error) {
+      pushToast("error", `Job #${jobId} konnte nicht geloescht werden: ${extractErrorMessage(error)}`);
+    }
+  };
+
+  const handleUnarchiveTrainingJob = async (jobId: number) => {
+    try {
+      await unarchiveTrainingJob(jobId, currentUser.id);
+      await reloadTrainingData();
+      pushToast("success", `Job #${jobId} wiederhergestellt.`);
+    } catch (error) {
+      pushToast("error", `Job #${jobId} konnte nicht wiederhergestellt werden: ${extractErrorMessage(error)}`);
     }
   };
 
@@ -1458,7 +2548,16 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
     }
   };
 
-  const handleCreateProject = async (name: string) => {
+  const handleCreateProject = async (
+    name: string,
+    options?: {
+      parentProjectId?: number | null;
+      scopeKind?: "tenant" | "user" | "area" | "project";
+      areaKey?: string | null;
+      tenantKey?: string | null;
+      ownerUserId?: number | null;
+    },
+  ) => {
     const normalized = name.trim();
     if (!normalized) {
       pushToast("error", "Projektname darf nicht leer sein.");
@@ -1466,12 +2565,22 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
     }
 
     try {
-      const created = await createWorkspaceProject(normalized, currentUser.id);
+      const created = await createWorkspaceProject({
+        name: normalized,
+        userId: currentUser.id,
+        parentProjectId: options?.parentProjectId ?? null,
+        scopeKind: options?.scopeKind ?? "project",
+        areaKey: options?.areaKey ?? null,
+        tenantKey: options?.tenantKey ?? null,
+        ownerUserId: options?.ownerUserId ?? currentUser.id,
+      });
       await reloadProjects();
       setSelectedProjectId(created.id);
       pushToast("success", `Projekt ${created.name} erstellt.`);
+      return created.id;
     } catch {
       pushToast("error", "Projekt konnte nicht erstellt werden.");
+      return undefined;
     }
   };
 
@@ -1504,9 +2613,78 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
     }
   };
 
+  const handleUpdateProjectHierarchy = async (input: {
+    projectId: number;
+    parentProjectId: number | null;
+    scopeKind: "tenant" | "user" | "area" | "project";
+    areaKey: string | null;
+    tenantKey: string | null;
+    ownerUserId: number | null;
+  }) => {
+    try {
+      await updateWorkspaceProjectHierarchy({
+        projectId: input.projectId,
+        userId: currentUser.id,
+        parentProjectId: input.parentProjectId,
+        scopeKind: input.scopeKind,
+        areaKey: input.areaKey,
+        tenantKey: input.tenantKey,
+        ownerUserId: input.ownerUserId,
+      });
+      await reloadProjects();
+      pushToast("success", "Projekt-Hierarchie gespeichert.");
+    } catch {
+      pushToast("error", "Projekt-Hierarchie konnte nicht gespeichert werden.");
+    }
+  };
+
+  const handleCleanStartReset = async () => {
+    const shouldProceed = window.confirm(
+      "Alle Chats und Projekte werden dauerhaft geloescht. Dies kann nicht rueckgaengig gemacht werden. Fortfahren?",
+    );
+    if (!shouldProceed) {
+      return;
+    }
+
+    setWorkspaceResetPending(true);
+    try {
+      await resetWorkspaceForCleanStart(currentUser.id);
+
+      localStorage.removeItem(buildConversationTreeSettingKey(currentUser.id));
+      setConversationTree({});
+      setConversationVisibilityMap({});
+      setConversationAiParticipationMap({});
+      setConversationAiIntentMarkersMap({});
+      setSelectedProjectId(null);
+      setSelectedSourceId(null);
+
+      await Promise.all([reloadProjects(), reloadConversationData(null)]);
+
+      pushToast("success", "Neustart ausgefuehrt: Alle Chats und Projekte wurden geloescht.");
+    } catch (error) {
+      pushToast("error", `Neustart fehlgeschlagen: ${extractErrorMessage(error)}`);
+    } finally {
+      setWorkspaceResetPending(false);
+    }
+  };
+
   const handleUploadWorkspaceSource = async (file: File) => {
     await uploadWorkspaceSource({ userId: currentUser.id, file, projectId: selectedProjectId });
     await queryClient.invalidateQueries({ queryKey: QUERY_KEY_SOURCES });
+  };
+
+  const handleAssignSourceToProject = async (sourceId: number, projectId: number | null) => {
+    try {
+      await assignWorkspaceSourceProject({
+        sourceId,
+        userId: currentUser.id,
+        projectId,
+      });
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEY_SOURCES });
+      pushToast("success", "Quelle wurde der Ebene zugeordnet.");
+    } catch {
+      pushToast("error", "Quellen-Zuordnung konnte nicht gespeichert werden.");
+    }
   };
 
   const handleAssignConversationProject = async (projectId: number | null) => {
@@ -1515,15 +2693,9 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       return;
     }
 
-    if (!canModifySelectedConversation) {
-      pushToast("error", "Projektzuordnung ist nur fuer eigene Chats erlaubt.");
-      return;
-    }
-
     try {
       await assignConversationProject(selectedConversation.id, projectId, currentUser.id);
       await reloadConversationData(selectedConversation.id);
-      setSelectedProjectId(projectId);
       pushToast("success", projectId == null ? "Projektzuordnung entfernt." : "Chat wurde Projekt zugeordnet.");
     } catch (error) {
       if (errorContainsStatus(error, 404)) {
@@ -1567,7 +2739,9 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
           loadGeneralSettings(),
           loadChatSettings(),
           loadKnowledgeSettings(),
+          loadIntegrationSettings(),
           loadLogsSettings(),
+          loadPluginSettings(),
           loadConversationTree(),
           loadConversationVisibilityMap(),
           loadConversationAiParticipationMap(),
@@ -1625,19 +2799,6 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       setActiveConversationId(firstConversationId);
     }
   }, [activeConversationId, conversations]);
-
-  useEffect(() => {
-    if (selectedConversation?.projectId != null) {
-      setSelectedProjectId(selectedConversation.projectId);
-      return;
-    }
-
-    if (selectedProjectId != null && projects.some((project) => project.id === selectedProjectId)) {
-      return;
-    }
-
-    setSelectedProjectId(projects[0]?.id ?? null);
-  }, [projects, selectedConversation, selectedProjectId]);
 
   useEffect(() => {
     if (!capabilities?.features?.["auth.heartbeat"]) {
@@ -1786,7 +2947,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
           activeStreamControllerRef.current.abort();
         }
         setSendState("stopping");
-        window.setTimeout(() => setSendState(modelLoaded ? "idle" : "disabled"), 200);
+        resetSendStateLater(200);
         return;
       }
 
@@ -2032,7 +3193,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
         await reloadConversationData(result.conversation_id);
         pushToast("info", `Nachricht gesendet. KI bleibt zurueckhaltend (Trigger: '${aiIntentMarkers[0] ?? "@ki"}').`);
         setSendState("success");
-        window.setTimeout(() => setSendState(modelLoaded ? "idle" : "disabled"), 350);
+        resetSendStateLater(350);
       } catch {
         setSendState("error");
         setSendError("Nachricht konnte nicht gesendet werden. Bitte erneut versuchen.");
@@ -2075,6 +3236,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
     setLastSubmittedDraft(message);
     setLastSubmittedImages(encodedImages);
     setLastSubmittedIdempotencyKey(idempotencyKey);
+    setLiveReasoning("");
     setSendState("streaming");
 
     const controller = new AbortController();
@@ -2082,6 +3244,97 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
 
     let streamedConversationId = activeConversationId;
     let streamingCompleted = false;
+    let streamBuffer = "";
+    let insideReasoningBlock = false;
+
+    const reasoningStartTag = "<think>";
+    const reasoningEndTag = "</think>";
+
+    const longestSuffixMatchingTagPrefix = (value: string, tag: string): number => {
+      const maxLength = Math.min(value.length, tag.length - 1);
+      for (let length = maxLength; length > 0; length -= 1) {
+        if (tag.startsWith(value.slice(-length))) {
+          return length;
+        }
+      }
+      return 0;
+    };
+
+    const appendAssistantToken = (token: string) => {
+      if (!token) {
+        return;
+      }
+      queryClient.setQueryData<ChatMessage[]>(optimisticMessagesKey, (current = []) =>
+        current.map((item) =>
+          item.id === localAssistantMessageId
+            ? {
+                ...item,
+                conversationId: streamedConversationId ?? item.conversationId,
+                content: `${item.content}${token}`,
+              }
+            : item,
+        ),
+      );
+    };
+
+    const appendReasoningToken = (token: string) => {
+      if (!token) {
+        return;
+      }
+      setLiveReasoning((current) => `${current}${token}`);
+    };
+
+    const consumeStreamChunk = (chunk: string) => {
+      if (!chunk) {
+        return;
+      }
+      streamBuffer += chunk;
+
+      while (streamBuffer.length > 0) {
+        const marker = insideReasoningBlock ? reasoningEndTag : reasoningStartTag;
+        const markerIndex = streamBuffer.indexOf(marker);
+
+        if (markerIndex === -1) {
+          const holdLength = longestSuffixMatchingTagPrefix(streamBuffer, marker);
+          const emitLength = streamBuffer.length - holdLength;
+          if (emitLength <= 0) {
+            return;
+          }
+          const textPart = streamBuffer.slice(0, emitLength);
+          streamBuffer = streamBuffer.slice(emitLength);
+          if (insideReasoningBlock) {
+            appendReasoningToken(textPart);
+          } else {
+            appendAssistantToken(textPart);
+          }
+          return;
+        }
+
+        if (markerIndex > 0) {
+          const textPart = streamBuffer.slice(0, markerIndex);
+          if (insideReasoningBlock) {
+            appendReasoningToken(textPart);
+          } else {
+            appendAssistantToken(textPart);
+          }
+        }
+
+        streamBuffer = streamBuffer.slice(markerIndex + marker.length);
+        insideReasoningBlock = !insideReasoningBlock;
+      }
+    };
+
+    const flushStreamBuffer = () => {
+      if (!streamBuffer) {
+        return;
+      }
+      if (insideReasoningBlock) {
+        appendReasoningToken(streamBuffer);
+      } else {
+        appendAssistantToken(streamBuffer);
+      }
+      streamBuffer = "";
+    };
 
     try {
       await sendMessageStream(
@@ -2104,19 +3357,10 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             if (typeof event.token !== "string") {
               return;
             }
-            queryClient.setQueryData<ChatMessage[]>(optimisticMessagesKey, (current = []) =>
-              current.map((item) =>
-                item.id === localAssistantMessageId
-                  ? {
-                      ...item,
-                      conversationId: streamedConversationId ?? item.conversationId,
-                      content: `${item.content}${event.token}`,
-                    }
-                  : item,
-              ),
-            );
+            consumeStreamChunk(event.token);
           },
           onDone: (event) => {
+            flushStreamBuffer();
             streamingCompleted = true;
             if (Number.isInteger(event.conversation_id)) {
               streamedConversationId = event.conversation_id;
@@ -2127,8 +3371,11 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             if (event.deduplicated) {
               pushToast("info", "Vorherige identische Anfrage erkannt, bestehende Antwort wiederverwendet.");
             }
+            setLiveReasoning("");
           },
           onError: (event) => {
+            flushStreamBuffer();
+            setLiveReasoning("");
             const errorCode =
               event.error && typeof event.error.code === "string" ? event.error.code : null;
             const errorMessage =
@@ -2153,10 +3400,12 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
 
       if (!controller.signal.aborted && streamingCompleted) {
         setSendState("success");
-        window.setTimeout(() => setSendState(modelLoaded ? "idle" : "disabled"), 450);
+        resetSendStateLater(450);
       } else if (controller.signal.aborted) {
+        setLiveReasoning("");
         setSendState(modelLoaded ? "idle" : "disabled");
       } else {
+        setLiveReasoning("");
         setSendState("error");
       }
     } catch (error) {
@@ -2164,8 +3413,10 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
         if (streamedConversationId != null) {
           await reloadConversationData(streamedConversationId);
         }
+        setLiveReasoning("");
         setSendState(modelLoaded ? "idle" : "disabled");
       } else {
+        setLiveReasoning("");
         setSendState("error");
         setSendError("Nachricht konnte nicht gesendet werden. Bitte erneut versuchen.");
         void error;
@@ -2196,8 +3447,129 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
       activeStreamControllerRef.current.abort();
     }
     setSendState("stopping");
-    window.setTimeout(() => setSendState(modelLoaded ? "idle" : "disabled"), 250);
+    resetSendStateLater(250);
   };
+
+  const locale = generalSettings.language === "de" ? "de-DE" : "en-US";
+  const isSettingsOrPluginsOverlay = activeNav === "Einstellungen" || activeNav === "Plugins";
+  const showChatSurface = activeNav === "Chats" || isSettingsOrPluginsOverlay;
+
+  const renderWorkspacePage = (view: NavView) => (
+    <WorkspacePage
+      view={view}
+      projects={projects}
+      appointments={appointments}
+      sources={sources}
+      modelEntries={models}
+      selectedModelId={selectedModelId}
+      modelLoaded={modelLoaded}
+      modelActionPending={modelActionPending}
+      modelDirectoryPending={modelDirectoryPending}
+      modelProfilePending={modelProfilePending}
+      generalSettingsPending={generalSettingsPending}
+      cleanStartPending={workspaceResetPending}
+      chatSettingsPending={chatSettingsPending}
+      chatCleanupPending={chatCleanupPending}
+      knowledgeSettingsPending={knowledgeSettingsPending}
+      integrationSettingsPending={integrationSettingsPending}
+      logsSettingsPending={logsSettingsPending}
+      trainingSettingsPending={trainingSettingsPending}
+      trainingBatchPending={trainingBatchPending}
+      modelDirectories={modelDirectories}
+      modelProfile={modelProfile}
+      generalSettings={generalSettings}
+      chatSettings={chatSettings}
+      chatCleanupStats={chatCleanupStats}
+      knowledgeSettings={knowledgeSettings}
+      integrationSettings={integrationSettings}
+      integrationTestResults={integrationTestResults}
+      logsSettings={logsSettings}
+      pluginDescriptors={pluginDescriptors}
+      pluginSettingsDrafts={pluginSettingsDrafts}
+      pluginSettingsErrors={pluginSettingsErrors}
+      savingPluginId={savingPluginId}
+      trainingSettings={trainingSettings}
+      trainingPreflightPending={trainingPreflightPending}
+      trainingPreflightResult={trainingPreflightResult}
+      trainingDatasetFiles={trainingDatasetFiles}
+      trainingDatasets={trainingDatasets}
+      trainingJobs={trainingJobs}
+      trainerOptions={trainerOptions}
+      trainingCompatibility={trainingCompatibility}
+      onFetchTrainingCompatibility={fetchTrainingCompatibility}
+      onActivateModel={handleActivateModel}
+      onPullModel={handlePullModel}
+      onCancelPullModel={handleCancelPullModel}
+      onDeactivateModel={handleDeactivateModel}
+      onScanModels={handleScanModels}
+      onSetModelRelevance={handleSetModelRelevance}
+      onSaveModelDirectories={handleSaveModelDirectories}
+      onSaveModelProfile={handleSaveModelProfile}
+      onSaveGeneralSettings={handleSaveGeneralSettings}
+      onCleanStartReset={handleCleanStartReset}
+      onSaveChatSettings={handleSaveChatSettings}
+      onCleanupObsoleteChatSettings={handleCleanupObsoleteChatSettings}
+      onSaveKnowledgeSettings={handleSaveKnowledgeSettings}
+      onSaveIntegrationSettings={handleSaveIntegrationSettings}
+      onSaveIntegrationTestResults={handleSaveIntegrationTestResults}
+      onSaveLogsSettings={handleSaveLogsSettings}
+      onPluginSettingChange={handlePluginSettingChange}
+      onSavePluginSettings={handleSavePluginSettings}
+      onExecutePlugin={handleExecutePlugin}
+      onSaveTrainingSettings={handleSaveTrainingSettings}
+      onBatchCreateTrainingJobs={handleBatchCreateTrainingJobs}
+      onAssignTrainingProject={handleAssignTrainingProject}
+      onCreateTrainingDataset={handleCreateTrainingDataset}
+      onRegisterTrainingDatasetFile={handleRegisterTrainingDatasetFile}
+      onUploadTrainingDataset={handleUploadTrainingDataset}
+      onImportTrainingDatasetFromUrl={handleImportTrainingDatasetFromUrl}
+      onUploadTrainingDatasetBundle={handleUploadTrainingDatasetBundle}
+      onCreateTrainingJob={handleCreateTrainingJob}
+      onRunTrainingPreflight={handleRunTrainingPreflight}
+      onCancelTrainingJob={handleCancelTrainingJob}
+      onRetryTrainingJob={handleRetryTrainingJob}
+      onArchiveTrainingDataset={handleArchiveTrainingDataset}
+      onDeleteTrainingDataset={handleDeleteTrainingDataset}
+      onUnarchiveTrainingDataset={handleUnarchiveTrainingDataset}
+      onArchiveTrainingJob={handleArchiveTrainingJob}
+      onDeleteTrainingJob={handleDeleteTrainingJob}
+      onUnarchiveTrainingJob={handleUnarchiveTrainingJob}
+      currentUser={currentUser}
+      selectedProjectId={selectedProjectId}
+      onSelectProject={handleSelectProject}
+      onCreateProject={handleCreateProject}
+      onRenameProject={handleRenameProject}
+      onDeleteProject={handleDeleteProject}
+      onUpdateProjectHierarchy={handleUpdateProjectHierarchy}
+      onUploadWorkspaceSource={handleUploadWorkspaceSource}
+      onAssignSourceToProject={handleAssignSourceToProject}
+      onAdminCreateUser={async (username, password, isAdmin) => {
+        const created = await adminCreateUser(username, password, isAdmin);
+        pushToast(
+          "success",
+          `Benutzer ${created.username} wurde angelegt${created.is_admin ? " (Admin)" : ""}.`,
+        );
+      }}
+      onExportDiagnosticsReport={async () => {
+        try {
+          await getDiagnosticsReport();
+          const blob = await downloadDiagnosticsReport();
+          const url = window.URL.createObjectURL(blob);
+          const anchor = document.createElement("a");
+          const now = new Date().toISOString().replace(/[:.]/g, "-");
+          anchor.href = url;
+          anchor.download = `diagnostics-${now}.json`;
+          document.body.appendChild(anchor);
+          anchor.click();
+          document.body.removeChild(anchor);
+          window.URL.revokeObjectURL(url);
+          pushToast("success", "Diagnosebericht wurde exportiert.");
+        } catch {
+          pushToast("error", "Diagnosebericht konnte nicht exportiert werden.");
+        }
+      }}
+    />
+  );
 
   return (
     <div className="app-shell">
@@ -2211,6 +3583,9 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
         }}
         selectedProjectName={selectedProjectLabel}
         onOpenProjects={() => setActiveNav("Projekte")}
+        locale={locale}
+        timezone={generalSettings.timezone}
+        language={generalSettings.language}
       />
 
       {!selectedModelId ? (
@@ -2225,15 +3600,36 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
           activeNav={activeNav}
           selectedConversationId={activeConversationId}
           conversations={conversations}
+          projects={projects}
+          selectedProjectId={selectedProjectId}
           conversationVisibilityMap={conversationVisibilityMap}
           conversationTree={conversationTree}
           appointments={appointments}
+          locale={locale}
+          timezone={generalSettings.timezone}
+          language={generalSettings.language}
           currentUsername={currentUser.username}
           currentUserId={currentUser.id}
           currentUserRoleLabel={currentUser.is_admin ? "Administrator" : "Benutzer"}
           onToggleCollapse={() => setLeftCollapsed((current) => !current)}
           onSelectNav={(next) => setActiveNav(next)}
           onSelectChat={setActiveConversationId}
+          onSelectProject={handleSelectProject}
+          onAssignConversationProject={(conversationId, projectId) => {
+            const targetConversation = conversations.find((conversation) => conversation.id === conversationId) ?? null;
+            if (targetConversation == null) {
+              return;
+            }
+            void (async () => {
+              try {
+                await assignConversationProject(conversationId, projectId, currentUser.id);
+                await reloadConversationData(activeConversationId);
+                pushToast("success", projectId == null ? "Projektzuordnung entfernt." : "Chat wurde Projekt zugeordnet.");
+              } catch (error) {
+                pushToast("error", `Projektzuordnung konnte nicht gespeichert werden: ${extractErrorMessage(error)}`);
+              }
+            })();
+          }}
           onMoveConversation={(conversationId, parentConversationId) => {
             void handleMoveConversation(conversationId, parentConversationId);
           }}
@@ -2262,7 +3658,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
         />
 
         <main className="workspace-main">
-          {activeNav === "Chats" ? (
+          {showChatSurface ? (
             <ChatWorkspace
               chatTitle={selectedChatTitle}
               currentUsername={currentUser.username}
@@ -2271,11 +3667,16 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
               hasOtherUserInConversation={hasOtherUserInConversation}
               aiParticipationEnabled={aiParticipationEnabled}
               messages={messages}
-              modelEntries={models}
+              modelEntries={chatSelectableModels}
               selectedModelId={selectedModelId}
               modelLoaded={modelLoaded}
               sendState={sendState}
               sendError={sendError}
+              liveReasoning={liveReasoning}
+              showReasoningBubble={sendState === "streaming" && liveReasoning.trim().length > 0}
+              locale={locale}
+              timezone={generalSettings.timezone}
+              language={generalSettings.language}
               onChangeModel={handleActivateModel}
               onSendMessage={handleSendMessage}
               onStopMessage={handleStop}
@@ -2304,99 +3705,41 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
                   setRightCollapsed(false);
                 }
               }}
-              sources={sources}
-              projects={projects.map((project) => ({ id: project.id, name: project.name }))}
-              selectedProjectId={selectedChatProjectId}
-              canAssignProject={canModifySelectedConversation}
-              onAssignProject={(projectId) => {
-                void handleAssignConversationProject(projectId);
-              }}
+              sources={chatSources}
+              activeProjectLabel={selectedProjectLabel}
             />
-          ) : (
-            <WorkspacePage
-              view={activeNav}
-              projects={projects}
-              appointments={appointments}
-              sources={sources}
-              modelEntries={models}
-              selectedModelId={selectedModelId}
-              modelLoaded={modelLoaded}
-              modelActionPending={modelActionPending}
-              modelDirectoryPending={modelDirectoryPending}
-              modelProfilePending={modelProfilePending}
-              generalSettingsPending={generalSettingsPending}
-              chatSettingsPending={chatSettingsPending}
-              knowledgeSettingsPending={knowledgeSettingsPending}
-              logsSettingsPending={logsSettingsPending}
-              trainingSettingsPending={trainingSettingsPending}
-              modelDirectories={modelDirectories}
-              modelProfile={modelProfile}
-              generalSettings={generalSettings}
-              chatSettings={chatSettings}
-              knowledgeSettings={knowledgeSettings}
-              logsSettings={logsSettings}
-              trainingSettings={trainingSettings}
-              trainingPreflightPending={trainingPreflightPending}
-              trainingPreflightResult={trainingPreflightResult}
-              trainingDatasetFiles={trainingDatasetFiles}
-              trainingDatasets={trainingDatasets}
-              trainingJobs={trainingJobs}
-              trainerOptions={trainerOptions}
-              trainingCompatibility={trainingCompatibility}
-              onFetchTrainingCompatibility={fetchTrainingCompatibility}
-              onActivateModel={handleActivateModel}
-              onDeactivateModel={handleDeactivateModel}
-              onScanModels={handleScanModels}
-              onSetModelRelevance={handleSetModelRelevance}
-              onSaveModelDirectories={handleSaveModelDirectories}
-              onSaveModelProfile={handleSaveModelProfile}
-              onSaveGeneralSettings={handleSaveGeneralSettings}
-              onSaveChatSettings={handleSaveChatSettings}
-              onSaveKnowledgeSettings={handleSaveKnowledgeSettings}
-              onSaveLogsSettings={handleSaveLogsSettings}
-              onSaveTrainingSettings={handleSaveTrainingSettings}
-              onCreateTrainingDataset={handleCreateTrainingDataset}
-              onRegisterTrainingDatasetFile={handleRegisterTrainingDatasetFile}
-              onUploadTrainingDataset={handleUploadTrainingDataset}
-              onImportTrainingDatasetFromUrl={handleImportTrainingDatasetFromUrl}
-              onCreateTrainingJob={handleCreateTrainingJob}
-              onRunTrainingPreflight={handleRunTrainingPreflight}
-              onCancelTrainingJob={handleCancelTrainingJob}
-              onRetryTrainingJob={handleRetryTrainingJob}
-              currentUser={currentUser}
-              selectedProjectId={selectedProjectId}
-              onSelectProject={setSelectedProjectId}
-              onCreateProject={handleCreateProject}
-              onRenameProject={handleRenameProject}
-              onDeleteProject={handleDeleteProject}
-              onUploadWorkspaceSource={handleUploadWorkspaceSource}
-              onAdminCreateUser={async (username, password, isAdmin) => {
-                const created = await adminCreateUser(username, password, isAdmin);
-                pushToast(
-                  "success",
-                  `Benutzer ${created.username} wurde angelegt${created.is_admin ? " (Admin)" : ""}.`,
-                );
-              }}
-              onExportDiagnosticsReport={async () => {
-                try {
-                  await getDiagnosticsReport();
-                  const blob = await downloadDiagnosticsReport();
-                  const url = window.URL.createObjectURL(blob);
-                  const anchor = document.createElement("a");
-                  const now = new Date().toISOString().replace(/[:.]/g, "-");
-                  anchor.href = url;
-                  anchor.download = `diagnostics-${now}.json`;
-                  document.body.appendChild(anchor);
-                  anchor.click();
-                  document.body.removeChild(anchor);
-                  window.URL.revokeObjectURL(url);
-                  pushToast("success", "Diagnosebericht wurde exportiert.");
-                } catch {
-                  pushToast("error", "Diagnosebericht konnte nicht exportiert werden.");
-                }
-              }}
-            />
-          )}
+          ) : null}
+
+          {!showChatSurface ? renderWorkspacePage(activeNav) : null}
+
+          {isSettingsOrPluginsOverlay ? (
+            <div
+              className="workspace-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label={activeNav === "Einstellungen" ? "Einstellungen" : "Plugins"}
+              onClick={() => setActiveNav("Chats")}
+            >
+              <div
+                className="workspace-overlay__content"
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+              >
+                <div className="workspace-overlay__header">
+                  <strong>{activeNav}</strong>
+                  <button
+                    type="button"
+                    className="ghost-btn"
+                    onClick={() => setActiveNav("Chats")}
+                  >
+                    Schliessen
+                  </button>
+                </div>
+                {renderWorkspacePage(activeNav)}
+              </div>
+            </div>
+          ) : null}
         </main>
 
         {!rightHidden ? (
@@ -2408,6 +3751,8 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             users={presenceUsers}
             currentUserId={currentUser.id}
             currentUserIsAdmin={currentUser.is_admin}
+            locale={locale}
+            timezone={generalSettings.timezone}
             contextUsage={contextUsage}
             onToggleCollapse={() => setRightCollapsed((current) => !current)}
             onChangeTab={setActiveRightTab}
@@ -2467,6 +3812,9 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             conversationVisibilityMap={conversationVisibilityMap}
             conversationTree={conversationTree}
             appointments={appointments}
+            locale={locale}
+            timezone={generalSettings.timezone}
+            language={generalSettings.language}
             currentUsername={currentUser.username}
             currentUserId={currentUser.id}
             currentUserRoleLabel={currentUser.is_admin ? "Administrator" : "Benutzer"}
@@ -2521,6 +3869,8 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             users={presenceUsers}
             currentUserId={currentUser.id}
             currentUserIsAdmin={currentUser.is_admin}
+            locale={locale}
+            timezone={generalSettings.timezone}
             contextUsage={contextUsage}
             onToggleCollapse={() => setRightSheetOpen(false)}
             onChangeTab={setActiveRightTab}

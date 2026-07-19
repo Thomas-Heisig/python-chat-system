@@ -12,6 +12,8 @@ async def get_capabilities() -> dict[str, object]:
         "features": {
             "meta.capabilities": True,
             "models.capabilities": True,
+            "speech.stt": True,
+            "speech.tts": True,
             "auth.users_presence": True,
             "auth.heartbeat": True,
             "chat.streaming_sse": True,

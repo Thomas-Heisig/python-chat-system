@@ -1,6 +1,7 @@
 import json
+from typing import cast
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.database.repositories.base_repository import BaseRepository
 from app.db_models.training_job import TrainingJob
@@ -8,16 +9,47 @@ from app.db_models.training_job import TrainingJob
 
 class TrainingJobRepository(BaseRepository):
     @staticmethod
-    def _json_dict(value: str | None) -> dict[str, object]:
-        if not value:
+    def _json_dict(value: object | None) -> dict[str, object]:
+        if value is None:
             return {}
-        try:
-            parsed = json.loads(value)
-        except json.JSONDecodeError:
+
+        parsed: object
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError:
+                return {}
+        elif isinstance(value, dict):
+            parsed = cast(dict[object, object], value)
+        else:
             return {}
+
         if not isinstance(parsed, dict):
             return {}
-        return {str(key): item for key, item in parsed.items()}
+
+        parsed_dict: dict[object, object] = cast(dict[object, object], parsed)
+        return {str(key): item for key, item in parsed_dict.items()}
+
+    @staticmethod
+    def _object_list(value: object | None) -> list[object]:
+        if not isinstance(value, list):
+            return []
+        return list(cast(list[object], value))
+
+    @staticmethod
+    def _to_int(value: object, default: int = 0) -> int:
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(float(value))
+            except ValueError:
+                return default
+        return default
 
     async def create(
         self,
@@ -41,13 +73,17 @@ class TrainingJobRepository(BaseRepository):
         await self.session.flush()
         return job
 
-    async def list_by_user(self, *, user_id: int, limit: int = 200) -> list[TrainingJob]:
-        result = await self.session.execute(
+    async def list_by_user(self, *, user_id: int, limit: int = 200, include_archived: bool = False) -> list[TrainingJob]:
+        statement = (
             select(TrainingJob)
             .where(TrainingJob.user_id == user_id)
             .order_by(TrainingJob.updated_at.desc())
             .limit(limit)
         )
+        if not include_archived:
+            statement = statement.where(TrainingJob.status != "archived")
+
+        result = await self.session.execute(statement)
         return list(result.scalars().all())
 
     async def get_by_id(self, *, user_id: int, job_id: int) -> TrainingJob | None:
@@ -67,21 +103,53 @@ class TrainingJobRepository(BaseRepository):
         )
         return result.scalar_one_or_none()
 
-    async def claim_next_queued(self) -> TrainingJob | None:
+    async def count_by_dataset_id(self, *, dataset_id: int) -> int:
         result = await self.session.execute(
+            select(func.count(TrainingJob.id)).where(TrainingJob.dataset_id == dataset_id)
+        )
+        return int(result.scalar_one() or 0)
+
+    async def find_by_training_fingerprint(self, *, user_id: int, fingerprint: str) -> TrainingJob | None:
+        result = await self.session.execute(
+            select(TrainingJob)
+            .where(TrainingJob.user_id == user_id)
+            .where(TrainingJob.status.in_(["queued", "preparing", "running", "evaluating", "saving", "completed", "archived"]))
+            .order_by(TrainingJob.id.desc())
+        )
+        for job in result.scalars().all():
+            if str(self._json_dict(job.hyperparameters_json).get("training_fingerprint") or "") == fingerprint:
+                return job
+        return None
+
+    async def find_active_or_successful_by_dataset_id(self, *, user_id: int, dataset_id: int) -> TrainingJob | None:
+        result = await self.session.execute(
+            select(TrainingJob)
+            .where(TrainingJob.user_id == user_id)
+            .where(TrainingJob.dataset_id == dataset_id)
+            .where(TrainingJob.status.in_(["queued", "preparing", "running", "evaluating", "saving", "completed", "archived"]))
+            .order_by(TrainingJob.id.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def claim_next_queued(self) -> TrainingJob | None:
+        statement = (
             select(TrainingJob)
             .where(TrainingJob.status == "queued")
             .order_by(TrainingJob.created_at.asc())
             .limit(1)
         )
+        dialect_name = self.session.bind.dialect.name
+        if dialect_name in {"postgresql", "mysql", "mariadb", "oracle"}:
+            statement = statement.with_for_update(skip_locked=True)
+
+        result = await self.session.execute(statement)
         job = result.scalar_one_or_none()
         if job is None:
             return None
 
         existing_result = self._json_dict(job.result_json)
-        runtime = self._json_dict(existing_result.get("runtime") if isinstance(existing_result.get("runtime"), str) else None)
-        if not runtime and isinstance(existing_result.get("runtime"), dict):
-            runtime = {str(key): value for key, value in existing_result["runtime"].items()}
+        runtime = self._json_dict(existing_result.get("runtime"))
 
         runtime.update({
             "progress": 0.0,
@@ -99,21 +167,30 @@ class TrainingJobRepository(BaseRepository):
         await self.session.flush()
         return job
 
+    async def peek_next_queued(self) -> TrainingJob | None:
+        result = await self.session.execute(
+            select(TrainingJob)
+            .where(TrainingJob.status == "queued")
+            .order_by(TrainingJob.created_at.asc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
     async def cancel_pending_queued(self) -> int:
         result = await self.session.execute(
             select(TrainingJob).where(TrainingJob.status == "cancelling")
         )
         changed = 0
         for job in list(result.scalars().all()):
-            runtime = self._json_dict(job.result_json).get("runtime")
-            if isinstance(runtime, dict) and int(runtime.get("current_step") or 0) > 0:
+            runtime = self._json_dict(self._json_dict(job.result_json).get("runtime"))
+            if self._to_int(runtime.get("current_step")) > 0:
                 continue
             metadata = self._json_dict(job.result_json)
-            logs = metadata.get("logs")
-            if not isinstance(logs, list):
-                logs = []
+            runtime = self._json_dict(metadata.get("runtime"))
+            logs = self._object_list(runtime.get("logs"))
             logs.append("cancel requested before run")
-            metadata["logs"] = logs
+            runtime["logs"] = logs[-200:]
+            metadata["runtime"] = runtime
             job.result_json = json.dumps(metadata)
             job.status = "cancelled"
             changed += 1
@@ -129,10 +206,8 @@ class TrainingJobRepository(BaseRepository):
         changed = 0
         for job in list(result.scalars().all()):
             payload = self._json_dict(job.result_json)
-            runtime_raw = payload.get("runtime")
-            runtime: dict[str, object] = {str(key): value for key, value in runtime_raw.items()} if isinstance(runtime_raw, dict) else {}
-            logs_value = runtime.get("logs")
-            logs: list[object] = logs_value if isinstance(logs_value, list) else []
+            runtime = self._json_dict(payload.get("runtime"))
+            logs = self._object_list(runtime.get("logs"))
             logs.append("job recovered after worker restart")
             runtime["logs"] = logs[-200:]
             payload["runtime"] = runtime
@@ -154,7 +229,8 @@ class TrainingJobRepository(BaseRepository):
     ) -> TrainingJob:
         job.status = status
         job.error_message = error_message
-        job.result_json = json.dumps(result) if result is not None else None
+        if result is not None:
+            job.result_json = json.dumps(result)
         await self.session.flush()
         return job
 
@@ -181,12 +257,7 @@ class TrainingJobRepository(BaseRepository):
         error_message: str | None = None,
     ) -> TrainingJob:
         payload = self._json_dict(job.result_json)
-        runtime_raw = payload.get("runtime")
-        runtime: dict[str, object]
-        if isinstance(runtime_raw, dict):
-            runtime = {str(key): value for key, value in runtime_raw.items()}
-        else:
-            runtime = {}
+        runtime = self._json_dict(payload.get("runtime"))
 
         if progress is not None:
             runtime["progress"] = max(0.0, min(100.0, progress))
@@ -211,12 +282,7 @@ class TrainingJobRepository(BaseRepository):
         if elapsed_seconds is not None:
             runtime["elapsed_seconds"] = max(0.0, elapsed_seconds)
 
-        logs_value = runtime.get("logs")
-        logs: list[object]
-        if isinstance(logs_value, list):
-            logs = logs_value
-        else:
-            logs = []
+        logs = self._object_list(runtime.get("logs"))
         if log_line:
             logs.append(log_line)
             runtime["logs"] = logs[-200:]
@@ -250,11 +316,11 @@ class TrainingJobRepository(BaseRepository):
         if job.status != "cancelling":
             job.status = "cancelling"
             metadata = self._json_dict(job.result_json)
-            logs = metadata.get("logs")
-            if not isinstance(logs, list):
-                logs = []
+            runtime = self._json_dict(metadata.get("runtime"))
+            logs = self._object_list(runtime.get("logs"))
             logs.append("cancel requested")
-            metadata["logs"] = logs
+            runtime["logs"] = logs[-200:]
+            metadata["runtime"] = runtime
             job.result_json = json.dumps(metadata)
             await self.session.flush()
         return job
@@ -262,12 +328,7 @@ class TrainingJobRepository(BaseRepository):
     async def retry_from(self, *, source_job: TrainingJob) -> TrainingJob:
         copied_hyperparameters: dict[str, object] | None = None
         if source_job.hyperparameters_json:
-            try:
-                parsed = json.loads(source_job.hyperparameters_json)
-                if isinstance(parsed, dict):
-                    copied_hyperparameters = {str(key): value for key, value in parsed.items()}
-            except json.JSONDecodeError:
-                copied_hyperparameters = None
+            copied_hyperparameters = self._json_dict(source_job.hyperparameters_json)
 
         return await self.create(
             user_id=source_job.user_id,

@@ -1,0 +1,11 @@
+# Deterministic semantic markers for ZUGFeRD PDF/A-3 output
+%PDF-1.4
+/Type /Metadata
+/EmbeddedFile
+/AFRelationship /Alternative
+factur-x.xml
+<zf:ConformanceLevel>EN 16931</zf:ConformanceLevel>
+<zf:DocumentType>INVOICE</zf:DocumentType>
+<zf:Version>2.3</zf:Version>
+<pdfaid:part>3</pdfaid:part>
+<pdfaid:conformance>B</pdfaid:conformance>

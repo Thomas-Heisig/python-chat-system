@@ -1,6 +1,8 @@
 from app.models.backends.base import ModelBackend
 from app.models.backends.custom_pytorch_backend import CustomPyTorchBackend
 from app.models.backends.llama_cpp_backend import LlamaCppBackend
+from app.models.backends.ollama_backend import OllamaBackend
+from app.models.backends.openai_backend import OpenAiBackend
 from app.models.backends.transformers_peft_backend import TransformersPeftBackend
 from app.models.backends.transformers_backend import TransformersBackend
 
@@ -8,6 +10,8 @@ from app.models.backends.transformers_backend import TransformersBackend
 SUPPORTED_BACKENDS: dict[str, type[ModelBackend]] = {
     "custom_pytorch": CustomPyTorchBackend,
     "llama_cpp": LlamaCppBackend,
+    "ollama": OllamaBackend,
+    "openai": OpenAiBackend,
     "transformers": TransformersBackend,
     "transformers_peft": TransformersPeftBackend,
 }

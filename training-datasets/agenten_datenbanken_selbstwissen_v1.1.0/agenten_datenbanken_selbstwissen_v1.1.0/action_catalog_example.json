@@ -1,0 +1,39 @@
+{
+  "actions": [
+    {
+      "name": "preis_abfragen",
+      "mode": "read",
+      "approval": "none"
+    },
+    {
+      "name": "angebot_entwurf_erstellen",
+      "mode": "draft",
+      "approval": "none"
+    },
+    {
+      "name": "angebot_senden",
+      "mode": "write_external",
+      "approval": "required"
+    },
+    {
+      "name": "bestellvorschlag_erstellen",
+      "mode": "draft",
+      "approval": "none"
+    },
+    {
+      "name": "bestellung_ausloesen",
+      "mode": "write_external",
+      "approval": "required"
+    },
+    {
+      "name": "kunde_anlegen",
+      "mode": "write",
+      "approval": "policy_based"
+    },
+    {
+      "name": "kunde_loeschen",
+      "mode": "irreversible",
+      "approval": "administrator_only"
+    }
+  ]
+}

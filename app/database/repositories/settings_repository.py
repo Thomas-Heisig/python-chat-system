@@ -24,6 +24,7 @@ class SettingsRepository(BaseRepository):
         user_id: int | None = None,
         team_id: int | None = None,
         description: str | None = None,
+        is_secret: bool = False,
     ) -> Setting:
         item = await self.get_setting(category, key, user_id=user_id, team_id=team_id)
         if item is None:
@@ -34,10 +35,12 @@ class SettingsRepository(BaseRepository):
                 team_id=team_id,
                 value_json=json.dumps(value, ensure_ascii=False),
                 description=description,
+                is_secret=is_secret,
             )
             self.session.add(item)
         else:
             item.value_json = json.dumps(value, ensure_ascii=False)
             item.description = description
+            item.is_secret = is_secret
         await self.session.flush()
         return item

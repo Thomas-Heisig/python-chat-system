@@ -1,13 +1,676 @@
 # Changelog
 
+## 0.1.132 - 2026-07-19
+
+- Den laufenden `business_letter`-Frontend-Refactor fortgesetzt und abgeschlossen: auch die verbleibenden Grossbereiche `Beziehungen & Konvertierung` sowie `Positionen` wurden aus `BusinessLetterManualPage.tsx` in eigene Komponenten ausgelagert.
+- Neue Komponenten eingefuehrt: `plugins/business_letter/frontend/components/RelationshipSection.tsx` und `plugins/business_letter/frontend/components/PositionSection.tsx`.
+- Die Parent-Seite bleibt bewusst Owner aller Zustandsuebergaenge und Seiteneffekte (z. B. Referenzuebernahme, Projektakte-Laden, Position-/Stone-Detail-Updates), waehrend die UI-Bloecke praesentational ueber strukturierte Props angebunden sind.
+- Verifikation: dateispezifische Frontend-Diagnostics ohne Fehler; Build erfolgreich (`npm run -s build`).
+
+## 0.1.131 - 2026-07-19
+
+- Der direkte `business_letter`-Chatpfad kann Angebotsanfragen mit Preisrecherche jetzt besser anreichern: bei Formulierungen wie `ermittel die Preise im Durchschnitt im Internet` wird vor der Dokumenterstellung automatisch `pricefinder` genutzt und der Durchschnittspreis als Positionspreis uebernommen.
+- Freitext-Empfaengerdaten aus dem Chat wurden erweitert: Name nach `fuer/für`, E-Mail-Adressen und Adresszeilen wie `Wolfsheid E10 27777 Ganderkesee t_heisig@gmx.de` werden jetzt robuster in `customer_name`, `customer_street`, `customer_zip`, `customer_city` und `recipient_email` aufgeloest.
+- Ziel des Fixes: weniger leere Entwurfsangebote bei freien Natursteinanfragen ohne explizites JSON-Positionsformat.
+- Testabdeckung erweitert: neuer Unit-Test fuer Direkt-Routing mit `pricefinder`-Enrichment und Freitext-Adressparser erfolgreich (`python -m pytest -q tests/unit/test_chat_service_plugin_orchestration.py -k "price or direct_document or chat_service"` -> `5 passed`).
+
+## 0.1.130 - 2026-07-19
+
+- Das Kernschmiede-Systemlogo wirkt jetzt auch im PDF-Fallback: wenn nur das SVG-Branding verfuegbar ist und kein PNG/JPEG eingebettet werden kann, zeichnet der PDF-Renderer stattdessen eine sichtbare `Kernschmiede`-Wortmarke im Header.
+- Die Logo-Metadaten fuer `business_letter` wurden dafuer erweitert: Systemlogo-Fallbacks tragen jetzt explizit Herkunft (`logo_origin`) und einen PDF-tauglichen `fallback_text` bis in den Rendererpfad.
+- Ergebnis: fehlende Firmenlogos fuehren nicht mehr zu HTML mit Branding, aber PDF ohne sichtbares Branding, sondern zu konsistenten Dokumenten in beiden Ausgabepfaden.
+- Testabdeckung erweitert: der Runtime-Test fuer fehlendes Firmenlogo prueft jetzt zusaetzlich, dass die Kernschmiede-Wortmarke im erzeugten PDF-Payload sichtbar ist.
+- Verifikation: fokussierter Lauf erfolgreich (`python -m pytest -q tests/unit/test_business_letter_runtime.py tests/unit/test_chat_service_plugin_orchestration.py tests/integration/test_plugins_execute_api.py -k "kernschmiede or chat_service or artifact_download or business_letter_runtime"` -> `19 passed`).
+
+## 0.1.129 - 2026-07-19
+
+- `business_letter` nutzt bei fehlendem Firmenlogo jetzt automatisch das Kernschmiede-Systemlogo als Branding-Fallback, statt ohne Logo zu rendern.
+- Der Fallback greift auf der bestehenden Settings-Basis: explizite Plugin-/Dokument-Settings behalten Vorrang, und nur wenn `company_logo_url` leer ist, wird das Systemlogo als Data-URL nachgezogen.
+- Damit werden Ergebnisse konsistenter, auch wenn im Profil kein eigenes Firmenlogo hinterlegt ist; vorhandene firmenspezifische Settings fuer Name, Signatur, Layout und Adressdaten bleiben unveraendert wirksam.
+- Testabdeckung erweitert: neuer Runtime-Test prueft, dass bei fehlendem Firmenlogo das Kernschmiede-Logo in das generierte Dokument-HTML einfliesst.
+- Verifikation: fokussierter Lauf erfolgreich (`python -m pytest -q tests/unit/test_business_letter_runtime.py tests/unit/test_chat_service_plugin_orchestration.py tests/integration/test_plugins_execute_api.py -k "kernschmiede or chat_service or artifact_download or business_letter_runtime"` -> `19 passed`).
+
+## 0.1.128 - 2026-07-19
+
+- Artefaktdownloads aus `business_letter` werden jetzt als Audit-Events protokolliert: erfolgreiche Downloads schreiben `artifact_downloaded` in `document_events` inklusive `artifact_kind`, `storage_key`, `actor_user_id` und Tenant-Scope.
+- Tenant-Modell fuer Chat-generierte Dokumente erweitert: der Direktpfad unterstuetzt jetzt `user`, `team` und `shared` als Dokument-Scope; im Ergebnis-Marker und Downloadpfad wird der Tenant explizit mitgefuehrt.
+- Zugriffsmodell fuer Downloads angepasst: `shared`-Artefakte sind fuer authentifizierte Nutzer abrufbar, `user:{id}` bleibt benutzergebunden, und `team:{id}` laeuft derzeit bewusst ueber den bestehenden Admin-Fallback solange noch kein echtes Team-Mitgliedschaftsmodell existiert.
+- Frontend-Downloadaktionen in der Chat-Ergebnisbox sind jetzt tenant-aware und uebergeben den Scope gezielt an den geschuetzten Download-Endpunkt.
+- Verifikation: fokussierte Backend-Tests erfolgreich (`python -m pytest -q tests/unit/test_chat_service_plugin_orchestration.py tests/integration/test_plugins_execute_api.py -k "chat_service or artifact_download or shared_scope"` -> `6 passed`), Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.127 - 2026-07-18
+
+- `business_letter`-Artefaktdownloads im Chat wurden gehaertet: der Download-Endpunkt verlangt jetzt einen gueltigen Bearer-Token und bindet den Zugriff standardmaessig an den Tenant des angemeldeten Benutzers (`user:{user_id}`).
+- Der direkte Dokumentpfad im Chat persistiert seine Dokumente jetzt usergebunden (`tenant_id = user:{user_id}`), damit PDF-/JSON-Artefakte nicht tenant-uebergreifend offenliegen.
+- Die Chat-Ausgabe liefert nicht mehr nur eine Textzeile, sondern zusaetzlich eine kleine strukturierte Ergebnisbox fuer `business_letter` mit Download-Aktionen wie `PDF herunterladen` und `JSON herunterladen`.
+- Die Download-Aktionen laufen im Frontend ueber denselben Auth-Header-Pfad wie die restliche API und sind nicht auf ungesicherte nackte Markdown-Links angewiesen.
+- Verifikation: fokussierte Backend-Tests erfolgreich (`python -m pytest -q tests/unit/test_chat_service_plugin_orchestration.py tests/integration/test_plugins_execute_api.py -k "chat_service or artifact_download"` -> `5 passed`), Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.126 - 2026-07-18
+
+- Direkte Dokumentantworten im Chat lesen persistierte `business_letter`-Artefakte jetzt aus der realen Rueckgabestruktur (`database.persisted.plugin_storage.artifacts`) statt aus einem flachen Testpfad.
+- Root-Cause des fehlenden Links behoben: der Linkbuilder schaute auf den falschen JSON-Pfad und hat deshalb trotz erfolgreicher Persistenz keine Markdown-Links eingebettet.
+- Testfixture fuer den Direktpfad an die echte Plugin-Struktur angepasst, damit derselbe Fehler kuenftig nicht mehr durch einen zu einfachen Fake maskiert wird.
+- Verifikation: fokussierter Lauf erfolgreich (`python -m pytest -q tests/unit/test_chat_service_plugin_orchestration.py tests/integration/test_plugins_execute_api.py -k "chat_service or artifact_download"` -> `5 passed`).
+
+## 0.1.125 - 2026-07-18
+
+- Direkt geroutete Dokumentanfragen im Chat verletzen den Kommunikationsvertrag nicht mehr: das interne `business_letter`-Payload sendet kein ungültiges String-Feld `content` mehr.
+- Root-Cause des Laufzeitfehlers behoben: der gemeinsame Communication-Contract erwartet bei `content` ein Objekt; der Chat-Direktpfad hat zuvor den kompletten Nutzerprompt als String in `content` injiziert.
+- Testabdeckung erweitert: der Vorab-Routingtest prueft jetzt explizit, dass kein `content`-String mehr an `business_letter` uebergeben wird.
+- Verifikation: fokussierter Lauf erfolgreich (`python -m pytest -q tests/unit/test_chat_service_plugin_orchestration.py tests/integration/test_plugins_execute_api.py -k "chat_service or artifact_download"` -> `5 passed`).
+
+## 0.1.124 - 2026-07-18
+
+- Direkte Dokumentanfragen im Chat liefern jetzt echte Artefaktlinks statt nur Status und Dateiname: die Rueckmeldung enthaelt Markdown-Links auf persistierte `business_letter`-Artefakte wie PDF und JSON.
+- Dafuer wurde der Vorab-Routingpfad auf persistente Dokumentablage umgestellt (`persist_to_database=True`), damit die intern erzeugten Artefakte nicht nur benannt, sondern auch abrufbar sind.
+- Neuer API-Endpunkt fuer `business_letter`-Artefakte eingefuehrt: `/api/plugins/business-letter/documents/{document_id}/artifacts/{artifact_kind}` liefert persistierte Inhalte direkt aus dem Dokumentarchiv aus.
+- Archivpersistenz erweitert: `document_artifacts` speichert jetzt zusaetzlich den Artefaktinhalt (`payload_text`), damit PDFs/HTML/JSON nicht nur als Metadaten, sondern als echte Downloads verfuegbar sind.
+- Testabdeckung erweitert: fokussierte Tests fuer Chat-Linkausgabe und PDF-Download-Endpunkt erfolgreich (`python -m pytest -q tests/unit/test_chat_service_plugin_orchestration.py tests/integration/test_plugins_execute_api.py -k "artifact_download or chat_service"` -> `5 passed`).
+
+## 0.1.123 - 2026-07-18
+
+- Dokumentanfragen werden jetzt im Chat-Entry fuer starke Intents vor dem Modelllauf direkt auf `business_letter` geroutet, statt erst auf einen modellabhaengigen Tool-Tag zu warten.
+- Damit folgt der Lauf jetzt dem gewuenschten Muster `unsichtbare interne Payload -> Plugin-Ausfuehrung -> Ergebnisrueckmeldung` auch dann, wenn das Modell selbst nur Freitext erzeugen wuerde.
+- Offene Nicht-Streaming-Aufrufer an die Orchestrierungsroutine wurden korrigiert und uebergeben den eigentlichen `user_message`-Text jetzt konsistent weiter.
+- Testabdeckung erweitert: neuer Unit-Test fuer den Vorab-Routingpfad von Dokumentanfragen vor der Modellerzeugung.
+- Verifikation: fokussierter Lauf erfolgreich (`python -m pytest -q tests/unit/test_chat_service_plugin_orchestration.py tests/unit/test_plugin_executor.py` -> `30 passed`).
+
+## 0.1.122 - 2026-07-18
+
+- Chat-Fallback fuer Dokumentanfragen weiter gehaertet: wenn das Modell auch nach nachgeschobener Discovery keinen `<plugin_call>` liefert, wird fuer klare Dokument-Intents `business_letter` direkt mit einem heuristisch aufgebauten Payload ausgefuehrt.
+- Der Direkt-Fallback extrahiert dabei erste Basisfelder aus dem Nutzertext (u. a. Dokumenttyp, Kunde, Projekt, Lieferzeit, Zahlungsziel und einfache Positionsmuster) und umgeht so die Abhaengigkeit von Tool-Tags im Modell-Output.
+- Nutzerantwort verbessert: der Chat liefert in diesem Pfad jetzt direkt eine verwertbare Rueckmeldung mit Dokumenttyp, Status und erkanntem PDF-Artefakt statt eines allgemeinen Beispieltextes.
+- Testabdeckung erweitert: neuer Unit-Test fuer den Pfad `Discovery vorhanden, aber weiterhin kein Tool-Tag -> direkte business_letter-Ausfuehrung`.
+- Verifikation: fokussierter Lauf erfolgreich (`python -m pytest -q tests/unit/test_chat_service_plugin_orchestration.py tests/unit/test_plugin_executor.py` -> `29 passed`).
+
+## 0.1.121 - 2026-07-18
+
+- Chat-Orchestrierung bei Dokumentanfragen gehaertet: wenn das Modell ohne `<plugin_call>` antwortet, wird fuer erkannte Dokument-Intents einmalig automatisch ein `<plugin_search_response>` mit Kandidaten injiziert statt den Plugin-Flow sofort zu beenden.
+- Ziel des Fallbacks: stabile Reaktion auf Anfragen wie `Dokumentanfrage`, `Rechnung`, `Angebot`, `Mahnung`, auch wenn das Modell im ersten Schritt keinen Tool-Tag liefert.
+- Die Auto-Discovery bleibt begrenzt (einmalig pro Anfrage), um Endlosschleifen zu vermeiden.
+- Testabdeckung erweitert: neuer Unit-Test fuer den Auto-Discovery-Fallback bei Dokumentanfragen (`test_chat_service_injects_auto_discovery_for_document_requests`).
+- Verifikation: fokussierter Lauf erfolgreich (`python -m pytest -q tests/unit/test_chat_service_plugin_orchestration.py tests/unit/test_plugin_executor.py` -> `28 passed`).
+
+## 0.1.123 - 2026-07-18
+
+- `business_letter`-Manual-Frontend weiter modularisiert: die grossen Sektionen `Dokument`, `Empfaenger` und `Texte` wurden aus `plugins/business_letter/frontend/BusinessLetterManualPage.tsx` in eigene Komponenten ausgelagert (`components/DocumentSection.tsx`, `components/RecipientSection.tsx`, `components/TextSection.tsx`).
+- Die Seitenkomponente bleibt weiterhin Owner aller States und Seiteneffekte; die neuen Sektionen sind praesentational und erhalten strukturierte `value`/`onChange`-Props, um Setter-Explosion zu vermeiden und den Folge-Split vorzubereiten.
+- Verifikation: dateispezifische Diagnostics fuer die beruehrten `business_letter`-Frontend-Dateien sind fehlerfrei; Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.122 - 2026-07-18
+
+- TypeScript-Aufloesung fuer ausgelagerte Plugin-Frontends stabilisiert: `frontend/tsconfig.json` laedt jetzt React-Typen explizit und mappt `react`/`react-dom`/`react/jsx-runtime` auf die installierten Typdefinitionen, sodass Imports aus `../plugins/*/frontend` korrekt typisiert werden.
+- Die zuvor gemeldete Fehlerkaskade in `plugins/business_letter/frontend/BusinessLetterManualPage.tsx` (u. a. `TS2307`/`TS2875` plus implizite-`any`-Folgefehler) ist im Datei-spezifischen Check behoben.
+- Verifikation: `npx tsc --noEmit` im Frontend zeigt keine Fehler mehr in den `business_letter`-Frontend-Dateien; verbleibende Workspace-Typfehler liegen in anderen Modulen (`src/...`) und waren nicht Teil dieses Fix-Blocks.
+
+## 0.1.121 - 2026-07-18
+
+- `business_letter`-Manual-Frontend weiter modularisiert: Header und Sidebar/Result-Block aus `BusinessLetterManualPage.tsx` in eigene Komponenten ausgelagert (`plugins/business_letter/frontend/components/BusinessLetterHeader.tsx`, `plugins/business_letter/frontend/components/BusinessLetterSidebar.tsx`).
+- Ausfuehrungs-/Bestaetigungsfluss aus der Seitenkomponente extrahiert: neuer Hook `plugins/business_letter/frontend/hooks/useBusinessLetterExecution.ts` kapselt `create_document`, Confirm-Flow und `project_case_overview` inkl. Idempotency-/Confirmation-Vertrag.
+- Seitenintegration auf neue Bausteine umgestellt, ohne den bestehenden API-/Validierungs-/Entwurfsflow zu aendern.
+- Verifikation: Frontend-Build erfolgreich (`npm run -s build`), gezielte Hardening-Tests erfolgreich (`npm run -s test:run -- src/components/content/BusinessLetterManualPage.hardening.test.tsx src/components/content/BusinessLetterServices.hardening.test.ts` -> `7 passed`).
+
+## 0.1.120 - 2026-07-18
+
+- Governance-Hardening vor Audit-Block abgeschlossen: Alembic-Revision fuer `plugin_confirmations` und `plugin_idempotency_records` hinzugefuegt (`6f9c2e7a4d31_plugin_governance_tables.py`) und mit `python -m alembic upgrade head` auf einer frischen Test-DB verifiziert.
+- Confirmation-Sicherheitsbindung verschaerft: Team-Bindung wird bei Confirm/Reject erzwungen (`team_id` muss zur Pending-Confirmation passen), und Confirm prueft vor Ausfuehrung zusaetzlich den gespeicherten `arguments_hash` sowie die Verfuegbarkeit von Plugin/Funktion.
+- Race-Condition im Confirm-Flow abgesichert: atomarer Claim `pending -> executing` eingefuehrt; ein zweiter Confirm kann denselben Datensatz nicht erneut uebernehmen.
+- Confirmation-Statuspfad verfeinert: erfolgreiche Ausfuehrung markiert jetzt `confirmed` statt generischem `executed`.
+- Idempotency-Layer erweitert: Team-Scope (`team_scope`) und Lease-Timer (`lease_expires_at`) eingefuehrt, inklusive Ablauf-Logik fuer verwaiste `in_progress`-Eintraege.
+- Idempotency-Reservierung robust gegen Parallelzugriff gemacht: bei Unique-Conflict wird der bestehende Datensatz neu gelesen und kontextabhaengig als `replayed`, `in_progress`, `conflict` oder erneute Reservierung behandelt.
+- Testabdeckung erweitert: neue Integrationsfaelle fuer Team-Mismatch, Single-Claim-Confirm und Lease-Timeout-Pfad; Regression gruen (`python -m pytest -q tests/unit/test_plugin_executor.py tests/integration/test_plugins_execute_api.py` -> `40 passed`).
+
+## 0.1.119 - 2026-07-18
+
+- Plugin-Kachel-Logoaufloesung in `WorkspacePage.tsx` auf dynamische Discovery umgestellt: statt harter `if`-Zuordnung werden Logos jetzt automatisch aus `frontend/src/assets/plugin-logos/*` geladen.
+- Neue generische Aufloesungslogik eingefuehrt: Plugin-IDs und Dateinamen werden normalisiert (`-`, `_`, Leerzeichen), sodass ein vorhandenes Asset wie `calculator.svg` automatisch fuer Plugin `calculator` genutzt wird.
+- Fallback-Verhalten beibehalten: wenn kein passendes Asset vorhanden ist, zeigt die Kachel weiterhin den Initial-Buchstaben.
+- Verifikation: Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.115 - 2026-07-18
+
+- Governance-Laufzeitfluss erweitert: bestaetigungspflichtige Plugin-Aufrufe erzeugen jetzt serverseitig `pending_confirmation` statt sofortiger Ausfuehrung.
+- Neuer persistenter Confirmation-Store eingefuehrt (`plugin_confirmations`) inkl. gespeicherter Aufrufdaten (`plugin_id`, `function_name`, Argumente + Hash, Context, Ablaufzeit, Status).
+- Neue API-Endpunkte fuer Confirm/Reject umgesetzt: `POST /api/plugins/confirmations/{confirmation_id}/confirm` und `POST /api/plugins/confirmations/{confirmation_id}/reject`.
+- Confirm-Flow fuehrt exakt den serverseitig gespeicherten, bereits geprueften Aufruf aus; Modellargumente werden bei der Bestaetigung nicht neu generiert.
+- Persistentes Idempotency-Repository eingefuehrt (`plugin_idempotency_records`) mit Scope `(plugin_id, function_name, user_scope, idempotency_key)` und Statuspfad (`in_progress`, `completed`, `failed`).
+- Wiederholungslogik implementiert: gleiche Anfrage liefert bei `completed` das gespeicherte Ergebnis (`replayed`), bei unterschiedlichem Payload gibt es `plugin_idempotency_conflict`, bei aktivem Lauf `plugin_idempotency_in_progress`.
+- `PluginExecutionPolicy` bereinigt: in-memory Replay-Map entfernt, Idempotency-Key-Formatpruefung verbleibt in der Policy; persistente Konflikt-/Replay-Logik liegt jetzt in der API-Governance-Schicht.
+- Executor um `resolve_execution_target(...)` erweitert, damit normalisierte Funktion/Argumente fuer Policy, Confirmation und Idempotency einheitlich verwendet werden.
+- Verifikation: Governance-Regression gruen (`python -m pytest -q tests/unit/test_plugin_executor.py tests/integration/test_plugins_execute_api.py` -> `36 passed`).
+
+## 0.1.118 - 2026-07-18
+
+- `calculator` strukturell an das `business_letter`-Muster angeglichen: neue Modulbausteine `assets/`, `services/`, `models/`, `renderers/` sowie ausgelagerte `constants.py` und `settings.py`.
+- Rechenlogik aus `plugin.py` in den Service-Layer verschoben (`plugins/calculator/services/calculation.py`), inklusive Beibehaltung der bestehenden Safety-Regeln fuer AST-Validierung und Funktionsausfuehrung.
+- `calculator`-Manual-Frontpage zeigt jetzt ein sichtbares Plugin-Logo im Header (Asset aus `plugins/calculator/assets/logo.svg`) inkl. responsivem Branding.
+- Plugin-/Frontend-Dokumentation fuer `calculator` aktualisiert (neue Struktur, Frontend-Pfad, Logo-Hinweis).
+- Verifikation: fokussierter Testlauf erfolgreich (`python -m pytest -q tests/unit/test_calculator_plugin.py tests/unit/test_plugin_executor.py` -> `35 passed`), Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.117 - 2026-07-18
+
+- `business_letter`-Manual-Frontpage zeigt jetzt ein sichtbares Plugin-Logo im Header (Asset aus `plugins/business_letter/assets/logo.svg`) inklusive responsivem Header-Branding.
+- `calculator`-Plugin wissenschaftlich erweitert: `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh` sind jetzt im sicheren AST-Funktionsumfang enthalten.
+- Inverse Trigonometrie folgt dem bestehenden Winkelmodus-Vertrag: `asin`/`acos`/`atan` liefern in `rad` Radiant und in `deg` Gradwerte.
+- Testabdeckung erweitert: neue Unit-Tests fuer hyperbolische Funktionen sowie inverse Trigonometrie in Radiant- und Gradmodus.
+- Verifikation: fokussierter Testlauf erfolgreich (`python -m pytest -q tests/unit/test_calculator_plugin.py tests/unit/test_plugin_executor.py` -> `26 passed`).
+
+## 0.1.116 - 2026-07-18
+
+- `business_letter`-Manual-Frontpage auf den policy-faehigen Funktionspfad umgestellt: Aufrufe fuer `create_document` und `project_case_overview` laufen jetzt ueber `POST /api/plugins/execute-function` (inkl. `function_name`, `function_input`, `idempotency_key`, `confirmed`).
+- Frontend-Validierung fuer den Folgedokument-Flow geschaerft: numerische Plausibilitaet fuer Mengen/Preise/Steuer, Teilmengen-Grenzen gegen Quellmenge, Konsistenzpruefung von Referenztyp und Konvertierungsaktion sowie dokumenttyp-spezifische Mindestregeln.
+- UX- und Safety-Korrekturen in der Manual-Page: Pflichtfeldtexte nutzen lesbare Feldlabels, technisches Roh-JSON wird nur noch im Dev-Modus angezeigt, und Dokumenthinweise werden als Info-Box statt Readonly-Input dargestellt.
+- CSS-Hardening fuer die Plugin-Frontpage umgesetzt: globale Form-Selektoren sind jetzt auf `.business-letter-page` gescoped; Positionslayout und Checkbox-Zeilen wurden auf konsistente Grid-Layouts korrigiert.
+- Verifikation: Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.115 - 2026-07-18
+
+- Plugin-Frontend-Dateien fuer `business_letter` und `calculator` wurden aus `frontend/src/plugins/...` in die jeweiligen Plugin-Ordner verschoben: `plugins/business_letter/frontend/...` und `plugins/calculator/frontend/...`.
+- Der gemeinsame Draft-Hook wurde ebenfalls aus dem Frontend-Baum herausgezogen und zentral unter `plugins/shared/frontend/usePluginDraft.ts` abgelegt.
+- Workspace-Integration angepasst: `WorkspacePage.tsx` importiert die Manual-Frontpages jetzt direkt aus den Plugin-Ordnern.
+- Verifikation: Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.114 - 2026-07-18
+
+- Discovery-Grundlage gehaertet: `PLUGIN_META` fuer `business_letter` und `calculator` um explizite `summary`, `capabilities`, `usage_rules` und `functions` erweitert (Schema-Inferenz bleibt Fallback).
+- Zentralen Policy-Layer eingefuehrt: neuer `PluginExecutionPolicy`-Service (`app/tools/execution_policy.py`) mit Vorabpruefungen fuer Plugin-Aktivierung, Scope (User/Team), Permissions, Confirmation, Dry-Run, Idempotency und Input-Schema.
+- Executor auf Policy-Checks umgestellt: `execute`/`execute_function` akzeptieren jetzt `execution_context` (u. a. `idempotency_key`, `confirmed`, `granted_permissions`, `allowed_plugins`).
+- API-Vertrag erweitert: `POST /api/plugins/execute` und `POST /api/plugins/execute-function` unterstuetzen jetzt Team-/Policy-Felder (`team_id`, `dry_run`, `confirmed`, `idempotency_key`, `granted_permissions`, `allowed_plugins`, `enforce_permissions`).
+- Capability-Suche stabilisiert: Kandidaten auf max. drei begrenzt, Scoring mit getrennten Anteilen fuer Capability/Funktion/Allgemeinmetadaten, plus Entscheidungstier (`direct_manifest`, `model_review`, `no_auto_selection`) und Name-only-Bremse.
+- Testabdeckung erweitert: neue Policy-Tests (Permission-Gate, Idempotency-Pflicht, Replay-Block) sowie Search-Qualitaetschecks; Verifikation erfolgreich (`python -m pytest -q tests/unit/test_plugin_executor.py tests/integration/test_plugins_execute_api.py` -> `31 passed`).
+
+## 0.1.113 - 2026-07-18
+
+- Gemeinsamen Frontend-Hook fuer plugin-lokale Entwurfs-Persistenz eingefuehrt: `frontend/src/plugins/usePluginDraft.ts`.
+- `business_letter` und `calculator` nutzen jetzt denselben Draft-Flow (Load beim Oeffnen, Autosave, manuelles Save/Reload) ueber den Shared-Hook statt duplizierter Seitenlogik.
+- Draft-Key wird zentral und dynamisch aus dem Aufrufkontext (`pluginId`) abgeleitet (`${pluginId}_frontpage_draft`).
+- Plugin-README-Dateien um den gemeinsamen Persistenzpfad ergaenzt.
+- Verifikation: Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.112 - 2026-07-18
+
+- Plugin-Frontpage-Daten wurden weiter in die Plugin-Pfade verlagert: `business_letter` und `calculator` speichern Frontpage-Entwuerfe jetzt plugin-lokal und persistent in den Plugin-Settings.
+- Entwurfs-Key-Zuordnung ist dynamisch vom Aufrufpunkt (`pluginId`) abgeleitet: `business_letter_frontpage_draft` bzw. `calculator_frontpage_draft`.
+- `calculator`-Manual-Frontpage erhielt denselben Persistenzpfad wie `business_letter` (Load beim Oeffnen, stilles Autosave bei Aenderungen, manuelles `Entwurf speichern`/`Entwurf laden`).
+- Frontend-Dokumentation der Plugin-Ordner aktualisiert (`frontend/src/plugins/business_letter/README.md`, `frontend/src/plugins/calculator/README.md`).
+- Verifikation: Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.111 - 2026-07-18
+
+- `business_letter`-Manual-Frontpage speichert jetzt plugin-lokale Entwuerfe persistent ueber die Settings-API (`plugins/business_letter_frontpage_draft`) statt nur im temporaeren UI-State.
+- Neue Entwurfslogik in der Frontpage: automatisches Laden beim Oeffnen, stilles Autosave bei Eingabeaenderungen sowie manuelle Aktionen `Entwurf speichern` und `Entwurf laden`.
+- Entwurfs-Payload umfasst die fuer den Plugin-Flow benoetigten Eingaben (Dokumentdaten, Beziehungen/Konvertierung, Positionen inkl. `stone_details`, Ausgabeoptionen und Referenzdokumente), damit der Plugin-Arbeitskontext autonom wiederherstellbar bleibt.
+- Verifikation: Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.110 - 2026-07-18
+
+- `business_letter`-Follow-up-Flow um persistente Referenzsuche erweitert: wenn kein `source_document_id`/`source_document_number` im Request vorhanden ist, wird das Quelldokument jetzt aus der DB ueber `project_id`/`customer_id` und den erwarteten Quelltyp der `conversion_action` aufgeloest.
+- Konvertierungs-Gates pro Folgebeleg verschaerft: Quellstatus wird jetzt explizit geprueft und ungueltige Status im Konvertierungspfad werden blockiert.
+- Prozesshuerden fuer Folgedokumente erweitert: `lieferschein_to_rechnung` blockiert ohne offene Restmenge; `rechnung_to_zahlungserinnerung` blockiert bei offenem Betrag `<= 0`.
+- Konvertierungs-Metadaten erweitert: `source_document_status` wird jetzt in der Conversion-Rueckgabe mitgefuehrt.
+- Unit-Tests erweitert: neuer Persistenztest fuer Follow-up ohne In-Session-Referenz sowie neue Gate-Tests fuer Status- und Offene-Posten-Blocker.
+- Verifikation: fokussierter Lauf erfolgreich (`python -m pytest -q tests/unit/test_business_letter_conversion.py tests/unit/test_business_letter_runtime.py` -> `28 passed`).
+
+## 0.1.109 - 2026-07-18
+
+- Plugin-Runtime um einen dynamischen Discovery-Layer erweitert: neuer Capability-Index und semantische Kandidatensuche auf Basis der registrierten Plugin-Metadaten.
+- Neue Discovery-Endpunkte eingefuehrt: `GET /api/plugins/capabilities`, `GET /api/plugins/{plugin_id}/manifest`, `GET /api/plugins/{plugin_id}/functions/{function_name}`.
+- Funktionsaufrufe auf API-Ebene erweitert: `POST /api/plugins/execute-function` ergaenzt den bestehenden Execute-Pfad um eine funktionsorientierte Ausfuehrung.
+- Plugin-Registry erweitert: Manifestdaten enthalten jetzt zusaetzlich `summary`, `capabilities`, `functions`, `usage_rules` und `examples`; wenn Metadaten fehlen, werden Capabilities/Funktionen kontrolliert aus dem Schema abgeleitet.
+- Chat-Orchestrierung auf zweistufigen Ablauf ausgebaut: das Modell kann jetzt im Lauf erst Kandidaten suchen (`<plugin_search>`), dann ein Manifest laden (`<plugin_manifest>`), optional Funktionsdetails nachladen (`<plugin_function>`) und erst danach den eigentlichen Plugin-Call ausfuehren.
+- Testabdeckung erweitert: Unit- und Integrations-Tests fuer Discovery, Manifest/Funktionsauflosung und `execute-function` wurden hinzugefuegt.
+- Verifikation: fokussierter Testlauf erfolgreich (`python -m pytest -q tests/unit/test_plugin_executor.py tests/unit/test_chat_service_plugin_orchestration.py tests/integration/test_plugins_execute_api.py` -> `27 passed`).
+
+## 0.1.108 - 2026-07-18
+
+- `calculator`-Plugin sicherheitstechnisch nachgeschaerft: boolesche Konstanten werden nicht mehr als Zahlen akzeptiert, Keyword-Argumente in Funktionsaufrufen sind gesperrt, und es bleiben nur direkte Whitelist-Calls zulaessig.
+- Funktionsumfang im sicheren Parser erweitert: `min` und `max` sind jetzt offiziell im Ausdrucksvertrag verfuegbar.
+- Testabdeckung erweitert: neue Unit-Tests fuer gesperrte Keyword-Args, gesperrte Bool-Ausdruecke und `min`/`max`-Auswertung.
+- Verifikation: fokussierter Testlauf erfolgreich (`python -m pytest -q tests/unit/test_calculator_plugin.py tests/unit/test_plugin_executor.py` -> `23 passed`).
+
+## 0.1.107 - 2026-07-18
+
+- `calculator`-Plugin fachlich erweitert: `action`-Presets, Winkelmodus (`rad`/`deg`), Rundungspraezision (`precision`) und strukturierte Antwortmetadaten (`expression`, `action`, `angle_mode`, `precision`) sind jetzt im Runtime-Vertrag verfuegbar.
+- Sicherheits-/Korrektheitsluecke geschlossen: Konstanten werden nicht mehr per blindem String-Replacement ersetzt; dadurch bleiben Funktionsnamen wie `ceil(...)` intakt.
+- `calculator` liefert jetzt ein eigenes `pluginFrontend`-Metadatenprofil inklusive Quickstart-Karten und Fachaktionen fuer den Plugin-Frontend-Tab.
+- Neue plugin-spezifische Frontend-Komponente eingefuehrt: `frontend/src/plugins/calculator/CalculatorManualPage.tsx` (inkl. CSS/README) mit Ausdruckseditor, Presets, Keypad, Verlauf, Laufzeitoptionen und Ergebnisansicht.
+- Workspace-Integration erweitert: im Plugin-Popup wird fuer `calculator` im `Frontend`-Tab jetzt die neue Manual-Page gerendert; der generische Frontend-Fallback bleibt fuer andere Plugins aktiv.
+- Plugin-Solo-Runner verbessert: fuer `calculator` gibt es jetzt zusaetzlich eine kompakte Ergebniszusammenfassung (Ausdruck, Ergebnis, Modus, Praezision, Aktion).
+- Verifikation: Frontend-Build erfolgreich (`npm run -s build`); fokussierte Backend-Tests gruen (`python -m pytest tests/unit/test_calculator_plugin.py tests/unit/test_plugin_executor.py -q` -> `20 passed`).
+
+## 0.1.106 - 2026-07-18
+
+- Frontend-Regression fuer den Workspace behoben: `Einstellungen` und `Plugins` werden wieder als zentrales Overlay/Popup ueber der Chatflaeche geoeffnet statt im normalen Ausgabebereich gerendert.
+- Kachel-Navigation fuer die oberste Settings-Ebene stabilisiert: die Gruppen erscheinen wieder als Kartenraster (`Kachelsystem`) mit direktem Modal-Einstieg.
+- Kacheln im Settings-Pluginpfad bis in die tieferen Ebenen durchgezogen: Kategorie -> Plugin -> Untergruppe bleibt jetzt konsistent als Kachelstruktur erhalten.
+- Symbole und Erwartungstexte integriert: Kacheln zeigen jetzt pro Ebene visuell und textlich, welche Inhalte hinter der Auswahl warten (z. B. Gruppenanzahl, Feldanzahl, Pflichtfelder, Erstgruppe).
+- Overlay-Styles fuer Desktop und Mobil ergaenzt (`workspace-overlay`, Header/Content-Rahmen, responsive Hoehe), damit die Popup-Darstellung konsistent bleibt.
+- Popup-Groesse dynamisiert: Plugin-Popups orientieren sich jetzt an der verfuegbaren Viewport-Hoehe (`dvh`) statt an starren Hoehenwerten.
+- Letzte Plugin-Ebene korrigiert: in der Untergruppen-Ansicht sind Kachelbereich und Feldformular jetzt in getrennten Scrollzonen, sodass die Felder immer erreichbar bleiben.
+- Integrationen erweitert: neue Umschaltung `Inline`/`Popup` fuer die Gruppenansicht in den Settings.
+- Speziell fuer `Dokumente`: Gruppen koennen jetzt direkt als Kachel in ein dediziertes Popup geoeffnet werden; die Feldansicht ist damit reproduzierbar erreichbar.
+- Auswahlort korrigiert: Symbolprofil sowie Integrationen-Ansicht (`Inline`/`Popup`) sind jetzt direkt unter `Einstellungen / Darstellung` waehlbar.
+- Darstellungspraeferenzen werden pro Benutzer lokal gespeichert (lokaler Browser-Storage), sodass die gewaehlte Ansicht nach Reload erhalten bleibt.
+- Plugin-Kacheln erweitert: Plugins koennen jetzt optional ein eigenes `pluginFrontend`-Metadatenobjekt liefern; wenn vorhanden, erscheint auf der Kachel ein zusaetzlicher `Frontend`-Button.
+- Das Plugin-Frontend wird als Popup-Tab innerhalb des Plugin-Fensters gerendert und kann vordefinierte Arbeitsoberflaechen-Schritte (z. B. Presets fuer Runner/Settings) aus dem Plugin selbst heraus bereitstellen.
+- `jtl_suite` liefert jetzt die erste konkrete Plugin-Frontend-Definition mit Schnellzugaengen fuer Wawi-, Shop-, WMS- und SQL-Flows.
+- `business_letter` besitzt jetzt ebenfalls eine eigene fachliche Plugin-Frontpage mit Schnellzugaengen fuer Angebot, Auftragsbestaetigung, Rechnung, Zahlungserinnerung, Reklamationsantwort, E-Rechnung, Layout sowie Persistenz-/Freigabefloues.
+- Die generische Plugin-Frontpage wurde zu einer echten Basisseite ausgebaut: moderner Hero-Bereich, Schnellstartkarten, fachliche Preset-Sektionen und automatische Uebersicht aller im Plugin deklarierten Funktionen (`inputSchema.properties.action.enum`).
+- `business_letter` hinterlegt jetzt zusaetzlich eine echte plugin-eigene Frontpage-Seite (`pluginFrontend.page`) mit Headline, Highlights und fachlichen Karten fuer Tagesgeschaeft sowie Qualitaet/Compliance.
+- Fuer `business_letter` ist jetzt zusaetzlich eine echte manuelle Frontend-Seite als React-/TypeScript-Komponente im Projekt eingebunden (`frontend/src/plugins/business_letter/BusinessLetterManualPage.tsx`); beim Klick auf `Frontend` in der Plugin-Kachel oeffnet fuer dieses Plugin nun diese Seite direkt im Popup.
+- Die `business_letter`-Frontpage wurde an das gelieferte manuelle Frontpage-Paket angeglichen und um eine lokale Projekt-README im Zielordner (`frontend/src/plugins/business_letter/README.md`) ergaenzt.
+- Die Dokumenttypen-Matrix von `business_letter` wurde deutlich erweitert: Vertrieb, Auftragsabwicklung, Rechnungswesen, Mahnwesen, Einkauf, Service sowie allgemeine Geschaeftsdokumente sind jetzt in Typmengen, Normalisierung, Settings-Scope-Aliases, Standardtexten und der manuellen Frontpage-Auswahlliste integriert.
+- Nicht-rechnungsfaehige Dokumenttypen laufen jetzt nicht mehr versehentlich durch die E-Rechnungslogik; XRechnung/ZUGFeRD bleiben auf fakturarelevante Typen begrenzt (`rechnung`, `abschlagsrechnung`, `schlussrechnung`, `gutschrift`, `stornorechnung`).
+- `business_letter` nutzt jetzt zusaetzlich eine zentrale Dokumenttyp-Konfiguration im Frontend (`documentTypeConfig.ts`) fuer sichtbare Felder, Pflichtfeldpruefung, Payload-Aufbau und Ergebnisdarstellung; im Backend steuert eine korrespondierende Regelmatrix die Laufzeitdefaults und Validierung.
+- `docs/AGENTS.md` dokumentiert jetzt das reproduzierbare Muster fuer plugin-spezifische Frontpages und zentrale Typmatrizen, damit weitere Plugins denselben Weg konsistent nutzen koennen.
+- Produkt-Roadmap fuer `business_letter` in den Projekt-Dokumenten erweitert: TODO und Roadmap enthalten jetzt zusaetzlich die groesseren naechsten Ausbaubloecke wie Vorlagen, Assistentenfluss, Vorschau, Kunden-/Artikelstamm, Workflow, Naturstein-spezifische Felder und Dokumentenpakete.
+- Die `business_letter`-Projektplanung wurde weiter verfeinert: TODO und Roadmap enthalten jetzt zusaetzlich den naechsten fachlichen Block fuer Service-/Baustellenfeldgruppen, stufenabhaengiges Mahnwesen, Dokumentbeziehungen, Konvertierungsaktionen, natursteinspezifische Positionsdaten, Vorschau, Autosave, Freigabeworkflow und die zugehoerige Teststrategie.
+- `business_letter` unterstuetzt jetzt erste strukturierte Dokumentbeziehungen und Konvertierungsaktionen im Plugin-Vertrag sowie in der Manual-Frontpage (`source_document_*`, `project_id`, `customer_id`, `revision_of`, `cancels_document_id`, `conversion_action`).
+- Die Manual-Frontpage von `business_letter` wurde um eine Beziehungs-/Konvertierungssektion sowie um natursteinspezifische Positionsdaten erweitert; Positionen koennen jetzt optionale `stone_details` wie Materialart, Handelsname, Farbe, Oberflaeche, Staerke, Charge, Blocknummer und Montageort mitfuehren.
+- Der naechste Umsetzungsblock fuer dokumentuebergreifende Folgeprozesse ist jetzt produktiv verdrahtet: ein zentraler Konvertierungsservice steuert erlaubte Aktionen und Datenuebernahmen fuer `Angebot -> Auftragsbestaetigung`, `Auftragsbestaetigung -> Lieferschein`, `Lieferschein -> Rechnung`, `Rechnung -> Stornorechnung`, `Rechnung -> Gutschrift`, `Rechnung -> Zahlungserinnerung` sowie `Montagebericht -> Abnahmeprotokoll`.
+- Der Konvertierungsservice uebernimmt jetzt Referenzdaten, Kunde/Projekt sowie Positionen aus dem Quelldokument und unterstuetzt gezielte Positionsabwahl plus Teilmengenuebernahme ueber `source_position_line_ids` und `source_position_quantities`.
+- Die Backend-Validierung wurde um fachliche Referenzpflichten erweitert: Stornorechnung (Ursprungsrechnung), Gutschrift (Bezugsdokument), Mahnung (offene Rechnung), Retourenschein (nur Lieferschein/Rechnung als Bezug) sowie Hinweislogik fuer Abnahmeprotokoll-Referenzen.
+- Die `business_letter`-Manual-Frontpage bietet jetzt einen dedizierten `Folgedokument erstellen`-Flow mit Referenzdokument-Auswahl, schreibgeschuetzter Referenzansicht und uebernehmbaren Positionen inkl. Teilmengensteuerung.
+- Neue Unit-Tests sichern den Konvertierungsblock ab (`tests/unit/test_business_letter_conversion.py`): erlaubte/verbotene Konvertierungen, Datenuebernahme, Referenzpflichten, Teilmengen sowie Storno-/Gutschriftlogik.
+- Der naechste Lifecycle-Schritt ist jetzt umgesetzt: `Lieferschein -> Rechnung` beruecksichtigt Restmengen auf Basis bereits fakturierter Folgebelege, `Rechnung -> Gutschrift/Stornorechnung` uebernimmt Positionen mit negativen Nettowerten und `Rechnung -> Zahlungserinnerung` berechnet den offenen Betrag aus Rechnung minus Zahlungen/Gutschriften.
+- Laufzeitvertrag stabilisiert: Angebotsdokumente koennen wieder ohne Positionszwang als Entwurf/Kommunikationsdokument laufen; fuer Mahnungen wurden zusaetzliche explizite Pflichtfeldmeldungen (`Rechnungsnummer`, `Faelligkeit`) hinterlegt.
+- Persistente Konvertierungskette erweitert: bei Folgebelegen werden Quellbeleg und bestehende Follow-ups jetzt bei gesetzter `conversion_action` automatisch aus der Datenbank aufgeloest (`source_document`, `source_document_followups`), sodass Restmengen auch ohne In-Session-Referenz stabil berechnet werden.
+- Neue Plugin-Aktion `project_case_overview` eingefuehrt: liefert Projektakte auf Projektebene mit Timeline, Statussicht (Dokumentzaehler je Status) sowie Mengenkette (`geliefert`/`fakturiert`/`offen`) pro Position.
+- Manual-Frontend `business_letter` erweitert: im Bereich `Beziehungen & Konvertierung` gibt es jetzt `Projektakte laden` inklusive direkter Ansicht fuer Teilmengen-/Restmengenkette und dokumentuebergreifende Timeline im Folgedokument-Flow.
+- Zusaeztliche Unit-Tests sichern den neuen Persistenzpfad und die Projektakte-Aktion ab (`test_conversion_uses_persistent_followup_chain_for_remaining_quantities`, `test_project_case_overview_returns_timeline_and_quantity_chain`).
+- Verifikation: kombinierter Lauf aus Runtime- und Conversion-Tests erfolgreich (`25 passed`).
+- Verifikation: keine Diagnosen in den geaenderten Frontend-Dateien; Frontend-Build erfolgreich (`npm run -s build`).
+
+## 0.1.105 - 2026-07-18
+
+- `business_letter`-Versandpfad auf produktionsnaeheren Stand gebracht: persistente Dispatch-Queue (`dispatch_queue`) und Versandhistorie (`dispatch_history`) in der SQLite-Persistenz eingefuehrt.
+- Idempotenzschutz fuer Mailversand aktiviert: identische Versandanforderungen werden ueber einen stabilen Idempotenzschluessel dedupliziert, Doppelversand wird unterdrueckt.
+- Retry-Management fuer Versandereignisse ergaenzt: fehlgeschlagene Versandversuche werden mit Backoff erneut eingeplant und mit Status-/Fehlerinformationen persistiert.
+- Versandorchestrierung im `business_letter`-Plugin verdrahtet: bei `communication_channel=email|both` und erfolgreicher Validierung wird der Versand ueber die bestehende Plugin-Schnittstelle (`email`-Plugin) ausgefuehrt statt ueber einen separaten Sonderpfad.
+- Gastsystem-Anbindung erweitert: Dispatch-Queue-Snapshots werden beim Dual-Save optional in die Gastsystem-Datenbank gespiegelt (`guest_business_letter_dispatch_queue`).
+- `email`-Plugin um `microsoft365`-Provider erweitert (SMTP-basierter Adapterpfad mit M365-Umgebungsvariablen).
+- Testabdeckung ausgebaut: neue Integritaetstests fuer Queue-Persistenz, Versandhistorie und Idempotenz sowie ein Runtime-Test fuer den `microsoft365`-Adapterpfad im `email`-Plugin.
+
+## 0.1.104 - 2026-07-18
+
+- `jtl_suite` um direkten SQL-Datenbankzugriff erweitert: neue Aktionen `db_test_connection` und `db_query` fuer direkte Abfragen gegen JTL-Datenbanken (WaWi/Shop/WMS/eazyAuction).
+- Neue JTL-SQL-Konfiguration aufgenommen (Host, Port, Driver, DB-Namen, Encrypt/Trust-Flags, Timeout) inkl. Standardvorgaben fuer `sa`-Login (`jtl_db_user=sa`, `jtl_db_password=sa`) gemaess aktueller Anforderung.
+- Sicherheitsgrenze im Plugin gesetzt: bei `db_query` sind nur lesende Statements (`SELECT`/`WITH`) erlaubt.
+
+## 0.1.88 - 2026-07-18
+
+- Der Einstieg ueber `Einstellungen` oeffnet die Settings-Modal-Huelle jetzt sofort beim Aufruf des Bereichs.
+- Die oberste Settings-Ebene wurde von der linken Listen-Navigation auf ein Raster aus quadratischen Auswahlkarten umgestellt.
+- Dadurch sind auch tiefer liegende Settings-Gruppen ueber die oberste Ebene wieder direkt ansteuerbar, waehrend die Detailbearbeitung im Modal bleibt.
+- Verifikation: keine Diagnosen in `WorkspacePage.tsx` und `App.css`; Frontend-Build erfolgreich (`npm run build`).
+
+## 0.1.87 - 2026-07-18
+
+- Settings-Modals um Breadcrumbs sowie direkte Vor-/Weiter-Navigation erweitert, damit auch tiefer liegende Settings-Gruppen ohne Ruecksprung erreichbar bleiben.
+- Die allgemeine Settings-Modal-Huelle nutzt jetzt zusaetzlich eine direkte Gruppenauswahl per Select, wodurch insbesondere die unteren Gruppen (`Logs`, `System`, `Datenbank`, `Benutzer`) jederzeit erreichbar sind.
+- Plugin-Untergruppen-Popup erweitert: direkter Wechsel zwischen Plugin und Untergruppe ist jetzt im offenen Dialog moeglich, inklusive Breadcrumb-Anzeige.
+- Popup-Bedienung vereinheitlicht: Escape-Schliessen fuer die Workspace- und Chat-Detail-Popups sowie definierter Fokusstart ueber Auto-Focus auf zentrale Header-Aktionen.
+- Verifikation: keine Diagnosen in `WorkspacePage.tsx`, `LeftSidebar.tsx` und `App.css`; Frontend-Build erfolgreich (`npm run build`).
+
+## 0.1.86 - 2026-07-18
+
+- Allgemeine Settings-Gruppen (`Allgemein`, `Chat`, `Wissen`, `Integrationen`, `Modelle`, `Training` usw.) werden jetzt ueber eine gemeinsame grosse Modal-Huelle geoeffnet statt nur inline im Settings-Bereich zu verbleiben.
+- Die direkte Tiefennavigation in den Plugin-Settings wurde nachgeschaerft: im Untergruppen-Popup kann jetzt ohne Ruecksprung direkt zwischen Plugin und Untergruppe gewechselt werden.
+- Damit sind Settings ausserhalb des Plugin-Bereichs nicht mehr auf die erste Ebene beschraenkt, und Plugin-Settings bleiben auch in tieferen Ebenen direkt erreichbar.
+- Verifikation: keine Diagnosen in `WorkspacePage.tsx` und `App.css`; Frontend-Build erfolgreich (`npm run build`).
+
+## 0.1.85 - 2026-07-18
+
+- Die modalbasierte Detail-Navigation wurde ueber die Plugin-Settings hinaus auf weitere Workspace-Bereiche erweitert.
+- Projekte besitzen jetzt grosse Detail-Popups mit Bearbeitungsfunktionen fuer Auswahl, Umbenennung, Hierarchie und Loeschung.
+- Bibliothekseintraege koennen jetzt direkt aus der Tabelle gross geoeffnet und ihrer Projektzuordnung im Popup bearbeitet werden.
+- Termine besitzen jetzt einen direkten Detail-Popup-Einstieg.
+- Chats in der Sidebar besitzen jetzt ebenfalls einen grossen Detail-Popup-Zugriff (inklusive Umbenennen, Sichtbarkeit, Projektzuordnung, Verschieben und Loeschen); zusaetzlich ueber Doppelklick auf den Chatnamen.
+- Verifikation: keine Diagnosen in `WorkspacePage.tsx` und `LeftSidebar.tsx`; Frontend-Build erfolgreich (`npm run build`).
+
+## 0.1.84 - 2026-07-18
+
+- Der Settings-Tab im Plugin-Popup verwendet jetzt ebenfalls Untergruppen-Boxen als Vorschau und oeffnet deren Vollformular im Gruppen-Popup.
+- Verifikation: keine Diagnosen in `WorkspacePage.tsx`; Frontend-Build erfolgreich (`npm run build`).
+- Plugin-Settings zeigen jetzt bei feldabhaengigen Optionen eine kleine visuelle Kennzeichnung direkt am Feld (`abhaengig von ...`), sodass fachliche Kopplungen trotz Vollanzeige sofort erkennbar sind.
+- Die Kennzeichnung ist in der Plugin-Kartenansicht und im Plugin-Popup konsistent umgesetzt (inkl. Light/Dark-Theme-Styling).
+- Frontend-Testabdeckung fuer den Plugin-Settings-Flow entsprechend aktualisiert; Verifikation: `vitest WorkspacePage.ollama-flow.test.tsx` gruen und Frontend-Build erfolgreich (`npm run build`).
+
+## 0.1.83 - 2026-07-18
+
+- Plugin-Settings-Untergruppen in `Einstellungen > Plugins` oeffnen jetzt gross als zentrales Popup statt ihre kompletten Felder direkt in der Unterbox anzuzeigen.
+- Die Unterboxen dienen damit als kompakte Vorschau mit Feldhinweisen; die eigentliche Bearbeitung der jeweiligen Gruppe erfolgt im grossen Modal mit vollem Formular.
+- Verifikation: keine Diagnosen in `WorkspacePage.tsx`; Frontend-Build erfolgreich (`npm run build`).
+
+## 0.1.82 - 2026-07-18
+
+- Untergruppen innerhalb der Plugin-Settings-Karten ebenfalls auf Box-Darstellung umgestellt: jede Feldgruppe erscheint jetzt als eigene kartenartige Unterbox statt nur als einfache Sektion.
+- Die Untergruppen bleiben einklappbar, sitzen aber jetzt in einem eigenen Raster innerhalb der erweiterten Plugin-Karte.
+- Verifikation: keine Diagnosen in `WorkspacePage.tsx` und `App.css`; Frontend-Build erfolgreich (`npm run build`).
+
+## 0.1.81 - 2026-07-18
+
+- `Einstellungen > Plugins` von vertikaler Listen-/Detailsdarstellung auf ein Kartenraster umgestellt: jede Plugin-Konfiguration erscheint jetzt als eigenstaendige Box im Stil der Plugin-Widgets.
+- Plugin-Settings-Karten zeigen zusaetzliche Kurzinfos direkt auf der Karte an, darunter Feldanzahl, Gruppenzahl, Pflichtfelder und API-Key-Hinweis.
+- Die eigentlichen Feldgruppen bleiben pro Plugin einklappbar, erscheinen aber nun innerhalb der erweiterten Karten statt in untereinanderliegenden Zeilen-Containern.
+- Verifikation: keine Diagnosen in `WorkspacePage.tsx` und `App.css`; Frontend-Build erfolgreich (`npm run build`).
+
+## 0.1.80 - 2026-07-18
+
+- Plugin-Settings-Anzeige korrigiert: in der Einstellungsansicht werden jetzt alle definierten Plugin-Felder pro Gruppe dargestellt und nicht mehr durch Sichtbarkeitsfilter ausgeblendet.
+- Plugin-Popup vereinheitlicht: Feldgruppen im Settings-Tab sind jetzt ebenfalls einklappbar/ausklappbar wie in der normalen Einstellungsansicht.
+- Override-Generierung im Plugin-Popup erweitert: `Als Override uebernehmen` umfasst jetzt alle definierten Felder des gewaehlten Plugins.
+- Verifikation: Frontend-Build erfolgreich (`npm run build`), keine Diagnosen in `WorkspacePage.tsx`.
+
+## 0.1.79 - 2026-07-18
+
+- Plugins-Widget-Aktionen im Frontend vereinheitlicht: die Konfigurationsaktion erfolgt jetzt ueber ein Settings-Symbol (`⚙`) direkt auf der Plugin-Karte.
+- Plugin-Detailflaeche auf Popup/Dialog umgestellt: Einstellungen und manuelle Plugin-Oberflaeche werden in einer zentralen Modalansicht angezeigt statt inline im Seitenfluss.
+- Neue Widget-Aktion `Plugin oeffnen` eingefuehrt: oeffnet gezielt die manuelle Plugin-Oberflaeche als separaten Einstiegspunkt.
+- Popup-Styles in der Frontend-CSS ergaenzt (Overlay, Header, Body, mobile Hoehenanpassung) fuer konsistente Bedienung auf Desktop und Mobil.
+- Verbindliche Team-Konvention in `docs/AGENTS.md` dokumentiert: Settings-Symbol, Popup-Pflicht und dedizierter Einstieg `Plugin oeffnen` fuer kuenftige Plugin-Frontends.
+- Verifikation: Frontend-Build erfolgreich (`npm run build`), keine Diagnosen in den geaenderten Frontend-Dateien.
+
+## 0.1.78 - 2026-07-18
+
+- Plugins-Ansicht auf Widget-Darstellung erweitert: Plugins erscheinen jetzt als auswählbare Widget-Karten statt nur als statische Liste.
+- Neues `business_letter`-Pluginlogo erstellt und im Plugin-Verzeichnis abgelegt (`plugins/business_letter/assets/logo.svg`); fuer das Frontend zusaetzlich als Asset eingebunden und in der Widget-Karte angezeigt.
+- Plugin-Frontend im Bereich `Plugins` erweitert: fuer das jeweils ausgewaehlte Plugin sind die zugehoerigen Settings-Felder jetzt direkt erreichbar, editierbar und speicherbar (`Settings speichern`).
+- Solo-Runner verbessert: sichtbare Kurz-Zusammenfassung fuer `business_letter`-Antworten (Dokumentnummer, Status, PDF-Dateiname, Template, Logo-Metadaten, Versandblockierung) direkt im UI.
+- Build-Verifikation: Frontend-Build erfolgreich (`npm run build`).
+
+## 0.1.77 - 2026-07-18
+
+- `business_letter` PDF-Renderer gehaertet: Strict-Mode fuer Logo-Validierung ist jetzt durchgaengig verdrahtet (`logo_strict_mode`, `logo_max_bytes`) und wird aus den Plugin-Settings bis in den Renderpfad transportiert.
+- Logo-Validierung erweitert: klare Fehlercodes fuer ungueltige Base64-Daten, nicht erlaubte MIME-Typen, leere/zu grosse Payloads, externe URLs, lokale Dateipfade sowie MIME-/Dateiendungs-Mismatch.
+- Negative Testabdeckung ausgebaut: neue Renderer-Tests pruefen Strict-Mode-Fehlerfaelle fuer genau diese Szenarien und sichern den Non-Strict-Skip-Pfad weiterhin ab.
+- Runtime-Regression ergaenzt: der Execute-Pfad propagiert Strict-Mode-Layoutwerte in die Template-Layoutdaten; der PDF-Build reagiert bei ungueltigen Logodaten erwartbar mit klarer Exception.
+- Verifikation: fokussierter Lauf `test_business_letter_pdf_renderer.py`, `test_business_letter_runtime.py`, `test_business_letter_einvoice_outputs.py` gruen (`34 passed, 12 skipped`); externer PDF/A-Validator-Test separat ausgefuehrt und erwartbar `skipped` (veraPDF nicht verfuegbar).
+
+## 0.1.76 - 2026-07-18
+
+- Plugins-Ansicht im Frontend erweitert: neuer Solo-Runner direkt unter `Plugins` mit Plugin-Auswahl, JSON-Input, optionalem Settings-Override und Ergebnisanzeige.
+- Solo-Runner ist an den produktiven Backend-Pfad `POST /api/plugins/execute` angebunden und kann `business_letter` im Gastsystem ohne Chat-Orchestrierung ausfuehren.
+- PDF-Status praezisiert: der Renderer verarbeitet jetzt lokale Logo-Data-URLs, Positionierung und Template-Akzente funktional; offen bleiben weitergehende Hardening-Schritte fuer strikte Fehlerstrategien, sehr grosse Bilddaten und tiefergehende PDF/A-Detailkriterien.
+- Verifikation: Frontend-Build erfolgreich (`npm run build`), bestehende PDF- und E-Invoice-Tests bleiben gruen.
+
+## 0.1.75 - 2026-07-18
+
+- PDF-Vervollständigung im `business_letter`-Pfad fortgesetzt: Layout-Metadaten enthalten jetzt zusätzlich `logo_width_mm`, `logo_position` und `logo_present`.
+- PDF-Payload wurde um eine deterministische Layout-Zusammenfassung erweitert, sodass zentrale Layout-/Logo-Settings im generierten PDF-Inhalt nachvollziehbar verifiziert werden können.
+- Runtime-Regressionen nachgezogen: der Layout-Test prüft nun zusätzlich die neuen PDF-Layoutmarker (`LAYOUT ...`, inkl. Logo-Info) neben den bestehenden HTML-/PDF-Basisassertions.
+- Verifikation: fokussierter Lauf `tests/unit/test_business_letter_runtime.py` + `tests/unit/test_business_letter_einvoice_outputs.py` grün (`21 passed, 12 skipped`).
+- PDF-Renderer funktional erweitert: lokale Logo-Bilddaten (`data:image/...;base64`) werden als echtes PDF-Bildobjekt eingebettet, Logo-Position (`left`/`center`/`right`) wird im PDF-Layout angewendet, und externe Logo-URLs werden im Renderer bewusst ignoriert (keine Netzabhängigkeit).
+- Akzentfarbe wird jetzt im PDF für Footer und Layout-Dekorationen verwendet; `layout_template` wird im Renderer tatsächlich ausgewertet (`classic`, `modern`, `workshop`).
+- Neue Renderer-Unit-Tests decken Logo-Embedding/Positionierung, Akzentfarbe, Layout-Template-Verhalten sowie ungültige Logo-URL/Bilddaten ab (`tests/unit/test_business_letter_pdf_renderer.py`).
+- Verifikation aktualisiert: `tests/unit/test_business_letter_pdf_renderer.py` + bestehende Runtime-/E-Invoice-Suiten grün (`25 passed, 12 skipped`); dedizierter PDF/A-Externtest erneut ausgeführt und erwartet `skipped`, falls veraPDF nicht verfügbar ist.
+
+## 0.1.74 - 2026-07-18
+
+- Playwright-E2E fuer `business_letter`-Settings-Flows stabilisiert (Layout, Kommunikation, Persistenz/Archivierung) und auf echte Browser-Interaktion plus API-/Runtime-Verifikation ausgerichtet.
+- E2E-Locators auf sichtbare/strukturierte Settings-Container gehaertet (Kategorie-Details, Plugin-Details, gruppenweise Felder), damit die Flows nicht mehr an doppeldeutigen Labels oder eingeklappten Sektionen scheitern.
+- E2E-Setup deterministisch gemacht: Nummernkreis-Altzustand wird vor jedem Testlauf zurueckgesetzt, um Save-Konflikte durch bereits verwendete Sequenzen zu vermeiden.
+- Assertions an den aktuellen Runtime-Vertrag angepasst (stabile Pflichtpruefungen fuer Persistenz, Reload und Kern-Output), inklusive robuster Fehlerdiagnose bei `POST /api/settings`-Fehlschlaegen.
+- Verifikation: `frontend/e2e/business-letter-settings.spec.ts` laeuft jetzt gruen (`3 passed`).
+
+## 0.1.73 - 2026-07-18
+
+- `business_letter`-Plugin-Settings deutlich erweitert: neue Fachgruppen fuer Dokument-Defaults, Bank/Zahlung, E-Rechnung, Persistenz/Archivierung, Dokumentlayout sowie deutlich mehr steinmetz-spezifische Hinweise.
+- Elektronische Adress-SchemeIDs, Steuerkategorie und Steuerbefreiungsgrundcode sind jetzt als strukturierte Select-Felder modelliert; abhaengige Felder werden im Frontend nur noch bei relevanten Schaltern angezeigt.
+- Plugin-Settings im Workspace sind jetzt pro Feldgruppe einklappbar; der offene/geschlossene Zustand wird pro Benutzer im Browser gespeichert.
+- Dokumenttypspezifische Nummernkreise fuer Angebot, Auftragsbestaetigung, Lieferschein, Rechnung, Abschlagsrechnung, Schlussrechnung, Gutschrift, Stornorechnung und Mahnung verdrahtet.
+- Neue Runtime-Defaults greifen jetzt auch fachlich: BuyerReference, PaymentReference, Angebotsgueltigkeit sowie Positions-Fallbacks fuer Einheitencode, Steuerkategorie, Steuersatz und Steuerbefreiungsdaten.
+- Dokumentlayout nun tatsaechlich verdrahtet: HTML-/PDF-Renderer uebernehmen Seitenraender, Schriftgroesse, Akzentfarbe, Footerzeilen, optionale Bank-/Rechtsangaben, Seitenzahlen und Entwurfswasserzeichen; PDF-Dateinamen folgen `default_pdf_filename_pattern`.
+- Versanddefaults nun tatsaechlich verdrahtet: Betreffmuster, Reply-To, Default-CC/BCC, HTML-E-Mail-Schalter sowie automatische PDF-/XML-Anhaenge werden im Mail-Output ausgewertet; Validatorfehler koennen den Versandpfad jetzt hart blockieren.
+- Archivierungs- und Persistenzsettings nun tatsaechlich verdrahtet: Dual-Save laesst sich aktivieren/deaktivieren, Retry-/Fehlerstrategie greifen im Gastsystem-Mirror, Artefaktverzeichnisse steuern Persistenz-Keys, Validator-Reports koennen archiviert werden, PDF/XML werden gruppiert, Hashes werden verifiziert, Retention-Metadaten werden erzeugt und freigegebene Dokumente koennen unveraenderlich gesperrt werden.
+- Nummernkreise erweitert: dokumenttypspezifische Startwerte und explizite Jahresreset-Schalter greifen jetzt im Store und in der transaktionalen Reservierung; Konflikte bei identischen Sequenzkennungen werden beim Speichern erkannt, verwendete Nummernkreisdefinitionen werden nach erster Nutzung gesperrt und das Plugin-UI zeigt eine Vorschau der naechsten Nummern.
+- Settings-Berechtigungen gehaertet: globale Settings erfordern jetzt Adminrechte, reine Team-Scopes sind ohne separates Mitgliedschaftsmodell auf Adminzugriffe begrenzt, Benutzer duerfen nur ihre eigenen Settings lesen/schreiben, und sensible Werte bleiben in `settings.resolved` maskiert.
+
+## 0.1.72 - 2026-07-18
+
+- CII-/UNCEFACT-Pfad fuer `business_letter` auf fachlich deutlich hoehere Tiefe gebracht: zentrale Fachfelder aus dem UBL-Pfad werden jetzt auch im `CrossIndustryInvoice`-Pfad abgebildet, inklusive EndpointIDs, BuyerReference, PaymentMeans, Bankdaten, Referenzen, Preisbasismengen, Rundung und Prepaid-Summen.
+- Syntax-spezifische Validatorverdrahtung ergaenzt: offizieller Validierungspfad kann jetzt zwischen UBL- und CII-Ressourcen unterscheiden.
+- Offizielle KoSIT-CII-Referenzfaelle aus `xrechnung-testsuite@v2026-01-31` als feste Fixtures aufgenommen und mit valid/derived-invalid Regressionen abgesichert.
+- Pylance-Diagnosen in `app/api/routes/settings.py` bereinigt; `secret-scan.yml` als YAML-Dokument explizit markiert.
+
+## 0.1.71 - 2026-07-18
+
+- Offizielle KoSIT-Referenzfaelle fuer `business_letter` deutlich ausgebaut: feste UBL-Fixtures aus `itplr-kosit/xrechnung-testsuite@v2026-01-31` wurden in den Testbaum uebernommen.
+- Neue offizielle Positivregressionen pruefen mehrere reale KoSIT-Fallfamilien (minimal, umfassend, Business-Case) gegen den gepinnten Validatorpfad.
+- Neue offiziell abgeleitete Negativregression mutiert einen echten KoSIT-Referenzfall reproduzierbar und prueft erwartete Rule-IDs (`BR-DE-15`, `PEPPOL-EN16931-R010`, `PEPPOL-EN16931-R020`, `BR-DEX-09`).
+
+## 0.1.70 - 2026-07-18
+
+- Fachliches Priority-3-Mapping fuer `business_letter` erweitert: Reverse Charge, Steuerbefreiungen, Abschlags-/Schlussrechnungen, Gutschriften/Stornorechnungen, Rundungsdifferenzen, Versandkosten, Preisbasismengen sowie Bestell-/Vertrags-/Projekt-/Lieferscheinreferenzen werden jetzt im kaufmaennischen Modell und im XRechnung-XML explizit abgebildet.
+- Elektronische Adressen mit `schemeID` fuer Buyer/Seller sowie Bank-/Zahlungsreferenzdaten im XRechnung-Pfad ergaenzt.
+- Neue testgetriebene Coverage-Matrix fuer Priority 3: gezielte Unit-Tests pruefen die oben genannten Fachfaelle inkl. XML-Mapping und Summenlogik.
+
+## 0.1.69 - 2026-07-18
+
+- Release-Gates gehaertet: neuer Asset-Lock (`config/validator-assets.lock.json`) pinnt offizielle KoSIT-/XRechnung-Versionen inkl. SHA-256-Pruefsummen; CI laedt nur noch diese festen Artefakte und validiert Integritaet vor Nutzung.
+- CI auf Gesamt-Gate erweitert: Backend-Lint (`ruff`), komplette Backend-Suite, komplette Frontend-Suite (`vitest run`), TypeScript-Check (`tsc --noEmit`) und Frontend-Build laufen jetzt im Standard-Workflow.
+- veraPDF im CI deterministisch gepinnt: Ausfuehrung ueber festes Docker-Image-Digest (`verapdf/cli@sha256:...`) statt unkontrollierter `latest`-Quelle.
+- Externe Validatoren in CI verpflichtend gemacht: `REQUIRE_EXTERNAL_VALIDATORS=1` laesst `xmllint`/veraPDF nicht mehr stillschweigend skippen.
+- Referenzvalidierung erweitert: gueltige und ungueltige Referenzfaelle fuer den offiziellen Validierungspfad inkl. Rule-ID-Erkennung und Fehlerklassen (XML-Syntax/XSD/Schematron/EN16931/XRechnung-spezifisch).
+
+## 0.1.68 - 2026-07-18
+
+- Chat-Settings fuer modell-spezifische Keys gehärtet: globale Defaults fuer `temperature`, `max_new_tokens`, `top_p`, `top_k`, `repetition_penalty`, `do_sample`, `seed` und `stop_sequences` verhindern 400er beim Laden von `model_<id>_*`.
+- Regression fuer den modell-spezifischen Temperaturpfad ergaenzt: ungueltige oder fehlende Werte fallen jetzt sauber auf den Default zurueck.
+
+- XRechnung-Haertung umgesetzt: UBL-XML-Ausgabe wurde auf `cbc`/`cac`-Struktur erweitert und um offizielle Validierungsanbindung (XSD + Schematron via `xmllint`) inklusive Report-Export (`BUSINESS_LETTER_VALIDATION_REPORT_DIR`) ergänzt.
+- CI-Absicherung erweitert: Backend-Workflow laedt offizielle XRechnung-Validator-Artefakte, setzt `XRECHNUNG_XSD_PATH`/`XRECHNUNG_SCHEMATRON_PATH`, erzeugt Validierungsreports und publiziert diese als Build-Artefakte (`backend-validation-reports`).
+- veraPDF-Ausgabe fuer CI artefaktfaehig gemacht: Validator-Output wird bei gesetztem `VERAPDF_REPORT_DIR` als Reportdatei persistiert.
+- Scope-Matrix-Regression ausgebaut: API-Tests decken `global -> team -> user+team` fuer `plugins.business_letter_profile` explizit ab; Frontend-Service unterstuetzt `team_id` jetzt in `getSetting`, `updateSetting` und `updatePluginSettings` mit passender Vitest-Abdeckung.
+- Golden-Fixtures und Test-Harness aktualisiert: neue UBL-Referenz-XML sowie deterministische XSD/Schematron-Testfixtures fuer den offiziellen Validierungspfad.
+
+## 0.1.67 - 2026-07-18
+
+- Settings-API-Hardening fuer `business_letter_profile` erweitert: semantische Validierung fuer `document_number_pattern`, `document_number_width`, `default_payment_days` und `guest_system_database_path`.
+- Integrationsabdeckung ausgebaut: neuer API-E2E-Pfad prueft Persistenz ueber `Speichern -> kompletter App-Reload -> neue Session` fuer `plugins/business_letter_profile`.
+- Neue Negativtests sichern feldbezogene 400-Antworten fuer ungueltige Nummernpatterns, Laufweiten und unsichere Datenbankpfade.
+
+## 0.1.66 - 2026-07-18
+
+- Offene Kategorien und Plugin-Accordion-Zustaende in den Plugin-Settings jetzt pro Benutzer gespeichert, damit die Auswahl beim Zurueckkehren zur Settings-Seite erhalten bleibt.
+
+## 0.1.65 - 2026-07-18
+
+- API-E2E-Regressionsfall fuer Plugin-Settings-Persistenz ergaenzt: `plugins.business_letter_profile` wird jetzt explizit ueber `Speichern -> kompletter Reload -> neue Session` getestet.
+- Neuer Integrations-Test stellt sicher, dass `select`- und `boolean`-Werte serverseitig persistiert und nach App-Neustart konsistent aus `/api/settings/plugins/business_letter_profile` geladen werden.
+
+## 0.1.64 - 2026-07-18
+
+- Gezielte Frontend-Regression fuer Plugin-Settings ergaenzt: `select`- und `boolean`-Felder werden jetzt explizit auf Speichern, Reload und erneutes Oeffnen getestet.
+- Neuer UI-Test sichert den Ablauf fuer `WorkspacePage` im Settings-Bereich (`Plugins`) gegen Zustandsverlust nach Re-Mount ab.
+
+## 0.1.63 - 2026-07-18
+
+- Plugin-Settings in der Einstellungsansicht nach Kategorie gruppiert und als einklappbare Bereiche mit per-Plugin-Accordion umgebaut.
+- Die vorhandenen Plugin-Feldgruppen bleiben erhalten, werden aber jetzt innerhalb der neuen Gruppenstruktur lesbar dargestellt.
+
+## 0.1.62 - 2026-07-18
+
+- `business_letter`-Persistenz auf echte transaktionale Kopplung umgestellt: Nummernreservierung und Dokument-/Artefakt-Persistenz laufen jetzt in einem gemeinsamen SQLite-Write-Block.
+- Duale Speicherung eingefuehrt: neben Plugin-Storage wird das Ergebnis optional in eine Gastsystem-SQLite gespiegelt (inkl. Dokument- und Artefakt-Tabellen).
+- ZUGFeRD-PDF-Ausgabe erweitert: XML wird jetzt tatsaechlich als `factur-x.xml` in das PDF eingebettet (`/EmbeddedFile`, `/AFRelationship /Alternative`, `/AF`).
+- PDF-Renderer-Baseline fuer PDF/A-3-Metadaten stabilisiert (XMP + PDF/A-Part/Conformance-Felder) und Objekt-Referenzproblem im nativen Writer behoben.
+- XRechnung-Konformitaetsbericht erweitert: schema-/schematronartige Regelklassifikation mit `rule_id`, `severity`, `status`, `message` sowie kombinierte Gueltigkeitsauswertung.
+- EN16931-/Codelistenabdeckung ausgebaut: Pruefregeln fuer `DocumentCurrencyCode` (ISO 4217), `PaymentMeansCode` (UNCL4461), `TaxCategory` (UNCL5305), `unitCode` (UNECE Rec20) sowie `IssueDate`-Format und Linienmapping (`InvoiceLine`).
+- CI-Setup erweitert: `xmllint` und `veraPDF` werden im Backend-Job installiert, damit externe Validator-Tests in der CI nicht mehr uebersprungen werden.
+- Neue/erweiterte Testabdeckung: Golden-File-Tests fuer XML/PDF-Marker, externe Validator-Tests, Codelisten-Validierungstests und breiter Business-Letter-Regressionstestlauf (`29 passed, 2 skipped` lokal).
+- `business_letter`-Settingskatalog deutlich erweitert (Dokument-Defaults, E-Rechnung-Defaults, Nummernkreis/Persistenz-Pfade) inklusive `select`-/`boolean`-Feldtypen fuer konsistente UI-Darstellung.
+- Settings-Durchfluss gehaertet: Runtime-Defaults (Waehrung, Zahlungsbedingungen/-code, Zahlungsziel, E-Rechnung-Standardprofil) werden jetzt sauber in das Dokumentmodell uebernommen und in `settings.resolved` vollstaendig gespiegelt.
+- Zusätzliche Integritaetstests fuer Settings-Propagation und Default-Anwendung ergaenzt; Business-Letter-Suite bleibt gruen (`31 passed, 2 skipped`).
+
+## 0.1.61 - 2026-07-18
+
+- Projektfilter im Chatbereich vollstaendig vom aktiven Chat entkoppelt: kein `selectedProjectLocked`-Bypass mehr.
+- Projektauswahl bleibt stabil bei Chatwechsel; der aktive Chat schreibt den Filterzustand nicht mehr zurueck.
+- Regression erweitert: Sidebar-Tests pruefen jetzt explizit, dass Projektfilter nach Chatwahl bestehen bleibt.
+
+## 0.1.60 - 2026-07-18
+
+- `business_letter` erzeugt jetzt ein natives PDF-Artefakt ohne externe PDF-Abhaengigkeit; der Persistenzpfad legt zusaetzlich zu JSON/HTML optional ein PDF-Payload ab.
+- XRechnung-Validierung deutlich erweitert: strukturierte Issues (`issues`/`errors`/`warnings`), Pruefung auf Kaeuferreferenz, Kaeufername, Verkaeufer-USt-ID, Positionen, Zahlbetrag sowie rechnerische Konsistenzpruefungen fuer Steueraufschluesselung und Summen.
+- XRechnung-XML erweitert um Kaeufer-/Verkaeufer-Felder und Steuer-Subtotals aus der `vat_breakdown`-Struktur.
+- ZUGFeRD-Paket erweitert: PDF-Scaffold, Base64-PDF-Feld und vorbereitete PDF/A-3-/XMP-Metadatenfelder fuer den naechsten Schritt.
+- Integritaets-Testlauf fuer `business_letter` erneut verifiziert (`9 passed`).
+
+## 0.1.59 - 2026-07-18
+
+- Sidebar entkoppelt: Projekte sind jetzt nur noch Filter, die Chatliste bleibt eine eigene, ruhige Ansicht.
+- Standardzustand im Chatbereich ist wieder "Alle Chats"; eine Projektwahl bleibt jetzt benutzergetrieben und wird nicht mehr vom aktiven Chat ueberschrieben.
+- Quellen bleiben hierarchisch gruppiert, aber ohne den Projektbaum in der Sidebar zu duplizieren.
+
+## 0.1.58 - 2026-07-18
+
+- `business_letter`-Nummernkreise, Persistenzfehler und E-Invoice-Ausgabe jetzt mit gezielten Regressionstests abgesichert.
+- Getrennte Sequenzen pro Dokumentart, Jahreswechsel, benutzerdefinierte Patterns, explizite Dokumentnummern und parallele Vergabe sind im Testslice abgedeckt.
+- XRechnung- und ZUGFeRD-Ausgabe werden gegen valide Minimalpayloads und gegen fehlende Käuferreferenzen geprueft.
+
+## 0.1.58 - 2026-07-18-
+
+- Chatliste als echte Projektordner umgestellt: Projektknoten sind aufklappbar und direkt auswaehlbar.
+- Quellen im rechten Panel ebenfalls als Baum dargestellt, passend zur projektbezogenen Hierarchie der Chatlinie.
+- Neue Regressionen sichern sowohl die Projektordnerauswahl als auch die hierarchische Quellengruppierung ab.
+
+## 0.1.57 - 2026-07-18
+
+- Chatliste zeigt jetzt die Projekt-Hierarchie als eingerueckte Pfadansicht ueber jedem Chat.
+- Der sichtbare Pfad folgt der zugeordneten Projektlinie und macht Ordnerebenen direkt in der Sidebar lesbar.
+- Regressionen decken sowohl die Projektzuordnung im Hamburger-Menue als auch die neue Hierarchieanzeige ab.
+
+## 0.1.56 - 2026-07-18
+
+- `business_letter`-Nummernkreise jetzt settings-gestuetzt: `document_number_prefix`, `document_number_sequence_kind`, `document_number_width` und optionales `document_number_pattern` werden im Laufzeitpfad fuer die Sequenzbildung verwendet.
+- Der SQLite-Sequenzspeicher bleibt die Quelle fuer automatische Nummern; explizite `document_number`-Werte werden weiterhin unveraendert durchgereicht.
+- Der fokussierte Runtime-Testlauf fuer `business_letter` und den Plugin-Executor bleibt gruen (`23 passed`).
+
+## 0.1.55 - 2026-07-18
+
+- Chat-Projektzuordnung in das Hamburger-Menue der Konversationen verlegt: der Header der Chat-Ausgabe zeigt jetzt nur noch die aktive Linie, nicht mehr die Eingabesteuerung.
+- Redundanz entfernt: Projektzuordnung wird an genau einer Stelle bearbeitet und bleibt im Chat-Menue des jeweiligen Chats auffindbar.
+- Bedienfluss vereinheitlicht: Auswahl, Speicherung und sichtbare Scope-Anzeige folgen jetzt derselben Chat-Logik.
+
+## 0.1.54 - 2026-07-18
+
+- `business_letter`-Laufzeit weiter auf Orchestrierung reduziert: `plugin.py` delegiert zentrale Helfer jetzt an Settings-, Modell-, Renderer- und Service-Module.
+- SQLite-Persistenz und E-Invoice-Hooks sind im Execute-Pfad verankert, wenn `persist_to_database` bzw. ein E-Invoice-Request aktiv sind.
+- Die fokussierten Runtime-Tests fuer `business_letter` und den Plugin-Executor bleiben gruen (`23 passed`).
+
+## 0.1.53 - 2026-07-18
+
+- Quellenzeilen im Chat erweitert: jeder Eintrag zeigt jetzt den konkreten Projektpfad und die Scope-Ebene, aus der die Quelle stammt.
+- Redundanz reduziert: die statische Projektzeile im Info-Panel entfällt zugunsten der aktiven Chat-Ebene.
+- Darstellung und Retrieval bleiben konsistent, weil Quellenliste und Breadcrumb nun dieselbe Projektlinie verwenden.
+
+## 0.1.52 - 2026-07-18
+
+- Chat-Quellen an die aktive Projektlinie gebunden: die Quellenliste im Chat zeigt jetzt nur noch Dokumente aus der zugeordneten Hierarchie statt den kompletten Benutzerpool.
+- Quellenpanel mit Ebenenhinweis ergaenzt: im rechten Bereich wird die aktive Projektlinie sichtbar gemacht, damit Auswahl, Breadcrumb und Abruf zusammenpassen.
+- Kontextdaten im Backend bleiben unveraendert nutzbar; die Frontend-Darstellung folgt jetzt derselben Scope-Regel wie die Retrieval-Schicht.
+
+## 0.1.51 - 2026-07-18
+
+- `business_letter` weiter modularisiert: Settings-, Modell-, Renderer-, E-Invoice- und Persistenzlogik wurden aus dem Monolithen in eigene Module gezogen.
+- SQLite-Basis fuer Dokumenthistorie und Nummernkreise angelegt, inklusive Artefakt- und Versions-Tabellen fuer spaetere Archivierung.
+- XRechnung/ZUGFeRD sind als strukturelle Grundbausteine vorbereitet; der bestehende Briefpfad bleibt per Test gruen.
+
+## 0.1.50 - 2026-07-18
+
+- Secret-Scan-CI erweitert: Workflow `Secret Scan` fuehrt jetzt zusaetzlich `python scripts/review_secret_scan.py --strict` aus und erzeugt einen CI-Review-Report unter `data/temp/secret-scan-review-ci.md`.
+- Snapshot-Governance im CI verankert: der Job prueft explizit, dass die Kommentarpflicht wirklich aktiv ist (`Comment enforcement active: yes`) und beendet den Build klar mit Fehler, falls kein belastbarer Vergleichssnapshot vorhanden ist.
+- Security-Prozessdoku synchronisiert: TODO/ROADMAP auf den neuen Betriebsstandard aktualisiert.
+
+## 0.1.49 - 2026-07-18
+
+- Chat-Projektzuordnung entkoppelt: sichtbare Konversationen koennen jetzt auch ohne Owner-Status einem Projekt zugeordnet werden, passend zur bereits offenen Backend-API.
+- UI-Guard bereinigt: die Projekt-Auswahl im Chat ist nicht mehr unnötig auf Eigentuemer-Chats beschraenkt.
+- Doku nachgezogen: Roadmap und TODO erhalten den Hinweis auf die verbleibende Absicherung der Chat-Zuordnung.
+
+## 0.1.47 - 2026-07-18
+
+- `business_letter` um kaufmaennische Dokumente, typisierte Positionen, Summenberechnung und strukturierte Template-Ausgabe erweitert.
+- Logo-Unterstuetzung im Plugin erweitert: `company_logo_file` akzeptiert jetzt URL-, Data-URL- und Upload-Objekte mit Base64-Inhalt.
+- Runtime gehaertet: Platzhalter werden nicht mehr als reale Firmendaten behandelt, Datumsfelder werden geparst und `sent` wird nicht direkt aus Eingaben uebernommen.
+- Datenbanknahe Metadaten und Artefaktlisten fuer spaetere Persistenz/Archivierung integriert.
+- Unit-Tests fuer `business_letter` und den Plugin-Executor auf den neuen Laufzeitpfad nachgezogen und verifiziert.
+
+## 0.1.47 - 2026-07-18-
+
+- Secret-Scan-Review-Haertung umgesetzt: `scripts/review_secret_scan.py` prueft jetzt Pflichtkommentare fuer jede Allowlist-Aenderung (`new`/`removed`) ueber `config/secret-scan-change-comments.json`.
+- Report erweitert: neue Sektion `Allowlist Change Comments` zeigt dokumentierte Regel-Aenderungen und fehlende Kommentar-Schluessel explizit an.
+- Strict-Mode erweitert: `python scripts/review_secret_scan.py --strict` bricht jetzt bei Secret-Findings oder fehlenden Pflichtkommentaren ab (Baseline-Lauf ohne vorherigen Snapshot bleibt ausgenommen).
+- Security-Dokumentation synchronisiert: Playbook und Security-README enthalten den neuen Kommentar-/Audit-Flow fuer Allowlist-Drift.
+
+## 0.1.48 - 2026-07-18
+
+- Chat-Projektzuordnung sichtbarer gemacht: Header und Chat-Auswahl zeigen fuer verschachtelte Projekte jetzt hierarchische Breadcrumbs statt nur des flachen Projektnamens.
+- Projektwahl im Chat bleibt auf dem konkreten Knoten, wird aber in der UI mit der gesamten Projektlinie angezeigt.
+- Dokumentation synchronisiert: TODO und Roadmap erhalten den Nachtrag fuer die verbleibende E2E-Absicherung in verschachtelten Projektbaeumen.
+
+## 0.1.47 - 2026-07-18--
+
+- Secret-Scan-Review um Trendvergleich erweitert: `scripts/review_secret_scan.py` vergleicht Allowlist-Regeln gegen den letzten Report und weist `new`/`removed`/`unchanged` je Regex-Gruppe aus.
+- Review-Report vertieft: `docs/security/reports/secret-scan-review-20260718.md` enthaelt jetzt zusaetzlich die Bereiche `Allowlist Trend` und `Allowlist Entries` fuer nachvollziehbare Diff-Reviews.
+- Strikter Validierungslauf bestaetigt: Trend-Review (`--strict`) und Basis-Scanner laufen weiterhin gruen.
+
+## 0.1.45 - 2026-07-18
+
+- Wiederholbare Secret-Scan-Review eingefuehrt: neues Script `scripts/review_secret_scan.py` erzeugt einen strukturierten Markdown-Report zur Allowlist-Pruefung.
+- Erster Baseline-Review ausgefuehrt: `docs/security/reports/secret-scan-review-20260718.md` erstellt (`Status: PASS`, `Findings: 0`).
+- Security-Playbook erweitert: `docs/security/secret-leak-playbook.md` enthaelt jetzt einen verbindlichen Abschnitt fuer monatliche Allowlist-Reviews inkl. `--strict`-Modus.
+
+## 0.1.44 - 2026-07-18
+
+- Secret-Scan-Haertung umgesetzt: projektspezifische Gitleaks-Konfiguration (`.gitleaks.toml`) eingefuehrt und im CI-Workflow `Secret Scan` verbindlich verdrahtet.
+- Ergaenzende Repo-Pruefung fuer Beispiel-/Setup-/Doku-Dateien eingefuehrt: neues Script `scripts/check_example_secrets.py` scannt gezielt `.env`-Templates sowie relevante `docs/`, `scripts/`- und `deployment/`-Dateien auf Leaks.
+- Projektspezifische Allowlist bereitgestellt: `config/secret-scan-allowlist.json` steuert freigegebene Platzhalter/Falschpositive nachvollziehbar ueber Regex-Regeln.
+- Lokale Commit-Sicherung erweitert: `.githooks/pre-commit` fuehrt den neuen Scanner im `--staged`-Modus aus und blockiert riskante Aenderungen vor dem Commit.
+- Operatives Team-Playbook verankert: `docs/security/secret-leak-playbook.md` beschreibt verbindlich Erkennung, Triage, Rotation, Bereinigung, Allowlist-Governance und Abschlusskriterien.
+- Security-Dokumentindex synchronisiert: `docs/security/README.md` um den Secret-Leak-Response-Pfad und zugehoerige Review-Kriterien erweitert.
+
+## 0.1.43 - 2026-07-18
+
+- Legacy-Quellenmigration produktiv ausgefuehrt: zuvor unzugeordnete Wissensdokumente (`knowledge_documents.project_id IS NULL`) wurden gemaess Mapping auf Zielprojekte zugeordnet (User 1 -> Projekt 15, User 12 -> Projekt 27).
+- Zielknoten fuer User 3 angelegt: neues Projekt `Legacy-Inbox` (`project_id=30`) erstellt und das verbleibende Legacy-Dokument dorthin migriert.
+- Workspace-Metadaten fuer User 3 nachgezogen: `workspace.project_meta_map` mit Scope-Eintrag fuer `Legacy-Inbox` aktualisiert.
+- Post-Migrations-Validierung abgeschlossen: Restmenge unzugeordneter Dokumente ist `0`; alle sechs Legacy-Dokumente sind jetzt projektgebunden.
+- Betriebssicherheit: Datenbank-Backup vor Wartung erstellt unter `data/backups/chat_system.before-legacy-migration-20260718-112851.db`.
+
+## 0.1.42 - 2026-07-17
+
+- API-/E2E-Regressionen fuer `/api/plugins/execute` ergaenzt: neue Integrationssuite `tests/integration/test_plugins_execute_api.py` prueft die Fehlercodes `plugin_contract_invalid_input` und `plugin_contract_invalid_output` entlang des produktiven Error-Envelopes.
+- Skip-Semantik vereinheitlicht: `email` und `whatsapp` liefern bei kanalbedingtem Ueberspringen jetzt konsistent `status=skipped` und `reason=unsupported_channel`.
+- Runtime-Regressionen nachgezogen: `tests/unit/test_email_plugin_runtime.py` und `tests/unit/test_whatsapp_plugin_runtime.py` sichern die neue Skip-Struktur explizit ab.
+- Verifikation abgeschlossen: gezielte Plugin-Regressionen (`integration + unit`) laufen gruen mit `28 passed`.
+
+- Ollama-API-Regressionen hinzugefuegt: neuer Integrationstest `tests/integration/test_ollama_flow.py` deckt Scan -> Auswahl/Aktivierung sowie Pull-Abbruch/Retry inklusive Konfliktfall `model.pull_in_progress` ab.
+- Ollama-UI-Regressionen hinzugefuegt: neuer Frontend-Test `frontend/src/components/content/WorkspacePage.ollama-flow.test.tsx` validiert Scan, Modellauswahl sowie die Aktionen `Herunterladen`, `Abbrechen` und `Retry` im Einstellungsbereich `Modelle`.
+- Zielgerichtete Testverifikation abgeschlossen: Backend (`2 passed`) und benachbarte WorkspacePage-Suiten (`4 passed` gesamt fuer Ollama-Flow + Training-Kompatibilitaet) laufen gruen.
+- Kombinierter Voll-Lauf fuer den Modelleinstellungen-Bereich verifiziert: Backend-Modultests (`12 passed`) und Frontend-WorkspacePage-Regressionen (`4 passed`) erfolgreich durchgelaufen.
+
 ## 0.1.41 - 2026-07-17
+
+- Integrationen-UX vervollstaendigt: Sammelaktion `Alle Keys testen` schreibt jetzt Laufmetadaten (`testedAt`, `durationMs`) und zeigt diese sichtbar in der Re-Validation-Liste an.
+- Re-Validation bedienbar erweitert: pro testbarem Provider steht ein `Erneut testen`-Shortcut in der Ergebnisliste zur Verfuegung.
+- Testergebnis-Persistenz eingefuehrt: Integrations-Key-Teststatus wird serverseitig als Setting `integrations.integration_test_results` gespeichert und beim erneuten Oeffnen wiederhergestellt.
+
+- Secret-Hygiene automatisiert: neuer GitHub-Workflow `.github/workflows/secret-scan.yml` fuehrt Gitleaks auf Push/PR aus und blockiert erkannte Secret-Funde im CI-Lauf.
+- Lokaler Commit-Schutz fuer Environment-Dateien eingefuehrt: `.githooks/pre-commit` blockiert versionierte `.env*`-Dateien (ausser Templates) und prueft Templates auf moegliche echte Secrets.
+- Hook-Setup standardisiert: `scripts/install_git_hooks.ps1` und `scripts/install_git_hooks.sh` setzen `core.hooksPath=.githooks` fuer reproduzierbaren lokalen Schutz.
+
+- Legacy-Quellenanalyse fuer Wissensdokumente abgeschlossen: 6 unzugeordnete Eintraege (`knowledge_documents.project_id IS NULL`) inventarisiert und nach Nutzer, Quelle und fachlichem Kontext ausgewertet.
+- Migrations-Mapping auf Mandant/Bereich/Projekt dokumentiert: neue Ausarbeitung in `docs/architecture/legacy-knowledge-source-mapping-2026-07-17.md` mit konkreter Zuordnung pro Dokument-ID und SQL-Vorschlag fuer die kontrollierte Wartungsdurchfuehrung.
 
 - Kommunikations-Contract in der Runtime operationalisiert: `app/tools/communication_contract.py` validiert fuer `business_letter`, `email`, `whatsapp`, `translator` jetzt direkt gegen `app/plugins/contracts/communication.schema.json` (Draft 2020-12).
 - Runtime-Dependency ergaenzt: `jsonschema` als Projektabhaengigkeit in `requirements.txt` aufgenommen.
 - Contract-Regressionen fuer alle betroffenen Plugins erweitert: `tests/unit/test_plugin_executor.py` prueft jetzt pluginuebergreifend schema-konforme Validierungs-Envelopes sowie gezielte schema-seitige Invalid-Faelle.
 - WhatsApp-Validate-Only-Pfad an den gemeinsamen Contract angepasst: Top-Level-`status` nutzt jetzt `ready` statt `validated`, inklusive angepasstem Runtime-Test in `tests/unit/test_whatsapp_plugin_runtime.py`.
 
-## 0.1.41 - 2026-07-17
+## 0.1.41 - 2026-07-17-
 
 - Zentrale Contract-Validierung in den gemeinsamen Execute-Pfad integriert: `app/tools/executor.py` prueft fuer `business_letter`, `email`, `whatsapp`, `translator` den Kommunikations-Envelope vor dem Plugin-Call (`plugin_contract_invalid_input`) und das Plugin-Ergebnis danach (`plugin_contract_invalid_output`).
 - Shared Helper eingefuehrt: `app/tools/communication_contract.py` validiert die kanonischen Boundary-Felder (`delivery`, `content`, `metadata`, `validate_only`, `validation`, `status`, `reason`) auf Basis des zentralen Contracts.
@@ -758,6 +1421,7 @@ Hinweis: Dieser Changelog enthaelt nur tatsaechlich umgesetzte und lokal verifiz
 - Nachrichten-Endpoint korrigiert: doppelter `generate_response`-Aufruf in `POST /api/messages` entfernt, sodass pro Request nur eine KI-Antwort erzeugt wird
 - Sichtbarkeitspruefung vereinheitlicht: Nachrichten-Lesen/Schreiben und Chat-Service nutzen jetzt dieselbe konversationsbezogene Zugriffskontrolle (inkl. `conversation_not_found`-Mapping auf `404`)
 - Presence-Heartbeat eingefuehrt: neuer Endpoint `POST /api/auth/heartbeat`, Frontend sendet periodischen Heartbeat, Presence-Auswertung beruecksichtigt `user.login` + `user.heartbeat`
+- Auth-Token-Rehydration im Frontend ergaenzt: nach Modul-Reloads oder HMR wird der gespeicherte Bearer-Token aus `localStorage` wiederverwendet, damit der Heartbeat nicht mit `401` ausfaellt
 - Frontend-Message-Laden benutzerbezogen gehaertet: `GET /api/messages` wird mit `user_id` des aktuell angemeldeten Nutzers aufgerufen
 - Teamchat-Versand korrigiert: bei deaktivierter KI-Teilnahme werden menschliche Nachrichten jetzt ueber `POST /api/messages/user-only` gespeichert statt vom Frontend blockiert
 - Teamchat ohne KI-Antwort ermoeglicht: Nutzer-zu-Nutzer-Gespraeche bleiben moeglich; KI antwortet nur noch bei explizitem Intent-Trigger

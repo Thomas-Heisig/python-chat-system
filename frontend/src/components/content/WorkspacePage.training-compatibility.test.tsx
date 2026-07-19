@@ -44,6 +44,7 @@ function renderWorkspacePage() {
             loadStatus: "unloaded",
             loaded: false,
             category: "lokal",
+            sourceLabel: "",
             isActive: false,
             modelFormat: "transformers_safetensors",
             taskType: "text_generation",
@@ -67,6 +68,7 @@ function renderWorkspacePage() {
             loadStatus: "unloaded",
             loaded: false,
             category: "lokal",
+            sourceLabel: "",
             isActive: false,
             modelFormat: "gguf",
             taskType: "text_generation",
@@ -90,6 +92,7 @@ function renderWorkspacePage() {
         modelProfilePending={false}
         generalSettingsPending={false}
         trainingSettingsPending={false}
+        trainingBatchPending={false}
         trainingPreflightPending={false}
         modelDirectories={[]}
         modelProfile={{
@@ -114,12 +117,41 @@ function renderWorkspacePage() {
           enabled: true,
           defaultTrainer: "reference",
           baseModel: "",
+          projectId: "",
           artifactsDirectory: "./training-artifacts",
           datasetsDirectory: "./training-datasets",
           maxConcurrentJobs: "1",
           autoStartQueue: true,
           autoEvaluate: true,
           autoRegisterModel: false,
+          autoActivateModel: true,
+          continualTraining: true,
+          continualModelId: "",
+          archiveOnSuccess: true,
+          deduplicateJobs: true,
+          trainingPreset: "safe",
+          numTrainEpochs: "4",
+          learningRate: "0.0001",
+          batchSize: "1",
+          gradientAccumulationSteps: "4",
+          maxSequenceLength: "768",
+          loraR: "16",
+          loraAlpha: "32",
+          loraDropout: "0.05",
+          warmupRatio: "0.05",
+          weightDecay: "0.01",
+          targetModules: "q_proj, k_proj, v_proj, o_proj",
+          loadIn4bit: true,
+          evalSteps: "10",
+          saveSteps: "10",
+          loggingSteps: "1",
+          loggingFirstStep: true,
+          maxSteps: "0",
+          validationSplit: "0.1",
+          loadBestModelAtEnd: true,
+          metricForBestModel: "eval_loss",
+          greaterIsBetter: false,
+          seed: "42",
         }}
         trainingPreflightResult={null}
         trainingDatasetFiles={[]}
@@ -142,10 +174,13 @@ function renderWorkspacePage() {
         onSaveModelProfile={async () => undefined}
         onSaveGeneralSettings={async () => undefined}
         onSaveTrainingSettings={async () => undefined}
+        onBatchCreateTrainingJobs={async () => undefined}
+        onAssignTrainingProject={async () => undefined}
         onCreateTrainingDataset={async () => undefined}
         onRegisterTrainingDatasetFile={async () => undefined}
         onUploadTrainingDataset={async () => undefined}
         onImportTrainingDatasetFromUrl={async () => undefined}
+        onUploadTrainingDatasetBundle={async () => undefined}
         onCreateTrainingJob={async () => undefined}
         onRunTrainingPreflight={async () => ({
           ready: true,
@@ -153,6 +188,9 @@ function renderWorkspacePage() {
           modelName: "qwen-transformers",
           modelFormat: "transformers_safetensors",
           trainer: "peft_lora",
+          targetModulesMode: "auto",
+          resolvedTargetModules: [],
+          targetModulesSource: "auto",
           cudaAvailable: false,
           supports4bit: false,
           datasetValid: true,
@@ -161,6 +199,12 @@ function renderWorkspacePage() {
         })}
         onCancelTrainingJob={async () => undefined}
         onRetryTrainingJob={async () => undefined}
+        onArchiveTrainingDataset={async () => undefined}
+        onDeleteTrainingDataset={async () => undefined}
+        onUnarchiveTrainingDataset={async () => undefined}
+        onArchiveTrainingJob={async () => undefined}
+        onDeleteTrainingJob={async () => undefined}
+        onUnarchiveTrainingJob={async () => undefined}
         currentUser={{
           id: 1,
           username: "tester",
@@ -175,7 +219,61 @@ function renderWorkspacePage() {
         onCreateProject={async () => undefined}
         onRenameProject={async () => undefined}
         onDeleteProject={async () => undefined}
+        onUpdateProjectHierarchy={async () => undefined}
         onUploadWorkspaceSource={async () => undefined}
+        onAssignSourceToProject={async () => undefined}
+        cleanStartPending={false}
+        chatSettingsPending={false}
+        chatCleanupPending={false}
+        knowledgeSettingsPending={false}
+        integrationSettingsPending={false}
+        logsSettingsPending={false}
+        chatSettings={{
+          pluginOrchestrationEnabled: true,
+          autoSpecialistEnabled: false,
+          contextLimitTokens: "8192",
+          contextSafetyMarginTokens: "128",
+        }}
+        chatCleanupStats={null}
+        knowledgeSettings={{
+          topK: "6",
+          minScoreRatio: "0.5",
+          minAbsoluteScore: "1000",
+          minScoreGap: "400",
+        }}
+        integrationSettings={{
+          chatgptApiKey: "", deeplApiKey: "", anthropicApiKey: "", googleAiApiKey: "", mistralApiKey: "",
+          cohereApiKey: "", perplexityApiKey: "", groqApiKey: "", togetherApiKey: "", openrouterApiKey: "",
+          huggingfaceApiKey: "", replicateApiKey: "", deepseekApiKey: "", xaiApiKey: "", elevenlabsApiKey: "",
+          assemblyaiApiKey: "", tavilyApiKey: "", serpapiApiKey: "", googleMapsApiKey: "", mapboxApiKey: "",
+          openweatherApiKey: "", weatherapiApiKey: "", tomorrowioApiKey: "", newsapiApiKey: "", twilioApiKey: "",
+          sendgridApiKey: "", slackBotToken: "", discordBotToken: "", githubToken: "", notionApiKey: "",
+          airtableApiKey: "", stripeSecretKey: "", azureOpenaiApiKey: "", awsBedrockApiKey: "", deepinfraApiKey: "",
+          nvidiaNimApiKey: "", octoaiApiKey: "", fireworksApiKey: "", githubCopilotApiKey: "", stabilityApiKey: "",
+          runwayApiKey: "", pikaApiKey: "", heygenApiKey: "", falApiKey: "", unstructuredApiKey: "",
+          llamaparseApiKey: "", firecrawlApiKey: "", pineconeApiKey: "", weaviateApiKey: "", qdrantApiKey: "",
+          cloudconvertApiKey: "", exaApiKey: "", braveSearchApiKey: "", bingSearchApiKey: "", gnewsApiKey: "",
+          scrapingbeeApiKey: "", apifyApiKey: "", alphaVantageApiKey: "", yahooFinanceApiKey: "",
+          openexchangeratesApiKey: "", whatsappBusinessApiKey: "", telegramBotToken: "", microsoftTeamsApiKey: "",
+          calendlyApiKey: "", virustotalApiKey: "", hibpApiKey: "", ollamaLocalEnabled: false, customProviderKeysJson: "",
+        }}
+        integrationTestResults={{}}
+        logsSettings={{ logLevel: "INFO" }}
+        pluginDescriptors={[]}
+        pluginSettingsDrafts={{}}
+        pluginSettingsErrors={{}}
+        savingPluginId={null}
+        onPullModel={async () => undefined}
+        onCancelPullModel={async () => undefined}
+        onCleanStartReset={async () => undefined}
+        onSaveChatSettings={async () => undefined}
+        onCleanupObsoleteChatSettings={async () => undefined}
+        onSaveKnowledgeSettings={async () => undefined}
+        onSaveIntegrationSettings={async () => undefined}
+        onSaveIntegrationTestResults={async () => undefined}
+        onSaveLogsSettings={async () => undefined}
+        onPluginSettingChange={() => undefined}
+        onSavePluginSettings={async () => undefined}
       />
     </QueryClientProvider>,
   );
@@ -184,6 +282,21 @@ function renderWorkspacePage() {
 }
 
 describe("WorkspacePage training compatibility", () => {
+  it("shows one logical training step at a time", () => {
+    renderWorkspacePage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Training" }));
+    expect(screen.getByText("Schnellstart")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "2. Daten importieren" }));
+    expect(screen.getByText("Neuen Datensatz vorbereiten")).toBeTruthy();
+    expect(screen.queryByText("Schnellstart")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "4. Jobs & Fortschritt" }));
+    expect(screen.getByText("Einzeljob starten")).toBeTruthy();
+    expect(screen.queryByText("Neuen Datensatz vorbereiten")).toBeNull();
+  });
+
   it("updates compatibility on trainer switch and disables incompatible model options", async () => {
     const { onFetchTrainingCompatibility } = renderWorkspacePage();
 

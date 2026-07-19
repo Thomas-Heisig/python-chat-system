@@ -101,6 +101,9 @@ def validate_runtime_model_paths(
     metadata: dict[str, object],
     allowed_base_directories: list[str],
 ) -> tuple[bool, str | None]:
+    if model_format in {"ollama", "openai"}:
+        return True, None
+
     if model_format != "peft_adapter":
         return validate_model_path_against_allowed_bases(model_path, allowed_base_directories)
 

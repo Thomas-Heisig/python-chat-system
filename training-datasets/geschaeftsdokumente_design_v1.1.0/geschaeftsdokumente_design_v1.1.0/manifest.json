@@ -1,0 +1,48 @@
+{
+  "name": "Geschäftsdokumente und Design",
+  "version": "1.1.0",
+  "created_at": "2026-07-13",
+  "status": "validated",
+  "record_counts": {
+    "training": 66,
+    "validation": 11,
+    "test": 11,
+    "total": 88
+  },
+  "topics": [
+    "angebot_design",
+    "auftragsbestaetigung_lieferschein",
+    "dokumentendesign",
+    "dokumentenpruefung_fehler",
+    "geschaeftsbriefe_email",
+    "gutschrift_rechnungskorrektur",
+    "mahnung_zahlungserinnerung",
+    "mehrstufige_dialoge",
+    "naturstein_dokumentinhalte",
+    "rechnung_nummerierung_archivierung",
+    "rechnung_pflichtangaben"
+  ],
+  "official_reference_families": [
+    "§ 14 UStG",
+    "rechtsformabhängige Geschäftsbriefangaben",
+    "§ 147 AO",
+    "GoBD und E-Rechnung"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 66,
+      "size_bytes": 73400,
+      "sha256": "9fe8e507329352237e8da45ac4cc21fb9f8bf5fceff62d513dc74a2bc4543654"
+    },
+    "validation.jsonl": {
+      "records": 11,
+      "size_bytes": 12259,
+      "sha256": "be536d1d6d51baab3f1c3a543ca03d3db2dcef808966f23ab197e4bd85d81445"
+    },
+    "test.jsonl": {
+      "records": 11,
+      "size_bytes": 12140,
+      "sha256": "6bc585d22983e57e1798febd51eb242b6c79444307488602874e115c37e3cd89"
+    }
+  }
+}

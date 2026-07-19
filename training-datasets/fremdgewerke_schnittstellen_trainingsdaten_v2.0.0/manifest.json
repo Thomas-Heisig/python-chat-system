@@ -1,0 +1,98 @@
+{
+  "name": "Fremdgewerke & Schnittstellen",
+  "domain": "fremdgewerke_schnittstellen",
+  "version": "2.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "description": "Diversifizierte Trainingsdaten mit Rollen, Schwierigkeitsgraden, Antwortlängen, mehrstufigen Dialogen und robusten Praxisfällen für Natursteinbetriebe.",
+  "source_policy": "Rechtliche, technische und vertragliche Aussagen bleiben zurückhaltend; konkrete Verträge, Planungen, Herstellerunterlagen und aktuelle Fachprüfung haben Vorrang.",
+  "methodical_features": [
+    "formulation_variants",
+    "difficulty_levels",
+    "answer_length_variation",
+    "audience_contexts",
+    "multi_turn_context",
+    "premise_correction",
+    "clarification",
+    "scope_boundary",
+    "documentation",
+    "internal_operations",
+    "emergency_response",
+    "legal_caution"
+  ],
+  "audiences": [
+    "private",
+    "architect",
+    "site_manager",
+    "installer",
+    "sales",
+    "commercial",
+    "management",
+    "general"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 204,
+      "multi_turn_records": 36,
+      "size_bytes": 717751,
+      "sha256": "c4f08173e1ce249c586eef33f21bfdc53fc4924c9d353289eb9bef7e508ba68b",
+      "difficulty_counts": {
+        "easy": 44,
+        "medium": 125,
+        "hard": 35
+      },
+      "answer_length_counts": {
+        "short": 75,
+        "medium": 71,
+        "detailed": 58
+      }
+    },
+    "validation.jsonl": {
+      "records": 40,
+      "multi_turn_records": 7,
+      "size_bytes": 139796,
+      "sha256": "1c3147ea6ca2a5667af82ab90161f11eb2361054bbf60408f6a49a58750a8df5",
+      "difficulty_counts": {
+        "easy": 1,
+        "medium": 32,
+        "hard": 7
+      },
+      "answer_length_counts": {
+        "short": 5,
+        "medium": 34,
+        "detailed": 1
+      }
+    },
+    "test.jsonl": {
+      "records": 40,
+      "multi_turn_records": 7,
+      "size_bytes": 139640,
+      "sha256": "188379924454b87bc9468d8eacb3471c7326ab9b0fb6749e4b09775346cf2edc",
+      "difficulty_counts": {
+        "easy": 1,
+        "medium": 32,
+        "hard": 7
+      },
+      "answer_length_counts": {
+        "short": 9,
+        "medium": 30,
+        "detailed": 1
+      }
+    },
+    "README.md": {
+      "size_bytes": 1326,
+      "sha256": "d25b82189789c5fa55585722a1fa7bace4cb62861707984c2dadcfe72b8bfb12"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true,
+    "do_not_invent_facts_or_approvals": true,
+    "ask_for_clarification_when_needed": true,
+    "no_binding_legal_advice": true,
+    "safety_over_schedule_pressure": true,
+    "do_not_assign_blame_without_evidence": true
+  }
+}

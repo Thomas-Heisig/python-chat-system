@@ -8,7 +8,7 @@ from app.core.events import event_bus
 from app.database.repositories.settings_repository import SettingsRepository
 from app.settings.cache import SettingsCache
 from app.settings.defaults import DEFAULT_SETTINGS
-from app.settings.validator import validate_setting
+from app.settings.validator import is_secret_setting, validate_setting
 
 CandidateScope: TypeAlias = tuple[int | None, int | None]
 
@@ -94,7 +94,14 @@ class SettingsService:
         team_id: int | None = None,
     ) -> str:
         normalized = validate_setting(category, key, value)
-        await self.repo.upsert_setting(category, key, normalized, user_id=user_id, team_id=team_id)
+        await self.repo.upsert_setting(
+            category,
+            key,
+            normalized,
+            user_id=user_id,
+            team_id=team_id,
+            is_secret=is_secret_setting(category, key),
+        )
         self.cache.invalidate(category=category, key=key, user_id=user_id, team_id=team_id)
         await event_bus.publish("settings_updated", {"category": category, "key": key})
 

@@ -22,6 +22,20 @@ def _create_user(app_client, username: str) -> int:
 	return int(response.json()["user"]["id"])
 
 
+def _create_user_with_token(app_client, username: str) -> tuple[int, str]:
+	response = app_client.post(
+		"/api/auth/register",
+		json={"username": username, "password": "Test#2026"},
+	)
+	assert response.status_code == 200
+	payload = response.json()
+	return int(payload["user"]["id"]), str(payload["access_token"])
+
+
+def _auth_headers(token: str) -> dict[str, str]:
+	return {"Authorization": f"Bearer {token}"}
+
+
 def _create_model(model_name: str, model_path: str) -> int:
 	async def _insert_model() -> int:
 		session_maker = get_session_maker()
@@ -148,7 +162,7 @@ def test_chat_context_usage_returns_server_computed_breakdown(app_client):
 
 
 def test_chat_generate_applies_model_scoped_prompt_and_generation_settings(app_client, tmp_path: Path):
-	user_id = _create_user(app_client, "chat-api-model-scoped")
+	user_id, token = _create_user_with_token(app_client, "chat-api-model-scoped")
 	from app.models.manager import model_manager
 	model_id = _create_model("chat-api-model", str((tmp_path / "chat-api-model.safetensors").resolve(strict=False)))
 
@@ -191,6 +205,7 @@ def test_chat_generate_applies_model_scoped_prompt_and_generation_settings(app_c
 				"value": value,
 				"user_id": user_id,
 			},
+			headers=_auth_headers(token),
 		)
 		assert update_response.status_code == 200
 

@@ -1,0 +1,223 @@
+[
+  {
+    "id": "P001",
+    "name": "Nero Assoluto Granit Fliese 60x60",
+    "category": "fliese",
+    "material": "granit",
+    "variant": "nero assoluto",
+    "format": "60x60",
+    "thickness": "2cm",
+    "finish": "polished",
+    "price": 185.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 120,
+    "description": "Edle schwarze Granitfliese, poliert, für Böden und Arbeitsplatten.",
+    "tags": [
+      "granit",
+      "schwarz",
+      "fliese",
+      "innen"
+    ],
+    "image_url": "/images/nero-assoluto-60x60.jpg"
+  },
+  {
+    "id": "P002",
+    "name": "Bianco Sardo Marmor Fliese 40x40",
+    "category": "fliese",
+    "material": "marmor",
+    "variant": "bianco sardo",
+    "format": "40x40",
+    "thickness": "2cm",
+    "finish": "honed",
+    "price": 215.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 85,
+    "description": "Weißer Marmor, geschliffen, für Bäder und Wandverkleidungen.",
+    "tags": [
+      "marmor",
+      "weiß",
+      "fliese",
+      "bad"
+    ],
+    "image_url": "/images/bianco-sardo-40x40.jpg"
+  },
+  {
+    "id": "P003",
+    "name": "Giallo Venezia Granit Fliese 30x60",
+    "category": "fliese",
+    "material": "granit",
+    "variant": "giallo venezia",
+    "format": "30x60",
+    "thickness": "2cm",
+    "finish": "polished",
+    "price": 195.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 200,
+    "description": "Gelb-goldene Granitfliese, poliert, für moderne Küchen.",
+    "tags": [
+      "granit",
+      "gelb",
+      "fliese",
+      "küche"
+    ],
+    "image_url": "/images/giallo-venezia-30x60.jpg"
+  },
+  {
+    "id": "P004",
+    "name": "Carrara Marmor Platte 300x140cm",
+    "category": "platte",
+    "material": "marmor",
+    "variant": "carrara",
+    "format": "300x140",
+    "thickness": "3cm",
+    "finish": "polished",
+    "price": 450.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 15,
+    "description": "Großformatige Carrara-Marmorplatte für Arbeitsplatten und Tische.",
+    "tags": [
+      "marmor",
+      "weiß",
+      "platte",
+      "arbeitsplatte"
+    ],
+    "image_url": "/images/carrara-platte.jpg"
+  },
+  {
+    "id": "P005",
+    "name": "Quarzit Bianco Platte 250x120cm",
+    "category": "platte",
+    "material": "quarzit",
+    "variant": "bianco",
+    "format": "250x120",
+    "thickness": "3cm",
+    "finish": "honed",
+    "price": 380.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 10,
+    "description": "Weiße Quarzitplatte, geschliffen, extrem hart und säurebeständig.",
+    "tags": [
+      "quarzit",
+      "weiß",
+      "platte",
+      "arbeitsplatte"
+    ],
+    "image_url": "/images/quarzit-bianco-platte.jpg"
+  },
+  {
+    "id": "P006",
+    "name": "Schiefer Grau Fliese 30x60",
+    "category": "fliese",
+    "material": "schiefer",
+    "variant": "grau",
+    "format": "30x60",
+    "thickness": "2cm",
+    "finish": "brushed",
+    "price": 120.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 300,
+    "description": "Graue Schieferfliese, gebürstet, für Außenbereiche und Terrassen.",
+    "tags": [
+      "schiefer",
+      "grau",
+      "fliese",
+      "außen",
+      "terrasse"
+    ],
+    "image_url": "/images/schiefer-grau-30x60.jpg"
+  },
+  {
+    "id": "P007",
+    "name": "Travertin Classico Fliese 40x40",
+    "category": "fliese",
+    "material": "travertin",
+    "variant": "classico",
+    "format": "40x40",
+    "thickness": "2cm",
+    "finish": "tumbled",
+    "price": 150.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 180,
+    "description": "Klassischer Travertin, getrommelt, für rustikale Böden.",
+    "tags": [
+      "travertin",
+      "beige",
+      "fliese",
+      "rustikal"
+    ],
+    "image_url": "/images/travertin-classico-40x40.jpg"
+  },
+  {
+    "id": "P008",
+    "name": "Nero Assoluto Granit Arbeitsplatte 240x60cm",
+    "category": "arbeitsplatte",
+    "material": "granit",
+    "variant": "nero assoluto",
+    "format": "240x60",
+    "thickness": "3cm",
+    "finish": "polished",
+    "price": 320.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 8,
+    "description": "Fertige Granit-Arbeitsplatte, schwarz poliert, mit abgeschrägter Kante.",
+    "tags": [
+      "granit",
+      "schwarz",
+      "arbeitsplatte",
+      "küche"
+    ],
+    "image_url": "/images/nero-assoluto-arbeitsplatte.jpg"
+  },
+  {
+    "id": "P009",
+    "name": "Marmor Statuario Fliese 60x60",
+    "category": "fliese",
+    "material": "marmor",
+    "variant": "statuario",
+    "format": "60x60",
+    "thickness": "2cm",
+    "finish": "polished",
+    "price": 320.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 45,
+    "description": "Exklusive Statuario-Marmorfliese, poliert, für luxuriöse Projekte.",
+    "tags": [
+      "marmor",
+      "weiß",
+      "fliese",
+      "luxus"
+    ],
+    "image_url": "/images/statuario-60x60.jpg"
+  },
+  {
+    "id": "P010",
+    "name": "Quarzit Nero Fliese 60x60",
+    "category": "fliese",
+    "material": "quarzit",
+    "variant": "nero",
+    "format": "60x60",
+    "thickness": "2cm",
+    "finish": "honed",
+    "price": 225.0,
+    "currency": "EUR",
+    "unit": "qm",
+    "stock": 60,
+    "description": "Schwarze Quarzitfliese, geschliffen, für moderne Böden.",
+    "tags": [
+      "quarzit",
+      "schwarz",
+      "fliese",
+      "modern"
+    ],
+    "image_url": "/images/quarzit-nero-60x60.jpg"
+  }
+]

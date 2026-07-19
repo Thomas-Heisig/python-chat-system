@@ -4,6 +4,8 @@ import importlib.util
 import sys
 
 from app.models.loaders.custom.registry import CustomModelLoaderPluginRegistry
+from app.models.openai_integration import openai_runtime_available
+from app.models.ollama_integration import ollama_runtime_available
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +34,8 @@ class ModelLoaderRegistry:
         diffusers_check = check_python_module("diffusers")
         torch_check = check_python_module("torch")
         pillow_check = check_python_module("PIL")
+        openai_available, openai_reason = openai_runtime_available()
+        ollama_available, ollama_reason = ollama_runtime_available()
 
         transformers_available = transformers_check.available
         llama_cpp_available = llama_cpp_check.available
@@ -72,6 +76,14 @@ class ModelLoaderRegistry:
                 ),
             ),
             LoaderDescriptor(
+                loader_id="transformers_audio_text",
+                name="Transformers Audio-Text",
+                supported_formats={"transformers", "transformers_safetensors", "transformers_pytorch"},
+                supported_tasks={"audio_text_generation"},
+                available=transformers_available,
+                reason_unavailable=None if transformers_available else "Transformers ist nicht installiert.",
+            ),
+            LoaderDescriptor(
                 loader_id="transformers_peft_adapter",
                 name="Transformers PEFT Adapter",
                 supported_formats={"peft_adapter"},
@@ -106,6 +118,30 @@ class ModelLoaderRegistry:
                 supported_tasks={"reranking"},
                 available=llama_cpp_available,
                 reason_unavailable=llama_cpp_reason,
+            ),
+            LoaderDescriptor(
+                loader_id="openai_chat",
+                name="ChatGPT API",
+                supported_formats={"openai"},
+                supported_tasks={"text_generation", "vision_text_generation"},
+                available=openai_available,
+                reason_unavailable=openai_reason,
+            ),
+            LoaderDescriptor(
+                loader_id="ollama_chat",
+                name="Ollama Chat",
+                supported_formats={"ollama"},
+                supported_tasks={"text_generation", "vision_text_generation"},
+                available=ollama_available,
+                reason_unavailable=ollama_reason,
+            ),
+            LoaderDescriptor(
+                loader_id="ollama_embedding",
+                name="Ollama Embedding",
+                supported_formats={"ollama"},
+                supported_tasks={"embedding", "feature_extraction"},
+                available=ollama_available,
+                reason_unavailable=ollama_reason,
             ),
             LoaderDescriptor(
                 loader_id="transformers_embedding",
@@ -192,6 +228,8 @@ class ModelLoaderRegistry:
             if model_format in loader.supported_formats and task_type in loader.supported_tasks:
                 return loader
         return None
+
+
 def check_python_module(module_name: str) -> DependencyCheck:
     interpreter = sys.executable
     try:

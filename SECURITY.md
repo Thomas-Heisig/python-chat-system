@@ -6,4 +6,4 @@ The canonical security policy for this repository is maintained in:
 
 Please use GitHub private advisories for vulnerability reports:
 
-- https://github.com/Thomas-Heisig/python-chat-system/security/advisories/new
+- [GitHub Security Advisory](https://github.com/Thomas-Heisig/python-chat-system/security/advisories/new)

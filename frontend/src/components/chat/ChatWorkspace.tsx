@@ -2,6 +2,72 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import ReactMarkdown from "react-markdown";
 
 import type { ChatMessage, SendWorkflowState } from "../../types/api";
+import { detectSpeechActivity, downloadBusinessLetterArtifact, getSpeechModels, synthesizeSpeech, transcribeSpeech, type SpeechModel } from "../../services/backend";
+
+type BusinessLetterResultAction = {
+  kind: string;
+  label: string;
+  file_name?: string;
+  document_id?: string;
+  tenant_id?: string;
+};
+
+type BusinessLetterResultMarker = {
+  plugin: "business_letter";
+  documentId: string;
+  tenantId?: string;
+  documentType?: string;
+  status?: string;
+  actions: BusinessLetterResultAction[];
+};
+
+type ParsedMessageContent = {
+  markdown: string;
+  businessLetterResult: BusinessLetterResultMarker | null;
+};
+
+const BUSINESS_LETTER_RESULT_PATTERN = /\[\[business_letter_result:(\{[\s\S]*?\})\]\]/;
+
+function parseStructuredMessageContent(content: string): ParsedMessageContent {
+  const text = String(content || "");
+  const match = text.match(BUSINESS_LETTER_RESULT_PATTERN);
+  if (!match) {
+    return { markdown: text, businessLetterResult: null };
+  }
+
+  let parsed: BusinessLetterResultMarker | null = null;
+  try {
+    const candidate = JSON.parse(match[1]) as Partial<BusinessLetterResultMarker>;
+    if (
+      candidate &&
+      candidate.plugin === "business_letter" &&
+      typeof candidate.documentId === "string" &&
+      Array.isArray(candidate.actions)
+    ) {
+      parsed = {
+        plugin: "business_letter",
+        documentId: candidate.documentId,
+        tenantId: typeof candidate.tenantId === "string" ? candidate.tenantId : "",
+        documentType: typeof candidate.documentType === "string" ? candidate.documentType : "",
+        status: typeof candidate.status === "string" ? candidate.status : "",
+        actions: candidate.actions
+          .filter((item): item is BusinessLetterResultAction => typeof item === "object" && item != null && typeof item.kind === "string" && typeof item.label === "string")
+          .map((item) => ({
+            kind: item.kind,
+            label: item.label,
+            file_name: typeof item.file_name === "string" ? item.file_name : "",
+            document_id: typeof item.document_id === "string" ? item.document_id : candidate.documentId,
+            tenant_id: typeof item.tenant_id === "string" ? item.tenant_id : (typeof candidate.tenantId === "string" ? candidate.tenantId : ""),
+          })),
+      };
+    }
+  } catch {
+    parsed = null;
+  }
+
+  const markdown = text.replace(BUSINESS_LETTER_RESULT_PATTERN, "").trim();
+  return { markdown, businessLetterResult: parsed };
+}
 
 type OutgoingImageAttachment = {
   name: string;
@@ -22,12 +88,19 @@ type ChatWorkspaceProps = {
   hasOtherUserInConversation: boolean;
   aiParticipationEnabled: boolean;
   messages: ChatMessage[];
-  modelEntries: Array<{ id: string; name: string; loaded: boolean; category: "lokal" | "remote" }>;
+  modelEntries: Array<{
+    id: string;
+    name: string;
+    loaded: boolean;
+    category: "lokal" | "remote" | "ollama_local" | "ollama_cloud";
+  }>;
   sources: Array<{ id: number; file: string; position: string; relevance: string }>;
   selectedModelId: string;
   modelLoaded: boolean;
   sendState: SendWorkflowState;
   sendError: string | null;
+  liveReasoning: string;
+  showReasoningBubble: boolean;
   locale: string;
   timezone: string;
   language: "de" | "en";
@@ -38,10 +111,6 @@ type ChatWorkspaceProps = {
   onOpenRightPanel: () => void;
   onToggleAiParticipation: (enabled: boolean) => void;
   onOpenSource: (sourceId: number) => void;
-  projects: Array<{ id: number; name: string }>;
-  selectedProjectId: number | null;
-  canAssignProject: boolean;
-  onAssignProject: (projectId: number | null) => void;
 };
 
 export function ChatWorkspace({
@@ -58,6 +127,8 @@ export function ChatWorkspace({
   modelLoaded,
   sendState,
   sendError,
+  liveReasoning,
+  showReasoningBubble,
   locale,
   timezone,
   language,
@@ -68,16 +139,103 @@ export function ChatWorkspace({
   onOpenRightPanel,
   onToggleAiParticipation,
   onOpenSource,
-  projects,
-  selectedProjectId,
-  canAssignProject,
-  onAssignProject,
 }: ChatWorkspaceProps) {
   const [draft, setDraft] = useState("");
   const [selectedImages, setSelectedImages] = useState<OutgoingImageAttachment[]>([]);
+  const [speechModels, setSpeechModels] = useState<SpeechModel[]>([]);
+  const [speechOpen, setSpeechOpen] = useState(false);
+  const [speechBusy, setSpeechBusy] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const [sttModelId, setSttModelId] = useState(0);
+  const [ttsModelId, setTtsModelId] = useState(0);
+  const [vadModelId, setVadModelId] = useState(0);
+  const [vadEnabled, setVadEnabled] = useState(true);
+  const [vadThreshold, setVadThreshold] = useState(0.5);
+  const [speechLanguage, setSpeechLanguage] = useState("auto");
+  const [speechDevice, setSpeechDevice] = useState("auto");
+  const [sttTask, setSttTask] = useState("transcribe");
+  const [timestamps, setTimestamps] = useState(false);
+  const [chunkLength, setChunkLength] = useState(30);
+  const [strideLength, setStrideLength] = useState(5);
+  const [ttsSpeed, setTtsSpeed] = useState(1);
+  const [ttsSpeaker, setTtsSpeaker] = useState("");
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const [recording, setRecording] = useState(false);
+  const [artifactDownloadKey, setArtifactDownloadKey] = useState<string | null>(null);
+  const [artifactDownloadError, setArtifactDownloadError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    void getSpeechModels().then((items) => {
+      setSpeechModels(items);
+      setSttModelId((current) => current || items.find((item) => item.task === "speech_to_text")?.id || 0);
+      setTtsModelId((current) => current || items.find((item) => item.task === "text_to_speech")?.id || 0);
+      setVadModelId((current) => current || items.find((item) => item.task === "voice_activity_detection")?.id || 0);
+    }).catch(() => setSpeechModels([]));
+  }, []);
+
+  const sttModels = speechModels.filter((item) => item.task === "speech_to_text");
+  const ttsModels = speechModels.filter((item) => item.task === "text_to_speech");
+  const vadModels = speechModels.filter((item) => item.task === "voice_activity_detection");
+  const activeStt = sttModels.find((item) => item.id === sttModelId);
+  const activeTts = ttsModels.find((item) => item.id === ttsModelId);
+
+  const toggleRecording = async () => {
+    if (recording && recorderRef.current) {
+      recorderRef.current.stop();
+      return;
+    }
+    if (!sttModelId) { setSpeechOpen(true); setSpeechError("Kein STT-Modell gefunden. Bitte Modelle scannen."); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      const recorder = new MediaRecorder(stream);
+      recordingChunksRef.current = [];
+      recorder.ondataavailable = (event) => { if (event.data.size) recordingChunksRef.current.push(event.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop()); setRecording(false); setSpeechBusy(true); setSpeechError(null);
+        try {
+          const recordedBlob = new Blob(recordingChunksRef.current, { type: recorder.mimeType });
+          if (vadEnabled && vadModelId) {
+            const vadResult = await detectSpeechActivity({ modelId: vadModelId, audio: recordedBlob, threshold: vadThreshold, device: speechDevice });
+            if (!vadResult.speaking) {
+              setSpeechError("VAD: Keine Sprachaktivitaet erkannt. Bitte erneut aufnehmen.");
+              return;
+            }
+          }
+          const result = await transcribeSpeech({
+            modelId: sttModelId,
+            audio: recordedBlob,
+            language: speechLanguage,
+            task: sttTask,
+            timestamps,
+            chunkLength,
+            strideLength,
+            device: speechDevice,
+            vadEnabled,
+            vadModelId,
+            vadThreshold,
+          });
+          setDraft((current) => `${current}${current && result.text ? " " : ""}${result.text}`);
+        } catch (error) { setSpeechError(error instanceof Error ? error.message : String(error)); }
+        finally { setSpeechBusy(false); }
+      };
+      recorder.start(250); recorderRef.current = recorder; setRecording(true);
+    } catch (error) { setSpeechError(error instanceof Error ? error.message : String(error)); }
+  };
+
+  const speakText = async (text: string) => {
+    if (!ttsModelId || !text.trim()) { setSpeechOpen(true); setSpeechError("Kein TTS-Modell gefunden."); return; }
+    setSpeechBusy(true); setSpeechError(null);
+    try {
+      const blob = await synthesizeSpeech({ modelId: ttsModelId, text, language: speechLanguage, speaker: ttsSpeaker, speed: ttsSpeed, device: speechDevice });
+      const url = URL.createObjectURL(blob); const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url); await audio.play();
+    } catch (error) { setSpeechError(error instanceof Error ? error.message : String(error)); }
+    finally { setSpeechBusy(false); }
+  };
   const hasModelSelection = selectedModelId.trim().length > 0;
   const canSend =
     hasModelSelection &&
@@ -90,9 +248,12 @@ export function ChatWorkspace({
     sendState === "submitting" || sendState === "stopping" || (sendState !== "streaming" && !canSend);
 
   const groupedModels = useMemo(() => {
-    const local = modelEntries.filter((model) => model.category === "lokal");
-    const remote = modelEntries.filter((model) => model.category === "remote");
-    return { local, remote };
+    return {
+      local: modelEntries.filter((model) => model.category === "lokal"),
+      ollamaLocal: modelEntries.filter((model) => model.category === "ollama_local"),
+      ollamaCloud: modelEntries.filter((model) => model.category === "ollama_cloud"),
+      remote: modelEntries.filter((model) => model.category === "remote"),
+    };
   }, [modelEntries]);
 
   const sourceFootnotes = useMemo(
@@ -132,6 +293,27 @@ export function ChatWorkspace({
     setDraft("");
     setSelectedImages([]);
     await onSendMessage({ message: nextMessage, images: nextImages });
+  };
+
+  const downloadArtifact = async (messageId: number, result: BusinessLetterResultMarker, action: BusinessLetterResultAction) => {
+    const downloadKey = `${messageId}:${action.kind}`;
+    setArtifactDownloadKey(downloadKey);
+    setArtifactDownloadError(null);
+    try {
+      const { blob, fileName } = await downloadBusinessLetterArtifact(result.documentId, action.kind, action.tenant_id || result.tenantId || undefined);
+      const href = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = href;
+      anchor.download = fileName || action.file_name || `${result.documentId}.${action.kind}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(href);
+    } catch (error) {
+      setArtifactDownloadError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setArtifactDownloadKey((current) => (current === downloadKey ? null : current));
+    }
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -208,6 +390,7 @@ export function ChatWorkspace({
         sendTitle: "Send message",
         stopTitle: "Stop generation",
         retry: "Retry",
+        reasoningStatus: "Thinking...",
       }
     : {
         modelSelect: "Modell waehlen",
@@ -221,6 +404,7 @@ export function ChatWorkspace({
         sendTitle: "Nachricht senden",
         stopTitle: "Antwortgenerierung stoppen",
         retry: "Retry",
+        reasoningStatus: "Denkt...",
       };
 
   const content = (
@@ -240,49 +424,51 @@ export function ChatWorkspace({
               onChange={(event) => onChangeModel(event.target.value)}
               aria-label={ui.modelSelect}
             >
-              <optgroup label="Lokal">
-                {groupedModels.local.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.loaded ? "● " : "○ "}
-                    {model.name}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Remote">
-                {groupedModels.remote.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.loaded ? "● " : "○ "}
-                    {model.name}
-                  </option>
-                ))}
-              </optgroup>
+              {groupedModels.local.length > 0 ? (
+                <optgroup label="Lokal">
+                  {groupedModels.local.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.loaded ? "● " : "○ "}
+                      {model.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {groupedModels.ollamaLocal.length > 0 ? (
+                <optgroup label="Ollama Local">
+                  {groupedModels.ollamaLocal.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.loaded ? "● " : "○ "}
+                      {model.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {groupedModels.ollamaCloud.length > 0 ? (
+                <optgroup label="Ollama Cloud">
+                  {groupedModels.ollamaCloud.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.loaded ? "● " : "○ "}
+                      {model.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {groupedModels.remote.length > 0 ? (
+                <optgroup label="Remote">
+                  {groupedModels.remote.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.loaded ? "● " : "○ "}
+                      {model.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
             </select>
           </label>
           <button type="button" className="ghost-btn" onClick={onOpenRightPanel} title="Kontext, Quellen und Werkzeuge anzeigen">
             {ui.context}
           </button>
-
-          <label className="model-select-wrap">
-            <span className="sr-only">Projekt waehlen</span>
-            <select
-              className="model-select"
-              value={selectedProjectId == null ? "none" : String(selectedProjectId)}
-              disabled={!canAssignProject}
-              onChange={(event) => {
-                const value = event.target.value;
-                onAssignProject(value === "none" ? null : Number(value));
-              }}
-              aria-label={ui.projectSelect}
-              title={canAssignProject ? "Projekt fuer diesen Chat" : "Nur fuer eigene Chats bearbeitbar"}
-            >
-              <option value="none">Kein Projekt</option>
-              {projects.map((project) => (
-                <option key={project.id} value={String(project.id)}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </label>
 
           <label className="ai-participation-toggle" title={hasOtherUserInConversation ? "KI Teilnahme im Teamchat" : "Wird aktiv, sobald eine weitere Person im Chat ist"}>
             <input
@@ -305,6 +491,10 @@ export function ChatWorkspace({
       <div className="message-list">
         {messages.map((message) => (
           <article key={message.id} className={`message message--${message.role}`}>
+            {(() => {
+              const parsedContent = parseStructuredMessageContent(message.content);
+              return (
+                <>
             <header className="message__head">
               <strong
                 className={`message__author ${
@@ -319,8 +509,39 @@ export function ChatWorkspace({
             </header>
 
             <div className="message__body">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <ReactMarkdown>{parsedContent.markdown}</ReactMarkdown>
             </div>
+
+            {message.role === "assistant" && parsedContent.businessLetterResult ? (
+              <section className="message-result-card" aria-label="Dokument-Ergebnis">
+                <div className="message-result-card__head">
+                  <strong>{parsedContent.businessLetterResult.documentType || "Dokument"}</strong>
+                  {parsedContent.businessLetterResult.status ? <span>{parsedContent.businessLetterResult.status}</span> : null}
+                </div>
+                <div className="message-result-card__actions">
+                  {parsedContent.businessLetterResult.actions.map((action) => {
+                    const actionKey = `${message.id}:${action.kind}`;
+                    return (
+                      <button
+                        key={actionKey}
+                        type="button"
+                        className="message-result-card__action"
+                        disabled={artifactDownloadKey === actionKey}
+                        onClick={() => void downloadArtifact(message.id, parsedContent.businessLetterResult as BusinessLetterResultMarker, action)}
+                        title={action.file_name || action.label}
+                      >
+                        {artifactDownloadKey === actionKey ? `${action.label} wird geladen` : `${action.label} herunterladen`}
+                      </button>
+                    );
+                  })}
+                </div>
+                {artifactDownloadError ? <div className="message-result-card__error">{artifactDownloadError}</div> : null}
+              </section>
+            ) : null}
+
+            {message.role === "assistant" && ttsModels.length > 0 ? (
+              <button type="button" className="message-speak-btn" disabled={speechBusy} onClick={() => void speakText(message.content)} title="Antwort vorlesen">🔊 Vorlesen</button>
+            ) : null}
 
             {message.role === "assistant" && sourceFootnotes.length > 0 ? (
               <div className="message__sources">
@@ -331,8 +552,21 @@ export function ChatWorkspace({
                 ))}
               </div>
             ) : null}
+                </>
+              );
+            })()}
           </article>
         ))}
+
+        {showReasoningBubble ? (
+          <article className="message message--assistant message--reasoning" aria-live="polite">
+            <header className="message__head">
+              <strong className="message__author">{assistantDisplayName}</strong>
+              <span className="message__reasoning_hint">{ui.reasoningStatus}</span>
+            </header>
+            <div className="message__body message__body--reasoning">{liveReasoning}</div>
+          </article>
+        ) : null}
       </div>
 
       <div className="composer">
@@ -403,6 +637,10 @@ export function ChatWorkspace({
               >
                 📎
               </button>
+              <button type="button" className={`icon-btn ${recording ? "speech-recording" : ""}`} aria-label={recording ? "Aufnahme stoppen" : "Spracheingabe"} disabled={speechBusy} onClick={() => void toggleRecording()} title="Sprache aufnehmen und transkribieren">
+                {recording ? "⏹" : "🎙"}
+              </button>
+              <button type="button" className="icon-btn" aria-label="Spracheinstellungen" onClick={() => setSpeechOpen((value) => !value)} title="STT/TTS-Einstellungen">⚙️</button>
               <button
                 type="button"
                 className="icon-btn"
@@ -456,6 +694,29 @@ export function ChatWorkspace({
             </div>
           </div>
         </div>
+
+        {speechOpen ? (
+          <section className="speech-settings" aria-label="Spracheinstellungen">
+            <div className="speech-settings__head"><strong>Sprache · STT, TTS & VAD</strong><button type="button" className="ghost-btn" onClick={() => setSpeechOpen(false)}>Schließen</button></div>
+            {speechError ? <div className="composer-error" role="alert">{speechError}</div> : null}
+            <div className="speech-settings__grid">
+              <label>STT-Modell<select value={sttModelId} onChange={(e) => setSttModelId(Number(e.target.value))}><option value={0}>Nicht verfügbar</option>{sttModels.map((m) => <option key={m.id} value={m.id}>{m.name} · {m.family}</option>)}</select></label>
+              <label>TTS-Modell<select value={ttsModelId} onChange={(e) => { setTtsModelId(Number(e.target.value)); setTtsSpeaker(""); }}><option value={0}>Nicht verfügbar</option>{ttsModels.map((m) => <option key={m.id} value={m.id}>{m.name} · {m.family}</option>)}</select></label>
+              <label>VAD-Modell<select value={vadModelId} onChange={(e) => setVadModelId(Number(e.target.value))}><option value={0}>Nicht verfügbar</option>{vadModels.map((m) => <option key={m.id} value={m.id}>{m.name} · {m.family}</option>)}</select></label>
+              <label>Sprache<select value={speechLanguage} onChange={(e) => setSpeechLanguage(e.target.value)}>{(activeStt?.settings.languages ?? activeTts?.settings.languages ?? ["auto"]).map((v) => <option key={v}>{v}</option>)}</select></label>
+              <label>Gerät<select value={speechDevice} onChange={(e) => setSpeechDevice(e.target.value)}><option value="auto">Automatisch</option><option value="cuda">GPU</option><option value="cpu">CPU</option></select></label>
+              <label>STT-Aufgabe<select value={sttTask} onChange={(e) => setSttTask(e.target.value)}>{(activeStt?.settings.tasks ?? ["transcribe"]).map((value) => <option key={value} value={value}>{value === "translate" ? "Nach Englisch übersetzen" : "Transkribieren"}</option>)}</select></label>
+              <label>Chunk (Sek.)<input type="number" min="5" max="120" value={chunkLength} onChange={(e) => setChunkLength(Number(e.target.value))} /></label>
+              <label>Überlappung (Sek.)<input type="number" min="0" max="30" value={strideLength} onChange={(e) => setStrideLength(Number(e.target.value))} /></label>
+              <label>TTS-Tempo<input type="range" min="0.5" max="2" step="0.05" value={ttsSpeed} onChange={(e) => setTtsSpeed(Number(e.target.value))} /><span>{ttsSpeed.toFixed(2)}×</span></label>
+              {activeTts?.settings.speakers.length ? <label>Stimme<select value={ttsSpeaker} onChange={(e) => setTtsSpeaker(e.target.value)}><option value="">Standard</option>{activeTts.settings.speakers.map((v) => <option key={v}>{v}</option>)}</select></label> : null}
+              <label className="speech-check"><input type="checkbox" checked={vadEnabled} onChange={(e) => setVadEnabled(e.target.checked)} /> VAD vor STT nutzen</label>
+              <label>VAD-Schwelle<input type="range" min="0.3" max="0.9" step="0.05" value={vadThreshold} onChange={(e) => setVadThreshold(Number(e.target.value))} /><span>{vadThreshold.toFixed(2)}</span></label>
+              <label className="speech-check"><input type="checkbox" checked={timestamps} onChange={(e) => setTimestamps(e.target.checked)} /> Zeitstempel erfassen</label>
+            </div>
+            <small>{speechModels.length ? `${sttModels.length} STT-, ${ttsModels.length} TTS- und ${vadModels.length} VAD-Modell(e) erkannt.` : "Keine Sprachmodelle erkannt. Modellverzeichnis prüfen und Scan ausführen."}</small>
+          </section>
+        ) : null}
 
         <div className="token-usage">Antwortlimit: 1.500 Token</div>
         {selectedImages.length > 0 ? (

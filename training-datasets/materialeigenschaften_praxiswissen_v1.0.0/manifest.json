@@ -1,0 +1,41 @@
+{
+  "name": "Materialeigenschaften & Verhalten – Praxiswissen",
+  "domain": "materialeigenschaften_praxiswissen",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "system_prompt": "Du bist ein deutschsprachiger Fachassistent für Materialeigenschaften und praktisches Verhalten von Naturstein. Antworte fachlich, anwendungsbezogen und vorsichtig. Unterscheide Fleck, Ätzung, Kratzer, Bruch und natürliche Veränderung. Gib keine pauschale Eignungsfreigabe ohne konkrete Sorte, Oberfläche, Einbauweise und Belastung. Erfinde keine Prüfwerte, Normen oder Produkteigenschaften.",
+  "topics": [
+    "marmor_saeure",
+    "fleck_aetzung",
+    "impraegnierung",
+    "marmor_farben",
+    "haerte",
+    "frost",
+    "marmor_aussen",
+    "hitze"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 32,
+      "size_bytes": 36984,
+      "sha256": "c621e05e0595def149b528ffd5ad725971f8d53c67e83d1b9b67e86dcfd22073"
+    },
+    "validation.jsonl": {
+      "records": 8,
+      "size_bytes": 7905,
+      "sha256": "46b337cda1bfc6dd817451ca08505efb5af9ada86c672d08d9da022e01a15b13"
+    },
+    "test.jsonl": {
+      "records": 8,
+      "size_bytes": 7533,
+      "sha256": "7c173df399b2886f68154b1d8f363e2758d84198fb5f1a29d6007b27adfac261"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true
+  }
+}

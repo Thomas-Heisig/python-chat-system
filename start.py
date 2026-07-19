@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import socket
 import sys
 from pathlib import Path
 
@@ -20,6 +21,16 @@ async def _init_only(run_scan: bool) -> None:
     )
 
 
+def _is_port_available(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((host, port))
+        except OSError:
+            return False
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Start Kernschmiede")
     parser.add_argument("--host", default="0.0.0.0")
@@ -33,6 +44,13 @@ def main() -> None:
     if args.init_only:
         asyncio.run(_init_only(run_scan=run_scan))
         return
+
+    if not _is_port_available(args.host, args.port):
+        print(
+            f"Port {args.port} ist bereits belegt. Stoppe den laufenden Server oder starte mit einem anderen Port.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
 
     uvicorn.run("app.main:app", host=args.host, port=args.port, reload=args.reload)
 

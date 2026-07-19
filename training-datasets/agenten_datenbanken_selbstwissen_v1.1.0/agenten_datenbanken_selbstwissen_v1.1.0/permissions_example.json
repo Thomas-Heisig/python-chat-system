@@ -1,0 +1,33 @@
+{
+  "default_policy": "deny",
+  "roles": {
+    "vertrieb": [
+      "kunden_lesen",
+      "preise_lesen",
+      "angebot_entwurf"
+    ],
+    "einkauf": [
+      "bestand_lesen",
+      "lieferanten_lesen",
+      "bestellvorschlag"
+    ],
+    "werkstatt": [
+      "auftrag_lesen",
+      "werkstueckstatus_vorschlag"
+    ],
+    "buchhaltung": [
+      "rechnung_lesen",
+      "rechnung_entwurf",
+      "zahlung_lesen"
+    ],
+    "administrator": [
+      "berechtigungen_verwalten"
+    ]
+  },
+  "principles": [
+    "least_privilege",
+    "human_approval_for_high_risk",
+    "audit_log",
+    "no_shared_credentials"
+  ]
+}

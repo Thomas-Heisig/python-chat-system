@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db_models.model_config import ModelConfig
+from app.db_models.user import User
 from app.models.metadata import infer_model_capabilities
 from app.settings.service import SettingsService
 from tests.integration.async_utils import run_async
@@ -28,6 +29,30 @@ def _with_session(fn: Callable[[AsyncSession], Coroutine[Any, Any, T]]) -> T:
             return await fn(session)
 
     return _run(_runner())
+
+
+def _create_user_with_token(app_client: Any, username: str) -> tuple[int, str]:
+    response = app_client.post(
+        "/api/auth/register",
+        json={"username": username, "password": "Test#2026"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    return int(payload["user"]["id"]), str(payload["access_token"])
+
+
+def _promote_user_to_admin(user_id: int) -> None:
+    async def _promote(session: AsyncSession) -> None:
+        user = await session.get(User, user_id)
+        assert user is not None
+        user.is_admin = True
+        await session.commit()
+
+    _with_session(_promote)
+
+
+def _auth_headers(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
 
 
 async def _seed_legacy_duplicate_models(session: AsyncSession, model_dir: Path) -> tuple[int, int]:
@@ -80,6 +105,9 @@ async def _list_models_by_name(session: AsyncSession, name: str) -> list[ModelCo
 
 
 def test_custom_loader_trust_and_peft_compatibility(app_client: Any, tmp_path: Path) -> None:
+    admin_id, admin_token = _create_user_with_token(app_client, "custom-loader-admin")
+    _promote_user_to_admin(admin_id)
+
     model_dir = tmp_path / "Supra-A2A-Nano-Exp"
     model_dir.mkdir(parents=True, exist_ok=True)
     (model_dir / "model.safetensors").write_text("stub", encoding="utf-8")
@@ -105,6 +133,7 @@ def test_custom_loader_trust_and_peft_compatibility(app_client: Any, tmp_path: P
             "key": "base_directories",
             "value": [str(model_dir.parent)],
         },
+        headers=_auth_headers(admin_token),
     )
     assert update_base_dirs.status_code == 200
 

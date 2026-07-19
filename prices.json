@@ -1,0 +1,134 @@
+{
+  "granit": {
+    "name": "Granit",
+    "entity_type": "material",
+    "variants": {
+      "nero assoluto": {
+        "price_per_qm": 180.0,
+        "currency": "EUR",
+        "min_order": 2
+      },
+      "bianco sardo": {
+        "price_per_qm": 210.0,
+        "currency": "EUR",
+        "min_order": 2
+      },
+      "giallo venezia": {
+        "price_per_qm": 195.0,
+        "currency": "EUR",
+        "min_order": 2
+      },
+      "rosso levanto": {
+        "price_per_qm": 220.0,
+        "currency": "EUR",
+        "min_order": 2
+      },
+      "verde marina": {
+        "price_per_qm": 205.0,
+        "currency": "EUR",
+        "min_order": 2
+      }
+    },
+    "formats": {
+      "30x60": {
+        "price_per_qm": 180.0
+      },
+      "40x40": {
+        "price_per_qm": 175.0
+      },
+      "60x60": {
+        "price_per_qm": 185.0
+      },
+      "80x80": {
+        "price_per_qm": 195.0
+      }
+    },
+    "thickness": {
+      "2cm": 1.0,
+      "3cm": 1.3,
+      "4cm": 1.6
+    },
+    "unit": "qm"
+  },
+  "marmor": {
+    "name": "Marmor",
+    "entity_type": "material",
+    "variants": {
+      "carrara": {
+        "price_per_qm": 220.0,
+        "currency": "EUR",
+        "min_order": 2
+      },
+      "calacatta": {
+        "price_per_qm": 280.0,
+        "currency": "EUR",
+        "min_order": 2
+      },
+      "statuario": {
+        "price_per_qm": 320.0,
+        "currency": "EUR",
+        "min_order": 2
+      },
+      "verde guatemala": {
+        "price_per_qm": 240.0,
+        "currency": "EUR",
+        "min_order": 2
+      }
+    },
+    "formats": {
+      "30x60": {
+        "price_per_qm": 220.0
+      },
+      "40x40": {
+        "price_per_qm": 215.0
+      },
+      "60x60": {
+        "price_per_qm": 225.0
+      }
+    },
+    "thickness": {
+      "2cm": 1.0,
+      "3cm": 1.4,
+      "4cm": 1.8
+    },
+    "unit": "qm"
+  },
+  "service:verlegung": {
+    "name": "Verlegung",
+    "entity_type": "service",
+    "category": "installation",
+    "price": 45.0,
+    "currency": "EUR",
+    "unit": "qm"
+  },
+  "service:einbau": {
+    "name": "Einbau",
+    "entity_type": "service",
+    "category": "installation",
+    "price": 55.0,
+    "currency": "EUR",
+    "unit": "qm"
+  },
+  "service:versiegelung": {
+    "name": "Versiegelung",
+    "entity_type": "service",
+    "category": "care",
+    "price": 18.0,
+    "currency": "EUR",
+    "unit": "qm"
+  },
+  "accessory:fugenmasse": {
+    "name": "Fugenmasse",
+    "entity_type": "accessory",
+    "price": 14.0,
+    "currency": "EUR",
+    "unit": "stueck"
+  },
+  "accessory:kleber": {
+    "name": "Kleber",
+    "entity_type": "accessory",
+    "price": 22.0,
+    "currency": "EUR",
+    "unit": "stueck"
+  }
+}

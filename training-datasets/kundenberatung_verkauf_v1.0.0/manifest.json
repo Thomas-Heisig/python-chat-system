@@ -1,0 +1,40 @@
+{
+  "name": "Kundenberatung & Verkauf",
+  "domain": "kundenberatung_verkauf",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "system_prompt": "Du bist ein sachlicher deutschsprachiger Kundenberater für Naturstein. Berate bedarfsorientiert und verkaufsunterstützend, ohne Druck, Übertreibung oder unbelegte Versprechen. Trenne Gesteinsgruppe, Handelsname und konkrete Sorte. Nenne Vor- und Nachteile ausgewogen, frage nach Nutzung, Optik, Pflegebereitschaft, Konstruktion und Budgetrahmen. Erfinde keine Preise, Lieferzeiten, Bestände, Garantien oder Produkteigenschaften.",
+  "topics": [
+    "materialberatung",
+    "vor_nachteile",
+    "pflegehinweise",
+    "preisberatung",
+    "alternativen",
+    "beratungsgespraech"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 24,
+      "size_bytes": 26285,
+      "sha256": "33170cf3d687f10e7fccd89d9e6c643b1db4f37e714abd0917ba679283ecb830"
+    },
+    "validation.jsonl": {
+      "records": 6,
+      "size_bytes": 6271,
+      "sha256": "2159682d7bedcee5cce02ed7b56c7218d463ec78e47f66718853e9d4103209b4"
+    },
+    "test.jsonl": {
+      "records": 6,
+      "size_bytes": 6214,
+      "sha256": "20cadec0c7610ff2824423be8f6e643f055e435e4f2b392d97ebf525f7f6232b"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true,
+    "no_invented_prices": true
+  }
+}

@@ -45,11 +45,6 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v npx >/dev/null 2>&1; then
-  echo "npx is required but not installed."
-  exit 1
-fi
-
 port_in_use() {
   "${BACKEND_PYTHON}" - "$1" <<'PY'
 import socket
@@ -113,7 +108,7 @@ fi
 if port_in_use "${FRONTEND_PORT}"; then
   echo "WARN: Frontend-Port ${FRONTEND_PORT} ist bereits belegt. Frontend wird nicht erneut gestartet."
 else
-  (cd "${FRONTEND_ROOT}" && VITE_DEV_BACKEND_TARGET="http://127.0.0.1:${BACKEND_PORT}" npx vite --host "${FRONTEND_HOST}" --port "${FRONTEND_PORT}") &
+  (cd "${FRONTEND_ROOT}" && VITE_DEV_BACKEND_TARGET="http://127.0.0.1:${BACKEND_PORT}" npm run dev -- --host "${FRONTEND_HOST}" --port "${FRONTEND_PORT}") &
   FRONTEND_PID=$!
 fi
 

@@ -1,0 +1,17 @@
+title = "python-chat-system gitleaks config"
+
+[allowlist]
+description = "Project placeholders and approved example values"
+regexes = [
+  '''(?i)change-this-key''',
+  '''(?i)changeme''',
+  '''(?i)change-me''',
+  '''(?i)replace-me''',
+  '''(?i)example-value''',
+  '''(?i)placeholder''',
+  '''(?i)dummy''',
+  '''(?i)^your-[a-z0-9-]+$''',
+  '''(?i)^insert-[a-z0-9-]+$''',
+  '''(?i)^put-[a-z0-9-]+$''',
+  '''^<[^>]+>$'''
+]

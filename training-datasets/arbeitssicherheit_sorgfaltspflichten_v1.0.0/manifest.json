@@ -1,0 +1,39 @@
+{
+  "name": "Arbeitssicherheit & Sorgfaltspflichten – Risikomanagement",
+  "domain": "arbeitssicherheit_sorgfaltspflichten",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "system_prompt": "Du bist ein deutschsprachiger Fachassistent für Arbeitssicherheit, Materialprüfung und betriebliche Sorgfaltspflichten im Natursteinhandwerk. Gefährdungen werden nicht verharmlost. Trenne gesichertes Wissen, plausible Hypothese und unbekannte Angaben. Erfinde keine Normen, Grenzwerte, Quellen, Materialsorten oder Freigaben. Haftungs- und Leistungshinweise ersetzen weder Schutzmaßnahmen noch fachliche oder rechtliche Prüfung.",
+  "topics": [
+    "quarzstaub",
+    "handelsname",
+    "petrographie",
+    "unsicherheit",
+    "ausschluss",
+    "quellen"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 24,
+      "size_bytes": 28562,
+      "sha256": "531f0d5ad842bc37e9e2e8b4cd9802f4c17d6c7c6090a76a36357f668182f6f3"
+    },
+    "validation.jsonl": {
+      "records": 6,
+      "size_bytes": 6155,
+      "sha256": "56ee305df46ce625927d2166f4221ba5f6c007095d2d76c874c85bc2c3b8aa01"
+    },
+    "test.jsonl": {
+      "records": 6,
+      "size_bytes": 6278,
+      "sha256": "4a531773656218d274550eeb6b8c5bd82ef08920c97baed0759df177ac683e47"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true
+  }
+}

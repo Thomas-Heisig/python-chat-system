@@ -1,0 +1,65 @@
+{
+  "name": "Fremdgewerke & Schnittstellen",
+  "domain": "fremdgewerke_schnittstellen",
+  "version": "1.2.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "description": "Trainingsdaten zur Leistungsabgrenzung gegenüber Fremdgewerken, mit mehrstufigen Dialogen, höflicher Fehlerkorrektur, Prämissen-Hinterfragung und Klärung von Laienbegriffen.",
+  "source_policy": "Typische Zuständigkeiten und Materialeigenschaften werden nicht als konkrete Vertrags- oder Produkteigenschaft dargestellt. Bei Unklarheit sind Auftrag, Leistungsverzeichnis, Planung, Hersteller- und Lieferantennachweise sowie Bauleitung maßgeblich.",
+  "verified_sources": [],
+  "topics": [
+    "sanitaer",
+    "elektro",
+    "bauphysik",
+    "zusammenarbeit",
+    "missverstaendnis",
+    "hoefliche_korrektur",
+    "laienbegriff",
+    "premise_multi"
+  ],
+  "methodical_features": [
+    "single_turn",
+    "multi_turn_context_follow_up",
+    "scope_boundary",
+    "clarification_and_escalation",
+    "polite_correction",
+    "premise_challenge",
+    "lay_term_disambiguation"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 44,
+      "multi_turn_records": 12,
+      "size_bytes": 75924,
+      "sha256": "385642c4e85df231f5c0e4781fbb80b3a47abf090acfefa0c147de727472e826"
+    },
+    "validation.jsonl": {
+      "records": 11,
+      "multi_turn_records": 3,
+      "size_bytes": 18995,
+      "sha256": "9b6225f1023a889db2ff9f2af37f9f680a748e9ba9ce382f4abf69de18368e1c"
+    },
+    "test.jsonl": {
+      "records": 11,
+      "multi_turn_records": 3,
+      "size_bytes": 18748,
+      "sha256": "3d2c93a0bca5c4d1b7dacddcfbaa5f0a7fd30d18e958e3135933c088a41a2aab"
+    },
+    "README.md": {
+      "size_bytes": 1838,
+      "sha256": "92d007d01b3873b6266bd458f4ba8a21d19075b9573a97e9677e10677ddcce4d"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true,
+    "do_not_invent_contractual_scope": true,
+    "do_not_confirm_false_premises": true,
+    "ask_for_clarification_when_terms_are_ambiguous": true,
+    "require_product_or_supplier_evidence_for_specific_properties": true,
+    "refer_to_specialist_trade_for_out_of_scope_work": true,
+    "maintain_context_in_multi_turn_dialogues": true
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "Agenten, Datenbanken und Selbstwissen",
+  "version": "1.1.0",
+  "created_at": "2026-07-13",
+  "status": "validated",
+  "record_counts": {
+    "training": 60,
+    "validation": 13,
+    "test": 13,
+    "total": 86
+  },
+  "topics": [
+    "agenten_angebot",
+    "agenten_evaluation",
+    "agenten_grundlagen",
+    "agenten_lager",
+    "agenten_preisberechnung",
+    "aktionen_audit",
+    "berechtigungen_freigaben",
+    "datenmodell_datenbanken",
+    "datenschutz_sicherheit",
+    "datenzugriff_quellen",
+    "fehlende_daten_unsicherheit",
+    "mehrstufige_dialoge",
+    "selbstwissen_grenzen"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 60,
+      "size_bytes": 74147,
+      "sha256": "6158143f8983ad5ffe0ef2eb6881490c08fc67022a5180a7310a20512eae391e"
+    },
+    "validation.jsonl": {
+      "records": 13,
+      "size_bytes": 15985,
+      "sha256": "89a3f53e1f87ff4ca5488a42f01a291eaeb8e224f62def9a42387c6a3370ad5e"
+    },
+    "test.jsonl": {
+      "records": 13,
+      "size_bytes": 15995,
+      "sha256": "ce856d9e197c5946bd8753df998a84c09273f63d4e6082c75d19a2254f45021f"
+    }
+  }
+}

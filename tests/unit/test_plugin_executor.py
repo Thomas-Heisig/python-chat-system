@@ -30,6 +30,53 @@ def test_plugin_executor_executes_from_markup() -> None:
     assert "plugin_response_markup" in result
 
 
+def test_plugin_executor_lists_capabilities_and_manifest() -> None:
+    executor = PluginExecutor()
+
+    capabilities = executor.list_capabilities()
+    manifest = executor.describe_plugin("calculator")
+    function = executor.describe_function("calculator", "evaluate")
+
+    assert isinstance(capabilities, list)
+    assert any(item.get("plugin_id") == "calculator" for item in capabilities)
+    assert isinstance(manifest, dict)
+    assert manifest.get("id") == "calculator"
+    assert isinstance(manifest.get("functions"), list)
+    assert isinstance(function, dict)
+    assert function.get("name") == "evaluate"
+
+
+def test_plugin_executor_search_plugins_returns_candidates() -> None:
+    executor = PluginExecutor()
+
+    candidates = executor.search_plugins("rechnung lieferschein", limit=3)
+
+    assert isinstance(candidates, list)
+    assert len(candidates) <= 3
+    assert all("plugin_id" in item for item in candidates)
+    assert all(item.get("decision") in {"direct_manifest", "model_review", "no_auto_selection"} for item in candidates)
+
+
+def test_plugin_executor_search_plugin_name_only_does_not_auto_select() -> None:
+    executor = PluginExecutor()
+
+    candidates = executor.search_plugins("calculator", limit=3)
+    calculator_candidate = next((item for item in candidates if item.get("plugin_id") == "calculator"), None)
+
+    assert isinstance(calculator_candidate, dict)
+    assert calculator_candidate.get("auto_select") is False
+
+
+def test_plugin_executor_execute_function_uses_action_name_for_calculator() -> None:
+    executor = PluginExecutor()
+
+    result = asyncio.run(executor.execute_function("calculator", "preset_circle_area", {}))
+
+    assert isinstance(result, dict)
+    assert result.get("action") == "preset_circle_area"
+    assert "result" in result
+
+
 def test_plugin_executor_parse_markup_fails_without_plugin_call() -> None:
     executor = PluginExecutor()
 
@@ -54,6 +101,7 @@ def test_plugin_executor_passes_plugin_settings_to_business_letter() -> None:
                 "base_closing_text": "Mit besten Gruessen",
                 "default_signatory_name": "Projekt Admin",
             },
+            execution_context={"idempotency_key": "bl-settings-1"},
         )
     )
 
@@ -109,7 +157,8 @@ def test_plugin_executor_validates_contract_for_harmonized_plugins(
 ) -> None:
     executor = PluginExecutor()
 
-    result = asyncio.run(executor.execute(plugin_id, payload))
+    execution_context = {"idempotency_key": f"harmonized-{plugin_id}"} if plugin_id == "business_letter" else None
+    result = asyncio.run(executor.execute(plugin_id, payload, execution_context=execution_context))
 
     assert isinstance(result, dict)
     assert "error" not in result
@@ -129,7 +178,7 @@ def test_plugin_executor_rejects_invalid_communication_contract_input() -> None:
             )
         )
 
-    assert exc.value.code == "plugin_contract_invalid_input"
+    assert exc.value.code in {"plugin_contract_invalid_input", "plugin_input_schema_invalid"}
 
 
 @pytest.mark.parametrize(
@@ -172,8 +221,10 @@ def test_plugin_executor_rejects_invalid_communication_contract_input_for_all_su
 ) -> None:
     executor = PluginExecutor()
 
+    execution_context = {"idempotency_key": f"invalid-contract-{plugin_id}"} if plugin_id == "business_letter" else None
+
     with pytest.raises(PluginExecutionError) as exc:
-        asyncio.run(executor.execute(plugin_id, payload))
+        asyncio.run(executor.execute(plugin_id, payload, execution_context=execution_context))
 
     assert exc.value.code == "plugin_contract_invalid_input"
 
@@ -221,7 +272,8 @@ def test_plugin_executor_returns_schema_compatible_validation_envelope_for_suppo
 ) -> None:
     executor = PluginExecutor()
 
-    result = asyncio.run(executor.execute(plugin_id, payload))
+    execution_context = {"idempotency_key": "compat-envelope"} if plugin_id == "business_letter" else None
+    result = asyncio.run(executor.execute(plugin_id, payload, execution_context=execution_context))
 
     assert isinstance(result, dict)
     validation = result.get("validation")
@@ -230,3 +282,107 @@ def test_plugin_executor_returns_schema_compatible_validation_envelope_for_suppo
     assert isinstance(validation.get("errors"), list)
     assert isinstance(validation.get("warnings"), list)
     assert isinstance(validation.get("missing_information"), list)
+
+
+def test_plugin_executor_blocks_mutating_function_without_idempotency_key() -> None:
+    executor = PluginExecutor()
+
+    with pytest.raises(PluginExecutionError) as exc:
+        asyncio.run(
+            executor.execute_function(
+                "business_letter",
+                "create_document",
+                {
+                    "letter_type": "allgemein",
+                    "subject": "Rueckfrage",
+                    "customer_name": "Max Mustermann",
+                },
+            )
+        )
+
+    assert exc.value.code == "plugin_idempotency_key_required"
+
+
+def test_plugin_executor_allows_duplicate_execution_with_same_idempotency_key() -> None:
+    executor = PluginExecutor()
+    payload = {
+        "letter_type": "allgemein",
+        "subject": "Rueckfrage",
+        "customer_name": "Max Mustermann",
+    }
+    context = {"idempotency_key": "idem-duplicate-1"}
+
+    first = asyncio.run(
+        executor.execute_function(
+            "business_letter",
+            "create_document",
+            payload,
+            execution_context=context,
+        )
+    )
+    assert isinstance(first, dict)
+
+    second = asyncio.run(
+        executor.execute_function(
+            "business_letter",
+            "create_document",
+            payload,
+            execution_context=context,
+        )
+    )
+
+    assert isinstance(second, dict)
+
+
+def test_plugin_executor_rejects_too_short_idempotency_key() -> None:
+    executor = PluginExecutor()
+
+    with pytest.raises(PluginExecutionError) as exc:
+        asyncio.run(
+            executor.execute_function(
+                "business_letter",
+                "create_document",
+                {
+                    "letter_type": "allgemein",
+                    "subject": "Rueckfrage",
+                    "customer_name": "Max Mustermann",
+                },
+                execution_context={"idempotency_key": "abc"},
+            )
+        )
+
+    assert exc.value.code == "plugin_idempotency_key_invalid"
+
+
+def test_plugin_executor_blocks_when_required_permission_missing() -> None:
+    executor = PluginExecutor()
+
+    with pytest.raises(PluginExecutionError) as exc:
+        asyncio.run(
+            executor.execute_function(
+                "calculator",
+                "evaluate",
+                {"expression": "2+2"},
+                execution_context={"enforce_permissions": True, "granted_permissions": []},
+            )
+        )
+
+    assert exc.value.code == "plugin_permission_missing"
+
+
+def test_plugin_executor_allows_when_required_permission_present() -> None:
+    executor = PluginExecutor()
+
+    result = asyncio.run(
+        executor.execute_function(
+            "calculator",
+            "evaluate",
+            {"expression": "2+2"},
+            execution_context={
+                "enforce_permissions": True,
+                "granted_permissions": ["calculator.execute"],
+            },
+        )
+    )
+
+    assert result.get("result") == 4

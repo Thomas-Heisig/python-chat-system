@@ -1,0 +1,25 @@
+{
+  "name": "projekt_kernschmiede",
+  "version": "2.0.0",
+  "format": "messages",
+  "source_packages": [
+    "allgemeine_praxisfaelle_qualitaet_v1.0.0",
+    "arbeitssicherheit_sorgfaltspflichten_v1.0.0",
+    "betriebliche_prozesse_dokumentation_v1.0.0",
+    "fremdgewerke_schnittstellen_trainingsdaten_v2.0.0",
+    "geologie_gesteinskunde_v1.0.0",
+    "kundenberatung_verkauf_v1.0.0",
+    "materialeigenschaften_praxiswissen_v1.0.0",
+    "schadensbilder_instandhaltung_v1.0.0",
+    "spezifische_gesteinssorten_v1.0.0",
+    "technische_details_normen_v1.0.0",
+    "verarbeitung_montage_v1.0.0"
+  ],
+  "splits": {
+    "training": 506,
+    "validation": 118,
+    "test": 118
+  },
+  "deduplication": "sha256(normalized messages), precedence test > validation > training",
+  "test_policy": "technical validation only; excluded from training and model selection"
+}

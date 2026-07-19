@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal, cast
 from pydantic import BaseModel, Field
 
 
@@ -25,6 +26,11 @@ class TrainingDatasetFileItem(BaseModel):
     modified_at: datetime
 
 
+class DatasetFileReference(BaseModel):
+    role: Literal["source", "training", "validation", "test", "manifest", "canonical"]
+    file_name: str
+
+
 class TrainingDatasetFileListResponse(BaseModel):
     items: list[TrainingDatasetFileItem]
 
@@ -35,7 +41,7 @@ class CreateTrainingDatasetRequest(BaseModel):
     description: str | None = None
     project_id: int | None = None
     source_type: str = "manual"
-    status: str = "ready"
+    status: str = "imported"
     version: int = 1
     metadata: dict[str, object] = Field(default_factory=dict)
 
@@ -43,12 +49,14 @@ class CreateTrainingDatasetRequest(BaseModel):
 class RegisterTrainingDatasetFileRequest(BaseModel):
     user_id: int = 1
     name: str
-    file_name: str
+    file_name: str = ""
     validation_file_name: str | None = None
+    test_file_name: str | None = None
+    files: list[DatasetFileReference] = Field(default_factory=lambda: cast(list[DatasetFileReference], []))
     description: str | None = None
     project_id: int | None = None
     source_type: str = "local_file"
-    status: str = "ready"
+    status: str = "imported"
     version: int = 1
     metadata: dict[str, object] = Field(default_factory=dict)
 
@@ -58,10 +66,11 @@ class ImportTrainingDatasetUrlRequest(BaseModel):
     name: str
     source_url: str
     validation_source_url: str | None = None
+    test_source_url: str | None = None
     description: str | None = None
     project_id: int | None = None
     source_type: str = "url"
-    status: str = "ready"
+    status: str = "imported"
     version: int = 1
     metadata: dict[str, object] = Field(default_factory=dict)
 
@@ -101,7 +110,25 @@ class CreateTrainingJobRequest(BaseModel):
     dataset_id: int
     base_model_id: str | None = None
     trainer_name: str | None = None
+    run_profile: Literal["A", "B", "C"] | None = None
+    run_label: str | None = None
     hyperparameters: dict[str, object] = Field(default_factory=dict)
+
+
+class BatchTrainingFolderRequest(BaseModel):
+    user_id: int = 1
+    base_model_id: str | None = None
+    trainer_name: str | None = None
+    project_id: int | None = None
+    new_cycle: bool = False
+    hyperparameters: dict[str, object] = Field(default_factory=dict)
+
+
+class AssignTrainingProjectRequest(BaseModel):
+    user_id: int = 1
+    project_id: int | None = None
+    dataset_ids: list[int] = Field(default_factory=lambda: cast(list[int], []))
+    include_archived: bool = True
 
 
 class TrainingPreflightResponse(BaseModel):
@@ -110,6 +137,9 @@ class TrainingPreflightResponse(BaseModel):
     model_name: str | None = None
     model_format: str | None = None
     trainer: str
+    target_modules_mode: str = "auto"
+    resolved_target_modules: list[str] = Field(default_factory=list)
+    target_modules_source: str = "fallback"
     cuda_available: bool
     supports_4bit: bool
     dataset_valid: bool
@@ -122,6 +152,8 @@ class TrainingPreflightRequest(BaseModel):
     dataset_id: int
     base_model_id: str | None = None
     trainer_name: str | None = None
+    run_profile: Literal["A", "B", "C"] | None = None
+    run_label: str | None = None
     hyperparameters: dict[str, object] = Field(default_factory=dict)
 
 

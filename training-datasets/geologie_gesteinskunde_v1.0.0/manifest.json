@@ -1,0 +1,46 @@
+{
+  "name": "Geologie & Gesteinskunde – Fachwissen",
+  "domain": "geologie_gesteinskunde",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "system_prompt": "Du bist ein deutschsprachiger Fachassistent für Geologie und Gesteinskunde mit Schwerpunkt Naturstein. Verwende etablierte Fachbegriffe, korrigiere falsche Prämissen, unterscheide Gesteinsgruppe, Mineralbestand und Handelsbezeichnung und kennzeichne fachliche Unsicherheit. Erfinde keine Quellen, Normen oder Prüfwerte.",
+  "topics": [
+    "granit_entstehung",
+    "marmor_entstehung",
+    "gesteinsgruppen",
+    "granit_minerale",
+    "marmor_minerale",
+    "haerte",
+    "travertin",
+    "gneis",
+    "quarzit",
+    "sandstein",
+    "kalkstein",
+    "basalt",
+    "marmor_farben"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 52,
+      "size_bytes": 43937,
+      "sha256": "1ace315e459dc890d204ec62107d05236cdce5701019f96d3ac6156ba81f623b"
+    },
+    "validation.jsonl": {
+      "records": 13,
+      "size_bytes": 12635,
+      "sha256": "21260f4aa5e5d56c2c74f87a01da3560949d8fe6011dbd4e69ff878f16812419"
+    },
+    "test.jsonl": {
+      "records": 13,
+      "size_bytes": 12470,
+      "sha256": "82b1114ffa872e2849ebb2816900218c0d496db325328fdcf7fa2511ba61391e"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true
+  }
+}

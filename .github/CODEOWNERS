@@ -1,9 +1,11 @@
 # Kernschmiede - Code Ownership
 
-# Default owner for the whole repository
+## Default owner for the whole repository
+
 * @Thomas-Heisig
 
-# Community and governance files
+## Community and governance files
+
 /.github/CODEOWNERS @Thomas-Heisig
 /.github/CODE_OF_CONDUCT.md @Thomas-Heisig
 /.github/CONTRIBUTING.md @Thomas-Heisig
@@ -12,27 +14,31 @@
 /.github/SUPPORT.md @Thomas-Heisig
 /.github/ISSUE_TEMPLATE/** @Thomas-Heisig
 
-# Automation
+## Automation
+
 /.github/workflows/** @Thomas-Heisig
 /.github/dependabot.yml @Thomas-Heisig
 /.github/release-drafter.yml @Thomas-Heisig
 
-# Application and runtime
-/app/** @Thomas-Heisig
-/frontend/** @Thomas-Heisig
-/scripts/** @Thomas-Heisig
-/tests/** @Thomas-Heisig
+## Application and runtime
 
-# Security-sensitive paths
+/app/**@Thomas-Heisig
+/frontend/**@Thomas-Heisig
+/scripts/**@Thomas-Heisig
+/tests/**@Thomas-Heisig
+
+## Security-sensitive paths
+
 /app/core/security.py @Thomas-Heisig
 /app/models/path_security.py @Thomas-Heisig
-/app/api/** @Thomas-Heisig
+/app/api/**@Thomas-Heisig
 /app/chat/** @Thomas-Heisig
-/app/models/** @Thomas-Heisig
+/app/models/**@Thomas-Heisig
 /app/settings/** @Thomas-Heisig
 /app/training/** @Thomas-Heisig
 
-# Dependency and entrypoint files
+## Dependency and entrypoint files
+
 /requirements.txt @Thomas-Heisig
 /requirements-dev.txt @Thomas-Heisig
 /frontend/package.json @Thomas-Heisig
@@ -40,11 +46,13 @@
 /start.py @Thomas-Heisig
 /pyproject.toml @Thomas-Heisig
 
-# Docs
+## Docs
+
 /docs/** @Thomas-Heisig
 /README.md @Thomas-Heisig
 
-# Deployment and container files
+## Deployment and container files
+
 /Dockerfile @Thomas-Heisig
 /docker-compose.yml @Thomas-Heisig
 /docker-compose.yaml @Thomas-Heisig

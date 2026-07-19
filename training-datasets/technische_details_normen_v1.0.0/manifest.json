@@ -1,0 +1,70 @@
+{
+  "name": "Technische Details & Normen – soweit belegt",
+  "domain": "technische_details_normen",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "source_policy": "Nur verifizierte öffentliche Metadaten und eigene Zusammenfassungen; keine vollständigen Normtexte oder unbelegten Prüfwerte.",
+  "verified_sources": [
+    {
+      "title": "DIN 18332:2023-09 – VOB/C ATV Naturwerksteinarbeiten",
+      "url": "https://www.dinmedia.de/de/norm/din-18332/369848027"
+    },
+    {
+      "title": "DIN EN 12058:2015-05 – Natursteinprodukte – Bodenplatten und Stufenbeläge – Anforderungen",
+      "url": "https://www.dinmedia.de/de/norm/din-en-12058/222013140"
+    },
+    {
+      "title": "DIN EN 12371:2010-07 – Prüfverfahren für Naturstein – Bestimmung des Frostwiderstandes",
+      "url": "https://www.dinmedia.de/de/norm/din-en-12371/122498492"
+    },
+    {
+      "title": "DIN EN 13373:2020-03 – Prüfverfahren für Naturstein – Bestimmung geometrischer Merkmale an Gesteinen",
+      "url": "https://www.dinmedia.de/de/norm/din-en-13373/301615803"
+    },
+    {
+      "title": "DIN EN 12057:2015-05 – Natursteinprodukte – Fliesen – Anforderungen",
+      "url": "https://www.dinmedia.de/de/norm/din-en-12057/221971847"
+    },
+    {
+      "title": "DIN EN 1469:2015-05 – Natursteinprodukte – Bekleidungsplatten – Anforderungen",
+      "url": "https://www.dinmedia.de/de/norm/din-en-1469/222012923"
+    },
+    {
+      "title": "DIN EN 1341/A20:2014-07 – Platten aus Naturstein für Außenbereiche – Änderung A20",
+      "url": "https://www.dinmedia.de/de/norm/din-en-1341-a20/208411504"
+    }
+  ],
+  "topics": [
+    "normen_anwendungsbereich",
+    "pruefverfahren_frost",
+    "geometrische_pruefung",
+    "produktnormen",
+    "materialklassen_nachweise",
+    "quellenpflege"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 24,
+      "size_bytes": 32081,
+      "sha256": "b27b0d46d328318d34c73fcb2c930643bccfd4475b038b6a81cd941eb78c62df"
+    },
+    "validation.jsonl": {
+      "records": 6,
+      "size_bytes": 8076,
+      "sha256": "719aed0c885f2fc7d2e81b0ed5e97d618007b3cebdcd278e56c155dfeef00cb7"
+    },
+    "test.jsonl": {
+      "records": 6,
+      "size_bytes": 7741,
+      "sha256": "a0e756ce9dabbe03db31a1d70607b41616cd1a8814096f6d7eeb5cfcc52a5029"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true,
+    "recheck_norm_status_before_production": true
+  }
+}

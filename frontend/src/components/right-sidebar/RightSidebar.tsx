@@ -7,7 +7,15 @@ type RightSidebarProps = {
   collapsed: boolean;
   activeTab: RightPanelTab;
   selectedSourceId: number | null;
-  sources: Array<{ id: number; file: string; position: string; relevance: string }>;
+  sources: Array<{
+    id: number;
+    file: string;
+    position: string;
+    relevance: string;
+    projectLabel: string;
+    scopeDepth: number | null;
+  }>;
+  activeProjectLabel: string;
   users: Array<{ id: number; username: string; isAdmin: boolean; isActive: boolean; online: boolean; lastSeenAt: string | null }>;
   currentUserId: number;
   currentUserIsAdmin: boolean;
@@ -30,7 +38,6 @@ type RightSidebarProps = {
 };
 
 const infoRows: Array<{ label: string; value: string }> = [
-  { label: "Projekt", value: "Heisig Naturstein" },
   { label: "Backend", value: "llama.cpp" },
   { label: "Modell", value: "Qwen 2.5 7B" },
   { label: "Temperatur", value: "0,7" },
@@ -49,6 +56,7 @@ export function RightSidebar({
   activeTab,
   selectedSourceId,
   sources,
+  activeProjectLabel,
   users,
   currentUserId,
   currentUserIsAdmin,
@@ -64,6 +72,7 @@ export function RightSidebar({
   onAdminDeleteUser,
 }: RightSidebarProps) {
   const [inspectedLabel, setInspectedLabel] = useState<string | null>(null);
+  const [expandedSourceGroups, setExpandedSourceGroups] = useState<Record<string, boolean>>({});
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [editUsername, setEditUsername] = useState("");
   const [editIsAdmin, setEditIsAdmin] = useState(false);
@@ -85,6 +94,52 @@ export function RightSidebar({
     [sources],
   );
 
+  type SourceTreeEntry = {
+    label: string;
+    pathKey: string;
+    children: Map<string, SourceTreeEntry>;
+    sources: typeof sourcesWithRelevance;
+  };
+
+  const sourceTree = useMemo(() => {
+    const rootNodes = new Map<string, SourceTreeEntry>();
+
+    sourcesWithRelevance.forEach((source) => {
+      const projectLabel = source.projectLabel ?? "Unzugeordnet";
+      const segments = projectLabel === "Unzugeordnet" ? [projectLabel] : projectLabel.split(" / ");
+      let cursor = rootNodes;
+      let leafNode: SourceTreeEntry | null = null;
+
+      segments.forEach((segment, index) => {
+        const pathKey = segments.slice(0, index + 1).join(" / ");
+        const existing = cursor.get(segment);
+        const node: SourceTreeEntry =
+          existing ?? {
+          label: segment,
+          pathKey,
+          children: new Map<string, SourceTreeEntry>(),
+          sources: [],
+        };
+        cursor.set(segment, node);
+        cursor = node.children;
+        leafNode = node;
+      });
+
+      if (leafNode != null) {
+        leafNode.sources.push(source);
+      }
+    });
+
+    return Array.from(rootNodes.values()).sort((left, right) => left.label.localeCompare(right.label, "de"));
+  }, [sourcesWithRelevance]);
+
+  const toggleSourceGroup = (pathKey: string) => {
+    setExpandedSourceGroups((current) => ({
+      ...current,
+      [pathKey]: !(current[pathKey] ?? true),
+    }));
+  };
+
   const contextLimitTokens = contextUsage?.context_limit_tokens ?? 8192;
   const usedContextTokens = contextUsage?.used_context_tokens ?? 0;
   const systemPromptTokens = contextUsage?.breakdown.system_prompt_tokens ?? 0;
@@ -103,6 +158,57 @@ export function RightSidebar({
 
   const contextUsagePercent = contextLimitTokens > 0 ? Math.min(100, Math.round((usedContextTokens / contextLimitTokens) * 100)) : 0;
   const contextUsageBucket = Math.min(10, Math.max(0, Math.floor(contextUsagePercent / 10)));
+
+  const renderSourceNode = (node: SourceTreeEntry, depth: number) => {
+    const childNodes = Array.from(node.children.values()).sort((left, right) => left.label.localeCompare(right.label, "de"));
+    const isExpanded = expandedSourceGroups[node.pathKey] ?? true;
+    const hasChildren = childNodes.length > 0 || node.sources.length > 0;
+
+    return (
+      <li key={node.pathKey} className="source-tree-node">
+        <div className={`source-tree-row source-tree-row--depth-${Math.min(depth, 4)}`}>
+          {hasChildren ? (
+            <button
+              type="button"
+              className="source-tree-toggle"
+              onClick={() => toggleSourceGroup(node.pathKey)}
+              aria-label={`${isExpanded ? "Quellengruppe schliessen" : "Quellengruppe oeffnen"}: ${node.label}`}
+              aria-expanded={isExpanded}
+            >
+              {isExpanded ? "▾" : "▸"}
+            </button>
+          ) : (
+            <span className="source-tree-toggle source-tree-toggle--spacer" aria-hidden="true" />
+          )}
+          <div className="source-tree-label">
+            <strong>{node.label}</strong>
+            <span>{node.sources.length} Quelle(n)</span>
+          </div>
+        </div>
+
+        {isExpanded ? (
+          <ul className="source-tree-children" aria-label={`Quellen fuer ${node.label}`}>
+            {childNodes.map((childNode) => renderSourceNode(childNode, depth + 1))}
+            {node.sources.map((source) => (
+              <li key={source.id} className={selectedSourceId === source.id ? "source-entry source-entry--active" : "source-entry"}>
+                <strong>{source.file}</strong>
+                <div>{source.position}</div>
+                <div>Relevanz {source.relevance}</div>
+                <div>
+                  Projekt {source.projectLabel}
+                  {source.scopeDepth != null ? ` | Ebene ${source.scopeDepth}` : ""}
+                </div>
+                <div className="source-actions">
+                  <button type="button" className="ghost-btn">Oeffnen</button>
+                  <button type="button" className="ghost-btn">Textabschnitt</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </li>
+    );
+  };
 
   const contextDetail =
     inspectedLabel === "Externe Daten"
@@ -219,18 +325,13 @@ export function RightSidebar({
         {activeTab === "sources" ? (
           <section>
             <h2 className="panel-title">Verwendete Quellen</h2>
-            <ul className="logs-list">
-              {sources.map((source) => (
-                <li key={source.id} className={selectedSourceId === source.id ? "log-item--active" : ""}>
-                  <strong>{source.file}</strong>
-                  <div>{source.position}</div>
-                  <div>Relevanz {source.relevance}</div>
-                  <div className="source-actions">
-                    <button type="button" className="ghost-btn">Oeffnen</button>
-                    <button type="button" className="ghost-btn">Textabschnitt</button>
-                  </div>
-                </li>
-              ))}
+            <div className="context-detail" role="note">
+              <strong>Aktive Ebene</strong>
+              <p>{activeProjectLabel}</p>
+            </div>
+            <ul className="source-tree">
+              {sourceTree.map((node) => renderSourceNode(node, 0))}
+              {sourceTree.length === 0 ? <li className="empty-note">Keine Quellen aktiv</li> : null}
             </ul>
           </section>
         ) : null}

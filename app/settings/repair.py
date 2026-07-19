@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import InvalidSettingError
@@ -17,6 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 _repair_lock = asyncio.Lock()
+
+
+OBSOLETE_GLOBAL_CHAT_KEYS: tuple[str, ...] = (
+    "temperature",
+    "max_new_tokens",
+    "top_p",
+    "top_k",
+    "repetition_penalty",
+    "do_sample",
+    "seed",
+    "stop_sequences",
+)
 
 
 def _safe_parse_json(value_json: str) -> object | None:
@@ -112,3 +124,56 @@ async def repair_invalid_settings(session: AsyncSession) -> dict[str, int]:
                 continue
 
         return {"checked": checked, "repaired": repaired}
+
+
+async def cleanup_obsolete_global_chat_settings(session: AsyncSession) -> dict[str, int]:
+    stats = await get_obsolete_global_chat_cleanup_stats(session)
+    async with _repair_lock:
+        matched_count = stats["matched_count"]
+        if matched_count <= 0:
+            return {"matched_count": 0, "deleted": 0, "remaining_count": 0}
+
+        result = await session.execute(
+            delete(Setting)
+            .where(Setting.category == "chat")
+            .where(Setting.key.in_(OBSOLETE_GLOBAL_CHAT_KEYS))
+            .where(Setting.user_id.is_(None))
+            .where(Setting.team_id.is_(None))
+        )
+        deleted = int(result.rowcount or 0)
+        remaining_count = max(0, matched_count - deleted)
+        if deleted > 0:
+            logger.info(
+                "Startup cleanup removed obsolete global chat settings",
+                extra={
+                    "category": "chat",
+                    "deleted": deleted,
+                    "matched_count": matched_count,
+                    "remaining_count": remaining_count,
+                    "keys": list(OBSOLETE_GLOBAL_CHAT_KEYS),
+                    "scope_user_id": None,
+                    "scope_team_id": None,
+                },
+            )
+        return {
+            "matched_count": matched_count,
+            "deleted": deleted,
+            "remaining_count": remaining_count,
+        }
+
+
+async def get_obsolete_global_chat_cleanup_stats(session: AsyncSession) -> dict[str, int]:
+    async with _repair_lock:
+        count_stmt = (
+            select(func.count())
+            .select_from(Setting)
+            .where(Setting.category == "chat")
+            .where(Setting.key.in_(OBSOLETE_GLOBAL_CHAT_KEYS))
+            .where(Setting.user_id.is_(None))
+            .where(Setting.team_id.is_(None))
+        )
+        matched_count = int((await session.execute(count_stmt)).scalar_one() or 0)
+        return {
+            "matched_count": matched_count,
+            "remaining_count": matched_count,
+        }

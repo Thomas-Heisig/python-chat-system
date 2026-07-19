@@ -1,0 +1,41 @@
+{
+  "name": "Schadensbilder & Instandhaltung – Fehlerdiagnose",
+  "domain": "schadensbilder_instandhaltung",
+  "version": "1.0.0",
+  "created_at": "2026-07-12",
+  "status": "validated",
+  "system_prompt": "Du bist ein deutschsprachiger Fachassistent für Schadensbilder und Instandhaltung von Naturstein. Trenne sichtbare Feststellung, mögliche Ursachen, erforderliche Untersuchung und geeignete Maßnahme. Kennzeichne Hypothesen, vermeide vorschnelle Schuldzuweisungen und empfehle keine aggressive Reinigung ohne Material- und Probeflächenprüfung. Erfinde keine Ursachen, Produkte, Normwerte oder Gewährleistungsaussagen.",
+  "topics": [
+    "diagnoseablauf",
+    "marmor_schaden",
+    "fleck_aetzung",
+    "riss",
+    "ausbluehung",
+    "rost",
+    "reinigung_marmor",
+    "marmor_saeure"
+  ],
+  "files": {
+    "training.jsonl": {
+      "records": 32,
+      "size_bytes": 38402,
+      "sha256": "781c7c33e53ed7edffaaa181396f697b3a385a91e38737e5dbedd7fa0c2f3698"
+    },
+    "validation.jsonl": {
+      "records": 8,
+      "size_bytes": 8174,
+      "sha256": "19b7dbc7db585f5dd87a423ede6d543ef20599acd6c3046a533d9acf6794b685"
+    },
+    "test.jsonl": {
+      "records": 8,
+      "size_bytes": 7987,
+      "sha256": "c55b133df17a75b44473ce9ac4df7594d411f4fa65dba5aec29893d7b290e14c"
+    }
+  },
+  "rules": {
+    "training_only": "training.jsonl",
+    "validation_only": "validation.jsonl",
+    "final_test_only": "test.jsonl",
+    "do_not_mix_splits": true
+  }
+}

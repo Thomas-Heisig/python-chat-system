@@ -1,0 +1,32 @@
+{
+  "angebot": [
+    "Anbieter und Kunde",
+    "Projektbezug",
+    "Leistungsumfang",
+    "Natursteinangaben",
+    "Ausschlüsse",
+    "Preis und Kundentyp",
+    "Gültigkeit/Bindung",
+    "Termine/Vorbehalte",
+    "Version/Freigabe"
+  ],
+  "rechnung": [
+    "Aussteller und Empfänger",
+    "Steuer-ID-Angabe",
+    "Ausstellungsdatum",
+    "eindeutige Rechnungsnummer",
+    "Leistungsbeschreibung",
+    "Leistungszeitpunkt",
+    "Entgelt und Steuerfall",
+    "Sonderhinweise",
+    "Korrekturstatus"
+  ],
+  "geschaeftsbrief_email": [
+    "Rechtsform",
+    "rechtsformabhängige Pflichtangaben",
+    "Betreff",
+    "Anhänge",
+    "Datenschutz und sichere Übermittlung",
+    "keine unnötigen sensiblen Angaben"
+  ]
+}

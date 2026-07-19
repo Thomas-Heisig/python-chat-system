@@ -24,8 +24,25 @@ export type UiModelEntry = {
   backend: string;
   loadStatus: string;
   loaded: boolean;
-  category: "lokal" | "remote";
+  category: "lokal" | "remote" | "ollama_local" | "ollama_cloud";
+  sourceLabel: string;
   isActive: boolean;
+  ollamaInstalled?: boolean;
+  ollamaCapabilities?: string[];
+  toolCalling?: boolean;
+  structuredOutput?: boolean;
+  reasoning?: boolean;
+  parameterSize?: string | null;
+  quantizationLevel?: string | null;
+  contextLength?: number | null;
+  pullStatus?: {
+    state: string;
+    detail: string | null;
+    progressPercent: number | null;
+    total: number | null;
+    completed: number | null;
+    updatedAt: string;
+  } | null;
   modelFormat?: string;
   modelFamily?: string;
   taskType?: string;
@@ -71,6 +88,12 @@ export type WorkspaceProject = {
   name: string;
   chats: number;
   documents: number;
+  parent_project_id?: number | null;
+  scope_kind?: "tenant" | "user" | "area" | "project";
+  area_key?: string | null;
+  tenant_key?: string | null;
+  owner_user_id?: number | null;
+  depth?: number;
 };
 
 export type WorkspaceAppointment = {
@@ -87,6 +110,8 @@ export type WorkspaceSource = {
   relevance: string;
   status?: string;
   source?: string;
+  project_id?: number | null;
+  project_name?: string | null;
 };
 
 export type ConversationSummary = {
@@ -165,6 +190,101 @@ export type ApiCapabilities = {
   features: Record<string, boolean>;
 };
 
+export type PluginSettingFieldType = "string" | "text" | "boolean" | "number" | "select" | "password";
+
+export type PluginSettingFieldOption = {
+  label: string;
+  value: string | number | boolean;
+};
+
+export type PluginSettingFieldVisibility = {
+  field: string;
+  equals?: string | number | boolean;
+  in?: Array<string | number | boolean>;
+  truthy?: boolean;
+};
+
+export type PluginSettingField = {
+  key: string;
+  label: string;
+  type: PluginSettingFieldType;
+  group?: string;
+  description?: string;
+  default?: unknown;
+  required?: boolean;
+  options?: PluginSettingFieldOption[];
+  visibleWhen?: PluginSettingFieldVisibility;
+};
+
+export type PluginFrontendAction = {
+  id: string;
+  label: string;
+  description?: string;
+  openTab?: "frontend" | "settings" | "manual";
+  pluginInput?: Record<string, unknown>;
+  pluginSettings?: Record<string, unknown>;
+};
+
+export type PluginFrontendSection = {
+  id: string;
+  title: string;
+  description?: string;
+  actions: PluginFrontendAction[];
+};
+
+export type PluginFrontendPageCard = {
+  id: string;
+  title: string;
+  description?: string;
+  bullets?: string[];
+  ctaLabel?: string;
+  openTab?: "frontend" | "settings" | "manual";
+  pluginInput?: Record<string, unknown>;
+  pluginSettings?: Record<string, unknown>;
+};
+
+export type PluginFrontendPageSection = {
+  id: string;
+  title: string;
+  description?: string;
+  cards: PluginFrontendPageCard[];
+};
+
+export type PluginFrontendPage = {
+  eyebrow?: string;
+  headline?: string;
+  summary?: string;
+  highlights?: string[];
+  sections?: PluginFrontendPageSection[];
+};
+
+export type PluginFrontendDefinition = {
+  title?: string;
+  description?: string;
+  page?: PluginFrontendPage;
+  sections?: PluginFrontendSection[];
+};
+
+export type PluginCatalogEntry = {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  status?: string;
+  settings_fields?: PluginSettingField[];
+  settings?: Record<string, unknown>;
+  api_key_required?: boolean;
+  intent_pattern?: string;
+  pluginFrontend?: PluginFrontendDefinition;
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
+};
+
+export type PluginSettingsDrafts = Record<string, Record<string, unknown>>;
+
+// Backward-compatible alias for existing imports.
+export type PluginDescriptor = PluginCatalogEntry;
+
 export type TrainingDatasetSummary = {
   id: number;
   name: string;
@@ -221,6 +341,9 @@ export type TrainingPreflightResult = {
   modelName: string | null;
   modelFormat: string | null;
   trainer: string;
+  targetModulesMode: string;
+  resolvedTargetModules: string[];
+  targetModulesSource: string;
   cudaAvailable: boolean;
   supports4bit: boolean;
   datasetValid: boolean;

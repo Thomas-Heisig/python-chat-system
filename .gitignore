@@ -19,6 +19,7 @@ env/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.cache/
 .coverage
 htmlcov/
 
@@ -54,3 +55,8 @@ data/backups/
 # IDE files
 .vscode/
 .idea/
+
+# Miscellaneous
+*.db-shm
+*.db-wal
+frontend/test-results/

@@ -422,7 +422,7 @@ Tests should:
 ## Test Expectations
 
 | Change | Expected validation |
-|---|---|
+| --- | --- |
 | Backend behavior | `pytest`, `ruff check .` |
 | API route | route and service tests |
 | Database behavior | repository/service tests |

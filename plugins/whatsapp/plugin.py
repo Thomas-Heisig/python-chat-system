@@ -226,6 +226,7 @@ class WhatsAppPlugin:
             return {
                 "success": True,
                 "status": "skipped",
+                "reason": "unsupported_channel",
                 "message": f"communication_channel={channel}: WhatsApp-Versand uebersprungen.",
                 "validation": validation,
             }

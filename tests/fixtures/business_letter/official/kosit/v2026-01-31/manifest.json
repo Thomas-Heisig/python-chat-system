@@ -1,0 +1,29 @@
+{
+  "source": {
+    "repository": "itplr-kosit/xrechnung-testsuite",
+    "tag": "v2026-01-31"
+  },
+  "cases": [
+    {
+      "id": "01.05_minimal_test_ubl",
+      "path": "src/test/technical-cases/cius/01.05_minimal_test_ubl.xml",
+      "kind": "technical-minimal",
+      "valid": true,
+      "notes": "Minimaler offizieller UBL-CIUS-Referenzfall mit Buyer/Seller-EndpointID und steuerfreier Kategorie O."
+    },
+    {
+      "id": "01.01_comprehensive_test_ubl",
+      "path": "src/test/technical-cases/cius/01.01_comprehensive_test_ubl.xml",
+      "kind": "technical-comprehensive",
+      "valid": true,
+      "notes": "Umfassender offizieller UBL-Referenzfall mit vielen BT/BG-Elementen und eingebetteten Attachments."
+    },
+    {
+      "id": "03.07a-INVOICE_ubl",
+      "path": "src/test/business-cases/standard/03.07a-INVOICE_ubl.xml",
+      "kind": "business-case-standard",
+      "valid": true,
+      "notes": "Offizieller anonymisierter Business-Case aus der Standard-CIUS-Familie."
+    }
+  ]
+}

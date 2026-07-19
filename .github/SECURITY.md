@@ -7,7 +7,7 @@ This project is under active development and has not yet reached version `1.0.0`
 Security fixes are provided for:
 
 | Version | Supported |
-|---|---:|
+| --- | ---: |
 | Latest `main` branch state | ✅ |
 | Latest published release | ✅ |
 | Older releases and commits | ❌ |

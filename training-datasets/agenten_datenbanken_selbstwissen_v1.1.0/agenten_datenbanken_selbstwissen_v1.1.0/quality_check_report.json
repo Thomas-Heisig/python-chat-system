@@ -1,0 +1,24 @@
+{
+  "valid_jsonl": true,
+  "cross_split_duplicates": 0,
+  "total_records": 86,
+  "topic_distribution": {
+    "agenten_grundlagen": 6,
+    "datenzugriff_quellen": 8,
+    "fehlende_daten_unsicherheit": 6,
+    "selbstwissen_grenzen": 7,
+    "berechtigungen_freigaben": 8,
+    "aktionen_audit": 6,
+    "datenmodell_datenbanken": 7,
+    "agenten_preisberechnung": 7,
+    "agenten_angebot": 7,
+    "agenten_lager": 7,
+    "datenschutz_sicherheit": 6,
+    "agenten_evaluation": 6,
+    "mehrstufige_dialoge": 5
+  },
+  "dialog_types": {
+    "single_turn": 81,
+    "multi_turn": 5
+  }
+}

@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+STAGED_FILES="$(git diff --cached --name-only --diff-filter=ACMR)"
+
+if [[ -z "${STAGED_FILES}" ]]; then
+  exit 0
+fi
+
+is_env_like() {
+  local path="$1"
+  [[ "$path" =~ (^|/)\.env($|\.) ]]
+}
+
+is_allowed_env_template() {
+  local path="$1"
+  [[ "$path" == ".env.example" || "$path" == ".env.template" || "$path" == ".env.sample" ]]
+}
+
+is_placeholder_value() {
+  local value="${1,,}"
+  [[ -z "$value" ]] && return 0
+  [[ "$value" =~ ^(changeme|change-me|replace-me|example|example-value|sample|placeholder|dummy|none|null|todo|tbd)$ ]] && return 0
+  [[ "$value" == \<*\> ]] && return 0
+  [[ "$value" =~ your_ ]] && return 0
+  [[ "$value" =~ insert_ ]] && return 0
+  [[ "$value" =~ put_ ]] && return 0
+  return 1
+}
+
+looks_like_secret_assignment() {
+  local line="$1"
+  [[ "$line" =~ ^[[:space:]]*# ]] && return 1
+  [[ "$line" != *=* ]] && return 1
+
+  local key="${line%%=*}"
+  local value="${line#*=}"
+
+  key="$(echo "$key" | tr '[:lower:]' '[:upper:]' | tr -d '[:space:]')"
+  value="${value#\"}"
+  value="${value%\"}"
+  value="${value#\'}"
+  value="${value%\'}"
+  value="$(echo "$value" | sed 's/[[:space:]]*$//')"
+
+  if [[ "$key" =~ (SECRET|TOKEN|PASSWORD|PASSWD|API_KEY|PRIVATE_KEY|ACCESS_KEY|CLIENT_SECRET|AUTH) ]]; then
+    if ! is_placeholder_value "$value"; then
+      return 0
+    fi
+  fi
+
+  if [[ "$value" =~ ^(ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|ghu_[A-Za-z0-9]{20,}|ghs_[A-Za-z0-9]{20,}|ghr_[A-Za-z0-9]{20,})$ ]]; then
+    return 0
+  fi
+
+  if [[ "$value" =~ ^sk-[A-Za-z0-9]{20,}$ ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
+BLOCKED_FILES=()
+TEMPLATE_WITH_SECRETS=()
+
+while IFS= read -r file; do
+  [[ -z "$file" ]] && continue
+
+  if ! is_env_like "$file"; then
+    continue
+  fi
+
+  if ! is_allowed_env_template "$file"; then
+    BLOCKED_FILES+=("$file")
+    continue
+  fi
+
+  STAGED_CONTENT="$(git show ":$file" || true)"
+  while IFS= read -r line; do
+    if looks_like_secret_assignment "$line"; then
+      TEMPLATE_WITH_SECRETS+=("$file")
+      break
+    fi
+  done <<< "$STAGED_CONTENT"
+done <<< "$STAGED_FILES"
+
+if (( ${#BLOCKED_FILES[@]} > 0 )); then
+  echo ""
+  echo "[pre-commit] Commit blockiert: .env-Dateien duerfen nicht versioniert werden."
+  echo "Betroffene Dateien:"
+  printf '  - %s\n' "${BLOCKED_FILES[@]}"
+  echo ""
+  echo "Nutze lokale .env-Dateien nur unversioniert und halte Beispielwerte in .env.example/.env.template/.env.sample." 
+  exit 1
+fi
+
+if (( ${#TEMPLATE_WITH_SECRETS[@]} > 0 )); then
+  echo ""
+  echo "[pre-commit] Commit blockiert: moegliche echte Secrets in Environment-Template erkannt."
+  echo "Betroffene Dateien:"
+  printf '  - %s\n' "${TEMPLATE_WITH_SECRETS[@]}"
+  echo ""
+  echo "Bitte Platzhalterwerte verwenden (z. B. <REPLACE_ME> oder changeme)."
+  exit 1
+fi
+
+PYTHON_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+elif [[ -x "./.venv-chat/Scripts/python.exe" ]]; then
+  PYTHON_BIN="./.venv-chat/Scripts/python.exe"
+fi
+
+if [[ -n "$PYTHON_BIN" ]]; then
+  "$PYTHON_BIN" scripts/check_example_secrets.py --staged
+else
+  echo "[pre-commit] Warnung: kein Python gefunden, scripts/check_example_secrets.py wurde nicht ausgefuehrt."
+fi
+
+exit 0

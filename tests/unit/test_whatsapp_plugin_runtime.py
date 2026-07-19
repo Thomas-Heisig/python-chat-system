@@ -24,6 +24,7 @@ def test_whatsapp_plugin_skips_for_letter_channel() -> None:
 
     assert result["success"] is True
     assert result["status"] == "skipped"
+    assert result["reason"] == "unsupported_channel"
     assert "uebersprungen" in result["message"]
 
 

@@ -1,0 +1,26 @@
+{
+  "venvPath": ".",
+  "venv": ".venv-chat",
+  "include": [
+    "app",
+    "scripts",
+    "tests"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    ".venv-chat",
+    ".venv-training",
+    "frontend",
+    "data",
+    "artifacts",
+    "training-artifacts"
+  ],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "."
+      ]
+    }
+  ]
+}

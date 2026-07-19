@@ -53,12 +53,25 @@ class LlamaCppBackend(ModelBackend):
             return str(candidate)
 
         if candidate.is_dir():
-            gguf_files = sorted(
-                (item for item in candidate.rglob("*.gguf") if item.is_file()),
-                key=lambda item: (len(item.relative_to(candidate).parts), item.name.lower()),
-            )
+            gguf_files = [item for item in candidate.rglob("*.gguf") if item.is_file()]
             if gguf_files:
-                return str(gguf_files[0])
+                # Prefer actual model weights over multimodal projector files (for example mmproj*.gguf).
+                non_projector_files = [
+                    item
+                    for item in gguf_files
+                    if "mmproj" not in item.name.lower() and "projector" not in item.name.lower()
+                ]
+
+                preferred_files = non_projector_files if non_projector_files else gguf_files
+                selected = sorted(
+                    preferred_files,
+                    key=lambda item: (
+                        -item.stat().st_size,
+                        len(item.relative_to(candidate).parts),
+                        item.name.lower(),
+                    ),
+                )[0]
+                return str(selected)
 
         raise RuntimeError(f"Model file not found: {model_path}")
 

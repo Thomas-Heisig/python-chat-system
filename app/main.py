@@ -12,6 +12,8 @@ from app.api.routes import (
     settings_router,
     system_router,
     workspace_router,
+    speech_router,
+    plugins_router,
 )
 from app.training.api import training_router
 from app.lifespan import app_lifespan
@@ -43,6 +45,8 @@ app.include_router(workspace_router)
 app.include_router(training_router)
 app.include_router(meta_router)
 app.include_router(system_router)
+app.include_router(speech_router)
+app.include_router(plugins_router)
 
 
 @app.get("/")

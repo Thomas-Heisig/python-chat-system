@@ -16,7 +16,7 @@ from app.models.path_security import normalize_base_directories, validate_runtim
 from app.models.registry import ModelRegistry
 from app.models.scanner import ModelScanner
 from app.settings.seed import seed_default_settings
-from app.settings.repair import repair_invalid_settings
+from app.settings.repair import cleanup_obsolete_global_chat_settings, repair_invalid_settings
 from app.settings.service import SettingsService
 
 
@@ -45,6 +45,7 @@ async def initialize_runtime(run_model_scan: bool = True) -> dict[str, int]:
     session_maker = get_session_maker()
     async with session_maker() as session:
         await seed_default_settings(session)
+        await cleanup_obsolete_global_chat_settings(session)
         await _warn_if_model_allow_list_not_configured()
         await repair_invalid_settings(session)
         scan_stats = {"discovered": 0, "inserted": 0, "updated": 0}
@@ -63,9 +64,12 @@ async def _warn_if_model_allow_list_not_configured() -> None:
     if configured:
         return
 
-    logger.warning(
-        "MODEL_ALLOWED_BASE_DIRS is not configured; model base directory policy is permissive for local paths."
-    )
+    message = "MODEL_ALLOWED_BASE_DIRS is not configured; model base directory policy is permissive for local paths."
+    environment = os.getenv("APP_ENV", "development").strip().lower()
+    if environment in {"dev", "development", "local"}:
+        logger.info(message)
+        return
+    logger.warning(message)
 
 
 async def _scan_and_sync_models(session: AsyncSession) -> dict[str, int]:

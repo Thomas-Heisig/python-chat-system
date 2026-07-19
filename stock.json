@@ -1,0 +1,58 @@
+{
+  "P001": {
+    "name": "Nero Assoluto Granit Fliese 60x60",
+    "stock": 120,
+    "reserved": 15,
+    "location": "Lager A",
+    "min_stock": 20
+  },
+  "P002": {
+    "name": "Bianco Sardo Marmor Fliese 40x40",
+    "stock": 85,
+    "reserved": 5,
+    "location": "Lager A",
+    "min_stock": 10
+  },
+  "P003": {
+    "name": "Giallo Venezia Granit Fliese 30x60",
+    "stock": 200,
+    "reserved": 30,
+    "location": "Lager B",
+    "min_stock": 25
+  },
+  "P004": {
+    "name": "Carrara Marmor Platte 300x140cm",
+    "stock": 15,
+    "reserved": 2,
+    "location": "Lager C",
+    "min_stock": 5
+  },
+  "P005": {
+    "name": "Quarzit Bianco Platte 250x120cm",
+    "stock": 10,
+    "reserved": 3,
+    "location": "Lager C",
+    "min_stock": 3
+  },
+  "P006": {
+    "name": "Schiefer Grau Fliese 30x60",
+    "stock": 300,
+    "reserved": 20,
+    "location": "Lager A",
+    "min_stock": 30
+  },
+  "P007": {
+    "name": "Travertin Classico Fliese 40x40",
+    "stock": 180,
+    "reserved": 10,
+    "location": "Lager B",
+    "min_stock": 20
+  },
+  "P008": {
+    "name": "Nero Assoluto Granit Arbeitsplatte 240x60cm",
+    "stock": 8,
+    "reserved": 1,
+    "location": "Lager C",
+    "min_stock": 2
+  }
+}

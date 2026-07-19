@@ -1,0 +1,18 @@
+{
+  "valid_jsonl": true,
+  "cross_split_duplicates": 0,
+  "total_records": 88,
+  "topic_distribution": {
+    "angebot_design": 9,
+    "geschaeftsbriefe_email": 9,
+    "rechnung_pflichtangaben": 10,
+    "rechnung_nummerierung_archivierung": 11,
+    "auftragsbestaetigung_lieferschein": 6,
+    "gutschrift_rechnungskorrektur": 7,
+    "mahnung_zahlungserinnerung": 6,
+    "dokumentendesign": 8,
+    "naturstein_dokumentinhalte": 8,
+    "dokumentenpruefung_fehler": 9,
+    "mehrstufige_dialoge": 5
+  }
+}

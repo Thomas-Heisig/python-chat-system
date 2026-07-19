@@ -166,3 +166,78 @@ def test_append_general_settings_self_knowledge_uses_fallback_on_settings_error(
 	assert "- Sprache: de" in result
 	assert "- Theme: system" in result
 	assert "- Zeitzone: Europe/Berlin" in result
+
+
+def test_retrieval_respects_conversation_project_hierarchy_scope() -> None:
+	service = ChatService(session=SimpleNamespace())
+	captured_scope: dict[str, object] = {}
+
+	async def fake_list_documents_for_scope(*, user_id: int, project_ids: list[int], include_unassigned: bool, limit: int = 200):
+		assert user_id == 3
+		captured_scope["project_ids"] = list(project_ids)
+		captured_scope["include_unassigned"] = include_unassigned
+		return [
+			{
+				"id": 30,
+				"file": "fussball_trainingsplan.md",
+				"position": "Abschnitt 1",
+				"relevance": "93%",
+				"status": "ready",
+				"source": "Upload",
+				"project_id": 2,
+			},
+			{
+				"id": 31,
+				"file": "sportverein_satzung.pdf",
+				"position": "Seite 2",
+				"relevance": "76%",
+				"status": "ready",
+				"source": "Upload",
+				"project_id": 1,
+			},
+		]
+
+	async def fake_get_setting(*, category: str, key: str, user_id: int, request_value=None):
+		assert user_id == 3
+		if category == "knowledge":
+			if key == "min_score_ratio":
+				return 0.0
+			if key == "min_absolute_score":
+				return 0
+			if key == "min_score_gap":
+				return 99999
+			return None
+		if category == "chat" and key == "conversation_project_map":
+			return {"55": 2}
+		if category == "workspace" and key == "project_meta_map":
+			return {
+				"1": {"project_id": 1, "parent_project_id": None},
+				"2": {"project_id": 2, "parent_project_id": 1},
+				"3": {"project_id": 3, "parent_project_id": None},
+			}
+		return None
+
+	service.knowledge_repo = SimpleNamespace(list_documents_for_scope=fake_list_documents_for_scope)
+	service.settings_service = SimpleNamespace(get=fake_get_setting)
+
+	selected, knowledge_messages, _top_k, diagnostics = _run(
+		service._select_retrieval_sources(
+			user_id=3,
+			conversation_id=55,
+			user_message="Bitte gib mir den Fussball Trainingsplan.",
+			model_id=27,
+			retrieval_top_k_override=3,
+		)
+	)
+
+	assert captured_scope["project_ids"] == [1, 2]
+	assert captured_scope["include_unassigned"] is False
+	assert selected
+	assert selected[0]["file"] == "fussball_trainingsplan.md"
+	assert selected[0]["project_id"] == 2
+	assert selected[0]["scope_depth"] == 1
+	assert knowledge_messages
+	assert diagnostics
+	selected_diagnostics = [item for item in diagnostics if item["selected"]]
+	assert selected_diagnostics
+	assert selected_diagnostics[0]["project_id"] in {1, 2}

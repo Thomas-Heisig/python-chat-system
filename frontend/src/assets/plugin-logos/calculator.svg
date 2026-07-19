@@ -1,0 +1,13 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="18" y="18" width="156" height="156" rx="34" fill="#FFF8EE"/>
+  <rect x="18" y="18" width="156" height="156" rx="34" stroke="#D9C7A6" stroke-width="6"/>
+  <rect x="44" y="44" width="104" height="42" rx="12" fill="#2D2418"/>
+  <text x="96" y="72" text-anchor="middle" font-family="Space Grotesk, Segoe UI, sans-serif" font-size="26" font-weight="700" fill="#FDF3DE">CALC</text>
+  <rect x="44" y="98" width="24" height="24" rx="7" fill="#EEDCC0"/>
+  <rect x="78" y="98" width="24" height="24" rx="7" fill="#EEDCC0"/>
+  <rect x="112" y="98" width="24" height="24" rx="7" fill="#EEDCC0"/>
+  <rect x="44" y="132" width="24" height="24" rx="7" fill="#EEDCC0"/>
+  <rect x="78" y="132" width="24" height="24" rx="7" fill="#EEDCC0"/>
+  <rect x="112" y="132" width="24" height="24" rx="7" fill="#B44F2D"/>
+  <path d="M123 142H125.7V145.2H129V147.9H125.7V151.2H123V147.9H119.7V145.2H123V142Z" fill="#FFF4E8"/>
+</svg>

@@ -1,0 +1,231 @@
+.jtl-suite-page {
+  --jtl-bg: #f4f1eb;
+  --jtl-card: #ffffff;
+  --jtl-ink: #1e2a3a;
+  --jtl-muted: #5a6b7c;
+  --jtl-border: #d0d7dd;
+  --jtl-accent: #b44f2d;
+  --jtl-accent-hover: #8e3a1e;
+  --jtl-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  font-family: "Segoe UI", "Inter", system-ui, sans-serif;
+  padding: 24px;
+  background: var(--jtl-bg);
+  min-height: 100vh;
+  color: var(--jtl-ink);
+}
+
+.jtl-header {
+  max-width: 1400px;
+  margin: 0 auto 20px;
+}
+
+.jtl-branding h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+.jtl-subtitle {
+  margin: 4px 0 0;
+  color: var(--jtl-muted);
+  font-size: 1rem;
+}
+
+.jtl-layout {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Linke Spalte */
+.jtl-actions-sidebar {
+  display: grid;
+  gap: 20px;
+}
+
+.jtl-section {
+  background: var(--jtl-card);
+  border: 1px solid var(--jtl-border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--jtl-shadow);
+}
+
+.jtl-section h3 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+}
+.jtl-section-desc {
+  margin: 0 0 12px;
+  color: var(--jtl-muted);
+  font-size: 0.9rem;
+}
+
+.jtl-action-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jtl-action-btn {
+  border: 1px solid var(--jtl-border);
+  background: #faf8f5;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--jtl-ink);
+}
+.jtl-action-btn:hover {
+  background: #e8e3da;
+}
+.jtl-action-btn.active {
+  background: var(--jtl-accent);
+  color: #fff;
+  border-color: var(--jtl-accent);
+}
+
+/* Rechte Spalte */
+.jtl-execution-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.jtl-exec-form {
+  background: var(--jtl-card);
+  border: 1px solid var(--jtl-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--jtl-shadow);
+}
+
+.jtl-exec-header h2 {
+  margin: 0 0 4px;
+  font-size: 1.4rem;
+}
+.jtl-exec-desc {
+  margin: 0 0 16px;
+  color: var(--jtl-muted);
+}
+
+.jtl-params {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+  margin-bottom: 20px;
+}
+
+.jtl-param-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.jtl-param-row label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+}
+.jtl-param-row input {
+  padding: 8px;
+  border: 1px solid var(--jtl-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.jtl-submit-btn {
+  background: var(--jtl-accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.jtl-submit-btn:hover:not(:disabled) {
+  background: var(--jtl-accent-hover);
+}
+.jtl-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.jtl-error {
+  margin-top: 12px;
+  color: #b33c2f;
+  background: #fde8e5;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #f5c2b9;
+}
+
+.jtl-placeholder {
+  background: var(--jtl-card);
+  border: 1px solid var(--jtl-border);
+  border-radius: 16px;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--jtl-muted);
+}
+
+.jtl-result {
+  background: var(--jtl-card);
+  border: 1px solid var(--jtl-border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--jtl-shadow);
+  overflow-x: auto;
+}
+.jtl-result h3 {
+  margin: 0 0 8px;
+}
+.jtl-result pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9rem;
+  background: #f6f4f0;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.jtl-draft-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+.jtl-draft-btn {
+  background: #e8e3da;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.jtl-draft-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.jtl-draft-msg {
+  font-size: 0.85rem;
+  color: var(--jtl-muted);
+}
+
+@media (max-width: 1024px) {
+  .jtl-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .jtl-params {
+    grid-template-columns: 1fr;
+  }
+}
