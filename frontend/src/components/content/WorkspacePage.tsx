@@ -1,7 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { getAuthToken } from "../../services/backend";
-import { BusinessLetterManualPage } from "../../../../plugins/business_letter/frontend/BusinessLetterManualPage";
-import { CalculatorManualPage } from "../../../../plugins/calculator/frontend/CalculatorManualPage";
 import type {
   AuthUser,
   PluginCatalogEntry,
@@ -3491,7 +3489,7 @@ export function WorkspacePage({
                 {pluginPopupTab === "frontend" ? (
                   <div className="plugin-popup__body">
                     {selectedPluginDescriptor?.id === "business_letter" ? (
-                      <BusinessLetterManualPage
+                      <PluginManualPage
                         currentUserId={currentUser.id}
                         executePlugin={async (payload) => {
                           if (!onExecutePlugin) {
@@ -3504,7 +3502,7 @@ export function WorkspacePage({
                     ) : null}
 
                     {selectedPluginDescriptor?.id === "calculator" ? (
-                      <CalculatorManualPage
+                      <PluginManualPage
                         currentUserId={currentUser.id}
                         executePlugin={async (payload) => {
                           if (!onExecutePlugin) {
