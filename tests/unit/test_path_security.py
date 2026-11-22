@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from app.models.path_security import (
     normalize_base_directories,

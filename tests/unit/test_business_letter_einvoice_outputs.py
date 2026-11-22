@@ -7,6 +7,7 @@ import shlex
 import shutil
 import sqlite3
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -20,8 +21,8 @@ FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "business_lette
 
 def _payload() -> dict[str, Any]:
     return {
-        "letter_type": "angebot",
-        "subject": "Angebot fuer Steinplatte",
+        "letter_type": "rechnung",
+        "subject": "Rechnung fuer Steinplatte",
         "communication_channel": "email",
         "customer_company": "Kunde GmbH",
         "customer_first_name": "Anna",
@@ -33,6 +34,10 @@ def _payload() -> dict[str, Any]:
         "customer_country": "Deutschland",
         "recipient_email": "kunde@example.de",
         "buyer_reference": "BR-2026-01",
+        "buyer_electronic_address": "kunde@example.de",
+        "buyer_electronic_address_scheme": "EM",
+        "buyer_vat_id": "DE123456788",
+        "payment_terms": "Zahlbar innerhalb von 14 Tagen.",
         "issue_date": "2026-07-18",
         "document_number": "DOC-TEST-1001",
         "positions": [
@@ -51,6 +56,11 @@ def _payload() -> dict[str, Any]:
             "company_city": "Hannover",
             "company_zip": "30159",
             "company_manager": "Maria Real",
+            "company_phone": "0511 123456",
+            "company_email": "rechnung@steinbau-real.de",
+            "company_electronic_address": "rechnung@steinbau-real.de",
+            "company_electronic_address_scheme": "EM",
+            "company_iban": "DE75512108001245126199",
             "company_vat_id": "DE998877665",
         },
     }
@@ -65,6 +75,18 @@ def _require_external_validators() -> bool:
 
 
 def _verapdf_command(pdf_path: Path) -> list[str] | None:
+    docker_image = str(os.getenv("VERAPDF_DOCKER_IMAGE", "")).strip()
+    if docker_image:
+        container_pdf_path = f"/tmp/{pdf_path.name}"
+        return [
+            "docker",
+            "run",
+            "--rm",
+            "--mount",
+            f"type=bind,source={pdf_path.resolve()},target={container_pdf_path},readonly",
+            docker_image,
+            container_pdf_path,
+        ]
     docker_cmd = str(os.getenv("VERAPDF_CMD", "")).strip()
     if docker_cmd:
         return [*shlex.split(docker_cmd), str(pdf_path)]
@@ -166,6 +188,7 @@ def test_xrechnung_xml_contains_document_currency_and_invoice_lines() -> None:
     xml = str(result["einvoice"]["xml"])
     assert "<cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>" in xml
     assert "<cbc:PaymentMeansCode>58</cbc:PaymentMeansCode>" in xml
+    assert xml.index("<cac:AccountingCustomerParty>") < xml.index("<cac:PaymentMeans>")
     assert "<cac:InvoiceLine>" in xml
     assert "<cbc:InvoicedQuantity unitCode=\"C62\">" in xml
     assert "<cbc:LineExtensionAmount currencyID=\"EUR\">199.90</cbc:LineExtensionAmount>" in xml
@@ -285,26 +308,50 @@ def test_official_xrechnung_validation_executes_with_xsd_and_schematron(monkeypa
 
 
 def test_external_pdfa_validator_if_available(tmp_path: Path) -> None:
-    result = _execute({**_payload(), "einvoice": {"enabled": True, "standard": "zugferd", "profile": "en16931"}})
-    pdf_path = tmp_path / "invoice.pdf"
-    pdf_path.write_bytes(bytes(result["einvoice"]["pdf"]["bytes"]))
-
-    verapdf_cmd = _verapdf_command(pdf_path)
-    if not verapdf_cmd:
-        if _require_external_validators():
-            pytest.fail("veraPDF command is required but not available")
-        pytest.skip("veraPDF not available in environment")
-
-    completed = subprocess.run(verapdf_cmd, capture_output=True, text=True)
-    report_dir = os.getenv("VERAPDF_REPORT_DIR", "").strip()
-    if report_dir:
-        report_path = Path(report_dir)
-        report_path.mkdir(parents=True, exist_ok=True)
-        (report_path / "verapdf-report.txt").write_text(
-            (completed.stdout or "") + "\n" + (completed.stderr or ""),
-            encoding="utf-8",
+    with tempfile.TemporaryDirectory(
+        prefix="verapdf-test-",
+        dir=os.getenv("GITHUB_WORKSPACE", str(tmp_path)),
+    ) as pdf_directory:
+        result = _execute(
+            {**_payload(), "einvoice": {"enabled": True, "standard": "zugferd", "profile": "en16931"}}
         )
-    assert completed.returncode == 0, completed.stdout + completed.stderr
+        pdf_path = Path(pdf_directory) / "invoice.pdf"
+        pdf_path.write_bytes(bytes(result["einvoice"]["pdf"]["bytes"]))
+
+        verapdf_cmd = _verapdf_command(pdf_path)
+        if not verapdf_cmd:
+            if _require_external_validators():
+                pytest.fail("veraPDF command is required but not available")
+            pytest.skip("veraPDF not available in environment")
+
+        completed = subprocess.run(verapdf_cmd, capture_output=True, text=True)
+        report_dir = os.getenv("VERAPDF_REPORT_DIR", "").strip()
+        if report_dir:
+            report_path = Path(report_dir)
+            report_path.mkdir(parents=True, exist_ok=True)
+            (report_path / "verapdf-report.txt").write_text(
+                (completed.stdout or "") + "\n" + (completed.stderr or ""),
+                encoding="utf-8",
+            )
+        assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+def test_verapdf_docker_command_mounts_the_input_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pdf_path = tmp_path / "invoice.pdf"
+    monkeypatch.setenv("VERAPDF_DOCKER_IMAGE", "verapdf/cli:test")
+
+    assert _verapdf_command(pdf_path) == [
+        "docker",
+        "run",
+        "--rm",
+        "--mount",
+        f"type=bind,source={pdf_path.resolve()},target=/tmp/invoice.pdf,readonly",
+        "verapdf/cli:test",
+        "/tmp/invoice.pdf",
+    ]
 
 
 def test_official_reference_valid_example_passes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -368,6 +415,61 @@ def test_official_reference_invalid_example_reports_rule_ids_and_classes(monkeyp
     assert classification.get("schematron") is True
     assert classification.get("en16931") is True
     assert classification.get("xrechnung_specific") is True
+
+
+def test_kosit_cli_reports_schema_and_schematron_results(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from plugins.business_letter.einvoice.official_validation import validate_xrechnung_official_conformance
+
+    assets_root = tmp_path / "assets"
+    config_root = assets_root / "validator"
+    config_root.mkdir(parents=True)
+    validator_jar = assets_root / "validator.jar"
+    validator_jar.touch()
+    xsd_path = config_root / "invoice.xsd"
+    xsd_path.touch()
+    schematron_path = assets_root / "XRechnung-UBL-validation.sch"
+    schematron_path.touch()
+    monkeypatch.setenv("XRECHNUNG_VALIDATOR_JAR", str(validator_jar))
+    monkeypatch.setenv("XRECHNUNG_VALIDATOR_ASSETS_ROOT", str(assets_root))
+    monkeypatch.setenv("XRECHNUNG_VALIDATOR_CONFIG_ROOT", str(config_root))
+    monkeypatch.setenv("BUSINESS_LETTER_VALIDATION_REPORT_DIR", str(tmp_path / "reports"))
+    monkeypatch.setattr(
+        "plugins.business_letter.einvoice.official_validation.shutil.which",
+        lambda name: "java" if name == "java" else None,
+    )
+    report = """KoSIT Validator version 1.6.3
+    [Format error!] <<?xml version="1.0"?>
+    <rep:report xmlns:rep="http://www.xoev.de/de/validator/varl/1">
+      <rep:validationStepResult id="val-xml" valid="true"/>
+      <rep:validationStepResult id="val-xsd" valid="true"/>
+      <rep:validationStepResult id="val-sch.1" valid="false">
+        <rep:message code="BR-DE-15">Buyer reference is missing</rep:message>
+      </rep:validationStepResult>
+      <rep:assessment><rep:reject/></rep:assessment>
+    </rep:report>>"""
+
+    def run_validator(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, 1, stdout=report, stderr="")
+
+    monkeypatch.setattr(
+        "plugins.business_letter.einvoice.official_validation.subprocess.run",
+        run_validator,
+    )
+    result = validate_xrechnung_official_conformance(
+        "<Invoice/>",
+        xsd_path=str(xsd_path),
+        schematron_path=str(schematron_path),
+        report_prefix="kosit_test",
+    )
+
+    assert result["executed"] is True
+    assert result["valid"] is False
+    assert result["schema"]["valid"] is True
+    assert result["schematron"]["valid"] is False
+    assert "BR-DE-15" in result["rule_ids"]
 
 
 @pytest.mark.parametrize(
@@ -482,7 +584,7 @@ def test_official_kosit_invalid_derived_case_reports_expected_rule_ids(
     assert "BR-DE-15" in rule_ids
     assert "PEPPOL-EN16931-R010" in rule_ids
     assert "PEPPOL-EN16931-R020" in rule_ids
-    assert "BR-DEX-09" in rule_ids
+    assert "BR-CO-16" in rule_ids
 
     classification = result.get("classification", {})
     assert classification.get("xsd") is False
@@ -599,7 +701,7 @@ def test_official_kosit_cii_invalid_derived_case_reports_expected_rule_ids(
     assert "BR-DE-15" in rule_ids
     assert "PEPPOL-EN16931-R010" in rule_ids
     assert "PEPPOL-EN16931-R020" in rule_ids
-    assert "BR-DEX-09" in rule_ids
+    assert "BR-CO-16" in rule_ids
 
 
 def test_persist_to_plugin_and_guest_system_sqlite(tmp_path: Path) -> None:

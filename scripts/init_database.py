@@ -6,9 +6,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.database.base import Base
-from app.database.connection import get_engine
-import app.db_models  # noqa: F401
+from app.database.base import Base  # noqa: E402
+from app.database.connection import get_engine  # noqa: E402
+import app.db_models  # noqa: E402,F401
 
 
 async def main() -> None:

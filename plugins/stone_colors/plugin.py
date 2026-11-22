@@ -351,7 +351,6 @@ class StoneColorsPlugin:
 
         stone_type = str(input_data.get("stone_type", "")).strip() or None
         color = str(input_data.get("color", "")).strip() or None
-        limit = max(1, min(50, int(input_data.get("limit", 10))))
 
         stone_data = self._find_stone(stone_name, stone_type, color)
 
@@ -379,5 +378,4 @@ class StoneColorsPlugin:
             "stone": result,
             "message": f"Informationen zu {stone_data.get('name')} gefunden.",
         }
-
 

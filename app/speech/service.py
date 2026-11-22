@@ -283,9 +283,7 @@ class SpeechService:
                 causal_mask_fn = getattr(masking_utils, "create_causal_mask", None)
                 if callable(causal_mask_fn):
                     try:
-                        causal_sig = inspect.signature(causal_mask_fn)
-                        accepts_input_embeds = "input_embeds" in causal_sig.parameters
-                        accepts_inputs_embeds = "inputs_embeds" in causal_sig.parameters
+                        inspect.signature(causal_mask_fn)
 
                         def _compat_create_causal_mask(*args: Any, **kwargs: Any) -> Any:
                             config = kwargs.get("config")

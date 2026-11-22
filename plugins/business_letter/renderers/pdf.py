@@ -3,9 +3,16 @@ from __future__ import annotations
 import base64
 import binascii
 from datetime import datetime, timezone
+from functools import lru_cache
+import hashlib
+from io import BytesIO
+from pathlib import Path
 import struct
 import textwrap
-from typing import Any, cast
+from typing import Any, Callable, cast
+from xml.sax.saxutils import escape as escape_xml
+
+from fontTools.ttLib import TTFont
 
 
 PAGE_WIDTH = 595
@@ -26,10 +33,123 @@ class LogoResolutionError(ValueError):
 def _font_resource_name(font_family: str) -> tuple[str, str]:
     normalized = str(font_family or "").strip().lower()
     if "merriweather" in normalized or "serif" in normalized:
-        return "F2", "Times-Roman"
+        return "F2", "DejaVuSerif"
     if "plex mono" in normalized or "mono" in normalized or "courier" in normalized:
-        return "F3", "Courier"
-    return "F1", "Helvetica"
+        return "F3", "DejaVuSansMono"
+    return "F1", "DejaVuSans"
+
+
+@lru_cache(maxsize=3)
+def _embedded_font_data(font_name: str) -> tuple[bytes, bytes, str, list[int]]:
+    font_files = {
+        "DejaVuSans": "DejaVuSans.ttf",
+        "DejaVuSerif": "DejaVuSerif.ttf",
+        "DejaVuSansMono": "DejaVuSansMono.ttf",
+    }
+    file_name = font_files.get(font_name)
+    if file_name is None:
+        raise ValueError(f"Unsupported embedded PDF font: {font_name}")
+
+    font_path = Path(__file__).with_name("fonts") / file_name
+    font = TTFont(str(font_path), recalcBBoxes=False, recalcTimestamp=False)
+    try:
+        font_buffer = BytesIO()
+        font.save(font_buffer)
+        font_bytes = font_buffer.getvalue()
+        cmap = font.getBestCmap()
+        metrics = font["hmtx"].metrics
+        units_per_em = font["head"].unitsPerEm
+        scale = 1000 / units_per_em
+
+        glyph_names: list[str] = []
+        unicode_values: list[int] = []
+        widths: list[int] = []
+        for code in range(32, 256):
+            try:
+                character = bytes([code]).decode("cp1252")
+            except UnicodeDecodeError:
+                character = "?"
+            glyph_name = cmap.get(ord(character), cmap[ord("?")])
+            glyph_names.append(glyph_name)
+            unicode_values.append(ord(character))
+            widths.append(round(metrics[glyph_name][0] * scale))
+
+        differences = " ".join(f"/{glyph_name}" for glyph_name in glyph_names)
+        encoding = f"<< /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [32 {differences}] >>"
+        unicode_entries = [
+            f"<{code:02X}> <{unicode_value:04X}>"
+            for code, unicode_value in zip(range(32, 256), unicode_values, strict=True)
+        ]
+        cmap_parts = [
+            "/CIDInit /ProcSet findresource begin",
+            "12 dict begin",
+            "begincmap",
+            "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def",
+            "/CMapName /Adobe-Identity-UCS def",
+            "/CMapType 2 def",
+            "1 begincodespacerange",
+            "<00> <FF>",
+            "endcodespacerange",
+        ]
+        for offset in range(0, len(unicode_entries), 100):
+            batch = unicode_entries[offset : offset + 100]
+            cmap_parts.extend([f"{len(batch)} beginbfchar", *batch, "endbfchar"])
+        cmap_parts.extend(
+            [
+                "endcmap",
+                "CMapName currentdict /CMap defineresource pop",
+                "end",
+                "end",
+            ]
+        )
+        return font_bytes, "\n".join(cmap_parts).encode("ascii"), encoding, widths
+    finally:
+        font.close()
+
+
+def _add_embedded_font(add: Callable[[bytes], int], font_name: str) -> int:
+    font_bytes, cmap_bytes, encoding, widths = _embedded_font_data(font_name)
+    font = TTFont(str(Path(__file__).with_name("fonts") / f"{font_name}.ttf"), recalcBBoxes=False)
+    try:
+        scale = 1000 / font["head"].unitsPerEm
+        head = font["head"]
+        hhea = font["hhea"]
+        os2 = font["OS/2"]
+        font_bbox = [
+            round(head.xMin * scale),
+            round(head.yMin * scale),
+            round(head.xMax * scale),
+            round(head.yMax * scale),
+        ]
+        ascent = round(hhea.ascent * scale)
+        descent = round(hhea.descent * scale)
+        cap_height = round(getattr(os2, "sCapHeight", hhea.ascent) * scale)
+    finally:
+        font.close()
+
+    font_file_id = add(
+        f"<< /Length {len(font_bytes)} /Length1 {len(font_bytes)} >>\nstream\n".encode("ascii")
+        + font_bytes
+        + b"\nendstream"
+    )
+    descriptor_id = add(
+        (
+            f"<< /Type /FontDescriptor /FontName /{font_name} /Flags 32 "
+            f"/FontBBox [{font_bbox[0]} {font_bbox[1]} {font_bbox[2]} {font_bbox[3]}] "
+            f"/ItalicAngle 0 /Ascent {ascent} /Descent {descent} /CapHeight {cap_height} "
+            f"/StemV 80 /FontFile2 {font_file_id} 0 R >>"
+        ).encode("ascii")
+    )
+    cmap_id = add(
+        b"<< /Length " + str(len(cmap_bytes)).encode("ascii") + b" >>\nstream\n" + cmap_bytes + b"\nendstream"
+    )
+    return add(
+        (
+            f"<< /Type /Font /Subtype /TrueType /BaseFont /{font_name} "
+            f"/FirstChar 32 /LastChar 255 /Widths [{' '.join(str(width) for width in widths)}] "
+            f"/Encoding {encoding} /FontDescriptor {descriptor_id} 0 R /ToUnicode {cmap_id} 0 R >>"
+        ).encode("ascii")
+    )
 
 
 def _mm_to_pt(mm: float) -> float:
@@ -316,17 +436,64 @@ def _xmp_packet(*, title: str, metadata: dict[str, Any] | None, pdfa_part: int, 
             xmlns:pdfaid='http://www.aiim.org/pdfa/ns/id/'
             xmlns:dc='http://purl.org/dc/elements/1.1/'
             xmlns:xmp='http://ns.adobe.com/xap/1.0/'
+            xmlns:pdfaExtension='http://www.aiim.org/pdfa/ns/extension/'
+            xmlns:pdfaSchema='http://www.aiim.org/pdfa/ns/schema#'
+            xmlns:pdfaProperty='http://www.aiim.org/pdfa/ns/property#'
             xmlns:zf='urn:ferd:pdfa:CrossIndustryDocument:invoice:1p0#'>
             <pdfaid:part>{pdfa_part}</pdfaid:part>
             <pdfaid:conformance>{pdfa_conformance}</pdfaid:conformance>
-            <dc:title><rdf:Alt><rdf:li xml:lang='x-default'>{title}</rdf:li></rdf:Alt></dc:title>
+            <dc:format>application/pdf</dc:format>
+            <dc:title><rdf:Alt><rdf:li xml:lang='x-default'>{escape_xml(title)}</rdf:li></rdf:Alt></dc:title>
             <xmp:CreateDate>{created}</xmp:CreateDate>
             <xmp:ModifyDate>{created}</xmp:ModifyDate>
-            <zf:DocumentType>{doc_type}</zf:DocumentType>
-            <zf:ConformanceLevel>{profile_name}</zf:ConformanceLevel>
+            <zf:DocumentType>{escape_xml(doc_type.upper())}</zf:DocumentType>
+            <zf:ConformanceLevel>{escape_xml(profile_name)}</zf:ConformanceLevel>
             <zf:DocumentFileName>factur-x.xml</zf:DocumentFileName>
             <zf:Version>2.3</zf:Version>
-            <zf:Profile>{guideline}</zf:Profile>
+            <zf:Profile>{escape_xml(guideline)}</zf:Profile>
+            <pdfaExtension:schemas>
+                <rdf:Bag>
+                    <rdf:li rdf:parseType='Resource'>
+                        <pdfaSchema:schema>Factur-X PDFA Extension Schema</pdfaSchema:schema>
+                        <pdfaSchema:namespaceURI>urn:ferd:pdfa:CrossIndustryDocument:invoice:1p0#</pdfaSchema:namespaceURI>
+                        <pdfaSchema:prefix>zf</pdfaSchema:prefix>
+                        <pdfaSchema:property>
+                            <rdf:Seq>
+                                <rdf:li rdf:parseType='Resource'>
+                                    <pdfaProperty:name>DocumentType</pdfaProperty:name>
+                                    <pdfaProperty:valueType>Text</pdfaProperty:valueType>
+                                    <pdfaProperty:category>external</pdfaProperty:category>
+                                    <pdfaProperty:description>Type of the embedded invoice document</pdfaProperty:description>
+                                </rdf:li>
+                                <rdf:li rdf:parseType='Resource'>
+                                    <pdfaProperty:name>ConformanceLevel</pdfaProperty:name>
+                                    <pdfaProperty:valueType>Text</pdfaProperty:valueType>
+                                    <pdfaProperty:category>external</pdfaProperty:category>
+                                    <pdfaProperty:description>Conformance level of the embedded invoice</pdfaProperty:description>
+                                </rdf:li>
+                                <rdf:li rdf:parseType='Resource'>
+                                    <pdfaProperty:name>DocumentFileName</pdfaProperty:name>
+                                    <pdfaProperty:valueType>Text</pdfaProperty:valueType>
+                                    <pdfaProperty:category>external</pdfaProperty:category>
+                                    <pdfaProperty:description>Name of the embedded invoice XML file</pdfaProperty:description>
+                                </rdf:li>
+                                <rdf:li rdf:parseType='Resource'>
+                                    <pdfaProperty:name>Version</pdfaProperty:name>
+                                    <pdfaProperty:valueType>Text</pdfaProperty:valueType>
+                                    <pdfaProperty:category>external</pdfaProperty:category>
+                                    <pdfaProperty:description>Version of the embedded invoice standard</pdfaProperty:description>
+                                </rdf:li>
+                                <rdf:li rdf:parseType='Resource'>
+                                    <pdfaProperty:name>Profile</pdfaProperty:name>
+                                    <pdfaProperty:valueType>Text</pdfaProperty:valueType>
+                                    <pdfaProperty:category>external</pdfaProperty:category>
+                                    <pdfaProperty:description>Guideline identifier of the embedded invoice</pdfaProperty:description>
+                                </rdf:li>
+                            </rdf:Seq>
+                        </pdfaSchema:property>
+                    </rdf:li>
+                </rdf:Bag>
+            </pdfaExtension:schemas>
         </rdf:Description>
     </rdf:RDF>
 </x:xmpmeta>
@@ -464,7 +631,15 @@ def _page_stream(
             ]
         )
 
-    commands.extend(["BT", f"/{font_resource_name} {font_size} Tf", f"{leading} TL", f"{left_margin} {PAGE_HEIGHT - top_margin} Td"])
+    commands.extend(
+        [
+            "0 0 0 rg",
+            "BT",
+            f"/{font_resource_name} {font_size} Tf",
+            f"{leading} TL",
+            f"{left_margin} {PAGE_HEIGHT - top_margin} Td",
+        ]
+    )
     for index, line in enumerate(lines):
         commands.append(f"({_escape_pdf_text(line)}) Tj")
         if index != len(lines) - 1:
@@ -490,8 +665,8 @@ def _page_stream(
             if index != len(footer_text_lines) - 1:
                 commands.append("T*")
         commands.append("ET")
-        commands.append("0 g")
-    return "\n".join(commands).encode("latin-1", errors="replace")
+        commands.append("0 0 0 rg")
+    return "\n".join(commands).encode("cp1252", errors="replace")
 
 
 def _build_pdf_bytes(
@@ -528,7 +703,7 @@ def _build_pdf_bytes(
 
     catalog_id = add(b"<< /Type /Catalog /Pages 2 0 R >>")
     pages_id = add(b"<< /Type /Pages /Kids [] /Count 0 >>")
-    font_id = add(f"<< /Type /Font /Subtype /Type1 /BaseFont /{base_font_name} >>".encode("ascii"))
+    font_id = _add_embedded_font(add, base_font_name)
     logo_resource_name = "ImLogo"
     logo_object_id: int | None = None
     logo_draw: dict[str, Any] | None = None
@@ -609,6 +784,21 @@ def _build_pdf_bytes(
 
     metadata_xml = _xmp_packet(title=title, metadata=xmp_metadata, pdfa_part=pdfa_part, pdfa_conformance=pdfa_conformance)
     metadata_id = add(b"<< /Type /Metadata /Subtype /XML /Length " + str(len(metadata_xml)).encode("ascii") + b" >>\nstream\n" + metadata_xml + b"\nendstream")
+    icc_profile = (Path(__file__).with_name("color") / "sRGB.icc").read_bytes()
+    output_profile_id = add(
+        (
+            f"<< /N 3 /Alternate /DeviceRGB /Length {len(icc_profile)} >>\nstream\n".encode("ascii")
+            + icc_profile
+            + b"\nendstream"
+        )
+    )
+    output_intent_id = add(
+        (
+            f"<< /Type /OutputIntent /S /GTS_PDFA1 "
+            f"/OutputConditionIdentifier (sRGB IEC61966-2.1) /Info (sRGB IEC61966-2.1) "
+            f"/DestOutputProfile {output_profile_id} 0 R >>"
+        ).encode("ascii")
+    )
 
     file_spec_ids: list[int] = []
     if attachments:
@@ -642,10 +832,11 @@ def _build_pdf_bytes(
             embedded_names.append(f"(attachment_{index}) {spec_id} 0 R")
         names_clause = " /Names << /EmbeddedFiles << /Names [" + " ".join(embedded_names) + "] >> >>"
     objects[catalog_id - 1] = (
-        f"<< /Type /Catalog /Pages 2 0 R /Metadata {metadata_id} 0 R{af_clause}{names_clause} >>"
+        f"<< /Type /Catalog /Pages 2 0 R /Metadata {metadata_id} 0 R "
+        f"/OutputIntents [{output_intent_id} 0 R]{af_clause}{names_clause} >>"
     ).encode("ascii")
 
-    header = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"
+    header = b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n"
     offsets: list[int] = []
     body = bytearray(header)
     for object_id, content in enumerate(objects, start=1):
@@ -659,10 +850,12 @@ def _build_pdf_bytes(
     body.extend(b"0000000000 65535 f \n")
     for offset in offsets:
         body.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    identifier = hashlib.sha256(body).hexdigest()[:32].upper()
     body.extend(
         (
             "trailer\n"
-            f"<< /Size {len(objects) + 1} /Root 1 0 R /Info << /Title ({_escape_pdf_text(title)}) /Producer (business_letter_pdf_renderer) /CreationDate ({_pdf_date_now()}) >> >>\n"
+            f"<< /Size {len(objects) + 1} /Root 1 0 R /ID [<{identifier}><{identifier}>] "
+            f"/Info << /Title ({_escape_pdf_text(title)}) /Producer (business_letter_pdf_renderer) /CreationDate ({_pdf_date_now()}) >> >>\n"
             f"startxref\n{xref_start}\n%%EOF\n"
         ).encode("latin-1", errors="replace")
     )

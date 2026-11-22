@@ -74,17 +74,9 @@ def _parse_report_allowlist_entries(report_text: str) -> dict[str, set[str]]:
             continue
         if not in_entries_section:
             continue
-        if line_stripped == "### allowed_value_regex":
-            current_key = "allowed_value_regex"
-            continue
-        if line_stripped == "### allowed_line_regex":
-            current_key = "allowed_line_regex"
-            continue
-        if line_stripped == "### allowed_path_regex":
-            current_key = "allowed_path_regex"
-            continue
         if line_stripped.startswith("### "):
-            current_key = ""
+            heading = line_stripped[4:].removesuffix("-")
+            current_key = heading if heading in entries else ""
             continue
         if current_key and line_stripped.startswith("- "):
             entry = line_stripped[2:].strip()
@@ -237,7 +229,7 @@ def _write_report(
     lines.append("")
     lines.append("## Allowlist Snapshot")
     lines.append("")
-    lines.append(f"- File: config/secret-scan-allowlist.json")
+    lines.append("- File: config/secret-scan-allowlist.json")
     lines.append(f"- Last change date (git): {allowlist_last_change}")
     lines.append(f"- allowed_value_regex: {allowed_value_count}")
     lines.append(f"- allowed_line_regex: {allowed_line_count}")
