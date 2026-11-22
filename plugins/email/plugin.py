@@ -408,7 +408,6 @@ class EmailPlugin:
             # SendGrid unterstützt Anhänge über den 'attachments' Key
             payload["attachments"] = []
             for attachment in attachments:
-                import base64
                 payload["attachments"].append({
                     "content": attachment.get("content", ""),
                     "filename": attachment.get("filename", "attachment"),

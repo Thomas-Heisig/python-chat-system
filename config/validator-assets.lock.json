@@ -1,5 +1,11 @@
 {
   "xrechnung": {
+    "validator_engine": {
+      "version": "1.6.3",
+      "file": "validator-1.6.3-standalone.jar",
+      "url": "https://github.com/itplr-kosit/validator/releases/download/v1.6.3/validator-1.6.3-standalone.jar",
+      "sha256": "799e64befca97d4080e03608c80b85dd5a5ecc5f4ae4f35d1116ec2855b9a7c9"
+    },
     "validator_configuration": {
       "version": "v2026-01-31",
       "file": "xrechnung-3.0.2-validator-configuration-2026-01-31.zip",

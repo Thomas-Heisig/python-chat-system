@@ -1,4 +1,5 @@
-import sys, os
+import re
+import sys
 sys.stdout.reconfigure(encoding='utf-8')
 fpath = 'f:/symple chat/python-chat-system/plugins/jtl_suite/plugin.py'
 
@@ -22,6 +23,5 @@ for line in source.split('\n'):
         print(f'IMPORT: {line.strip()}')
         
 # Check for class structure
-import re
 classes = re.findall(r'^class\s+\w+', source, re.MULTILINE)
 print(f'Classes found: {classes}')

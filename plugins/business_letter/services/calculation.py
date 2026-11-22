@@ -324,6 +324,7 @@ def calculate_commercial_document(
 
     customer_visible: dict[str, Any] = {
         "document_kind": document_kind,
+        "document_number": str(data.get("document_number") or data.get("invoice_number") or "").strip(),
         "issue_date": issue_date.isoformat(),
         "currency": str(data.get("currency") or "EUR").strip() or "EUR",
         "buyer_reference": str(data.get("buyer_reference") or "").strip(),
@@ -360,6 +361,7 @@ def calculate_commercial_document(
         "buyer": {
             "name": recipient.get("company") or recipient.get("name") or recipient.get("contact") or "",
             "email": recipient.get("email") or "",
+            "vat_id": recipient.get("vat_id") or "",
             "street": recipient.get("street") or "",
             "postal_code": recipient.get("postal_code") or "",
             "city": recipient.get("city") or "",

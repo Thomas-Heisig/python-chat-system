@@ -26,12 +26,19 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
       - name: Install XML validator runtime and Docker
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxml2-utils unzip curl docker.io
+          sudo apt-get install -y libxml2-utils unzip curl
           sudo systemctl start docker
           xmllint --version
+          docker --version
 
       - name: Install backend dependencies
         run: |
@@ -47,11 +54,15 @@ jobs:
           from pathlib import Path
 
           lock = json.loads(Path("config/validator-assets.lock.json").read_text(encoding="utf-8"))
+          engine = lock["xrechnung"]["validator_engine"]
           validator = lock["xrechnung"]["validator_configuration"]
           schematron = lock["xrechnung"]["schematron"]
           verapdf = lock["verapdf"]
 
           env_lines = [
+              f"XRECHNUNG_ENGINE_URL={engine['url']}",
+              f"XRECHNUNG_ENGINE_FILE={engine['file']}",
+              f"XRECHNUNG_ENGINE_SHA256={engine['sha256']}",
               f"XRECHNUNG_VALIDATOR_URL={validator['url']}",
               f"XRECHNUNG_VALIDATOR_FILE={validator['file']}",
               f"XRECHNUNG_VALIDATOR_SHA256={validator['sha256']}",
@@ -66,9 +77,13 @@ jobs:
 
           cat .cache/validators/asset-env.txt >> "$GITHUB_ENV"
 
+      - name: Download and verify pinned validator assets
+        run: |
+          curl -fL "$XRECHNUNG_ENGINE_URL" -o ".cache/xrechnung/$XRECHNUNG_ENGINE_FILE"
           curl -fL "$XRECHNUNG_VALIDATOR_URL" -o ".cache/xrechnung/$XRECHNUNG_VALIDATOR_FILE"
           curl -fL "$XRECHNUNG_SCHEMATRON_URL" -o ".cache/xrechnung/$XRECHNUNG_SCHEMATRON_FILE"
 
+          echo "$XRECHNUNG_ENGINE_SHA256  .cache/xrechnung/$XRECHNUNG_ENGINE_FILE" | sha256sum -c -
           echo "$XRECHNUNG_VALIDATOR_SHA256  .cache/xrechnung/$XRECHNUNG_VALIDATOR_FILE" | sha256sum -c -
           echo "$XRECHNUNG_SCHEMATRON_SHA256  .cache/xrechnung/$XRECHNUNG_SCHEMATRON_FILE" | sha256sum -c -
 
@@ -76,12 +91,14 @@ jobs:
           unzip -q ".cache/xrechnung/$XRECHNUNG_SCHEMATRON_FILE" -d .cache/xrechnung/schematron
 
           docker pull "$VERAPDF_DOCKER_IMAGE"
-          echo "VERAPDF_CMD=docker run --rm -v /tmp:/tmp $VERAPDF_DOCKER_IMAGE" >> "$GITHUB_ENV"
+          echo "XRECHNUNG_VALIDATOR_JAR=$PWD/.cache/xrechnung/$XRECHNUNG_ENGINE_FILE" >> "$GITHUB_ENV"
+          echo "XRECHNUNG_VALIDATOR_ASSETS_ROOT=$PWD/.cache/xrechnung" >> "$GITHUB_ENV"
+          echo "XRECHNUNG_VALIDATOR_CONFIG_ROOT=$PWD/.cache/xrechnung/validator" >> "$GITHUB_ENV"
 
-          XSD_PATH="$(find .cache/xrechnung/validator -type f \( -name 'UBL-Invoice-2*.xsd' -o -name '*Invoice*.xsd' \) | head -n 1)"
-          SCH_PATH="$(find .cache/xrechnung/schematron -type f -name '*.sch' | grep -Ei 'xrechnung|invoice|ubl|en16931' | head -n 1)"
-          CII_XSD_PATH="$(find .cache/xrechnung/validator -type f -name 'CrossIndustryInvoice_100pD16B.xsd' | head -n 1)"
-          CII_SCH_PATH="$(find .cache/xrechnung/schematron -type f -name 'XRechnung-CII-validation.sch' | head -n 1)"
+          XSD_PATH="$(find .cache/xrechnung/validator -type f -path '*/resources/ubl/2.1/xsd/maindoc/UBL-Invoice-2.1.xsd' | head -n 1)"
+          SCH_PATH="$(find .cache/xrechnung/schematron -type f -path '*/schematron/ubl/XRechnung-UBL-validation.sch' | head -n 1)"
+          CII_XSD_PATH="$(find .cache/xrechnung/validator -type f -path '*/resources/cii/16b/xsd/CrossIndustryInvoice_100pD16B.xsd' | head -n 1)"
+          CII_SCH_PATH="$(find .cache/xrechnung/schematron -type f -path '*/schematron/cii/XRechnung-CII-validation.sch' | head -n 1)"
 
           if [ -z "$XSD_PATH" ] || [ -z "$SCH_PATH" ] || [ -z "$CII_XSD_PATH" ] || [ -z "$CII_SCH_PATH" ]; then
             echo "Failed to resolve official XRechnung UBL/CII XSD/Schematron paths."

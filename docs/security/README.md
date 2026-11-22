@@ -16,6 +16,8 @@ Diese Uebersichtsseite beschreibt den zentralen Einstieg in die Security-Dokumen
 - Strenger Modus (CI-geeignet): `python scripts/review_secret_scan.py --strict`
 - Report-Ausgabe: `docs/security/reports/secret-scan-review-YYYYMMDD.md`
 - Pflichtkommentare fuer Allowlist-Aenderungen: `config/secret-scan-change-comments.json` (`reason` + `reference` je `new`/`removed`-Regel)
+- Historische Reports mit einem abschliessenden Bindestrich in den Allowlist-Ueberschriften bleiben als Baseline
+  lesbar; neue und entfernte Regeln benoetigen weiterhin Pflichtkommentare.
 
 ## Empfohlene Reihenfolge fuer Implementierung
 
