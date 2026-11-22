@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-import sys
 
 from app.training.datasets.universal import canonical_to_pairs, parse_dataset_to_canonical
 from app.training.evaluation.business_letter_schema import validate_business_letter_json_text

@@ -184,6 +184,7 @@ def build_recipient(data: dict[str, Any]) -> dict[str, str]:
         "email": str(data.get("recipient_email") or "").strip(),
         "electronic_address": str(data.get("buyer_electronic_address") or "").strip(),
         "electronic_address_scheme": str(data.get("buyer_electronic_address_scheme") or "").strip(),
+        "vat_id": str(data.get("buyer_vat_id") or "").strip(),
     }
 
 

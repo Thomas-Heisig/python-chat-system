@@ -1212,7 +1212,7 @@ export async function getPlugins(): Promise<PluginCatalogEntry[]> {
               }
               const rawCards = Array.isArray(row.cards) ? row.cards : [];
               const cards: PluginFrontendPageCard[] = rawCards
-                .map((card) => {
+                .map((card): PluginFrontendPageCard | null => {
                   if (typeof card !== "object" || card == null) {
                     return null;
                   }
@@ -1279,7 +1279,7 @@ export async function getPlugins(): Promise<PluginCatalogEntry[]> {
             }
             const rawActions = Array.isArray(row.actions) ? row.actions : [];
             const actions: PluginFrontendAction[] = rawActions
-              .map((action) => {
+              .map((action): PluginFrontendAction | null => {
                 if (typeof action !== "object" || action == null) {
                   return null;
                 }
