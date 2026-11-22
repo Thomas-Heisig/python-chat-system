@@ -142,7 +142,7 @@ Die Implementierung ist in klar getrennte Schichten aufgeteilt.
 
   * XSD-Ausfuehrung
   * Schematron-Ausfuehrung
-  * externe Validatorintegration
+  * externe Validatorintegration mit dem KoSIT-Validator fuer XRechnung-Schematron (XSLT 2.0)
   * Validierungsreports
 
 ### Settings

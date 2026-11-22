@@ -65,6 +65,17 @@ def _require_external_validators() -> bool:
 
 
 def _verapdf_command(pdf_path: Path) -> list[str] | None:
+    docker_image = str(os.getenv("VERAPDF_DOCKER_IMAGE", "")).strip()
+    if docker_image:
+        return [
+            "docker",
+            "run",
+            "--rm",
+            "-v",
+            f"{pdf_path.parent}:/input",
+            docker_image,
+            f"/input/{pdf_path.name}",
+        ]
     docker_cmd = str(os.getenv("VERAPDF_CMD", "")).strip()
     if docker_cmd:
         return [*shlex.split(docker_cmd), str(pdf_path)]
@@ -307,6 +318,24 @@ def test_external_pdfa_validator_if_available(tmp_path: Path) -> None:
     assert completed.returncode == 0, completed.stdout + completed.stderr
 
 
+def test_verapdf_docker_command_mounts_the_input_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    pdf_path = tmp_path / "invoice.pdf"
+    monkeypatch.setenv("VERAPDF_DOCKER_IMAGE", "verapdf/cli:test")
+
+    assert _verapdf_command(pdf_path) == [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        f"{tmp_path}:/input",
+        "verapdf/cli:test",
+        "/input/invoice.pdf",
+    ]
+
+
 def test_official_reference_valid_example_passes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     from plugins.business_letter.einvoice.official_validation import validate_xrechnung_official_conformance
 
@@ -368,6 +397,61 @@ def test_official_reference_invalid_example_reports_rule_ids_and_classes(monkeyp
     assert classification.get("schematron") is True
     assert classification.get("en16931") is True
     assert classification.get("xrechnung_specific") is True
+
+
+def test_kosit_cli_reports_schema_and_schematron_results(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from plugins.business_letter.einvoice.official_validation import validate_xrechnung_official_conformance
+
+    assets_root = tmp_path / "assets"
+    config_root = assets_root / "validator"
+    config_root.mkdir(parents=True)
+    validator_jar = assets_root / "validator.jar"
+    validator_jar.touch()
+    xsd_path = config_root / "invoice.xsd"
+    xsd_path.touch()
+    schematron_path = assets_root / "XRechnung-UBL-validation.sch"
+    schematron_path.touch()
+    monkeypatch.setenv("XRECHNUNG_VALIDATOR_JAR", str(validator_jar))
+    monkeypatch.setenv("XRECHNUNG_VALIDATOR_ASSETS_ROOT", str(assets_root))
+    monkeypatch.setenv("XRECHNUNG_VALIDATOR_CONFIG_ROOT", str(config_root))
+    monkeypatch.setenv("BUSINESS_LETTER_VALIDATION_REPORT_DIR", str(tmp_path / "reports"))
+    monkeypatch.setattr(
+        "plugins.business_letter.einvoice.official_validation.shutil.which",
+        lambda name: "java" if name == "java" else None,
+    )
+    report = """<?xml version="1.0"?>
+    <rep:report xmlns:rep="http://www.xoev.de/de/validator/varl/1">
+      <rep:validationStepResult id="val-xml" valid="true"/>
+      <rep:validationStepResult id="val-xsd" valid="true"/>
+      <rep:validationStepResult id="val-sch.1" valid="false">
+        <rep:message code="BR-DE-15">Buyer reference is missing</rep:message>
+      </rep:validationStepResult>
+      <rep:assessment><rep:reject/></rep:assessment>
+    </rep:report>
+    """
+
+    def run_validator(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, 1, stdout=report, stderr="")
+
+    monkeypatch.setattr(
+        "plugins.business_letter.einvoice.official_validation.subprocess.run",
+        run_validator,
+    )
+    result = validate_xrechnung_official_conformance(
+        "<Invoice/>",
+        xsd_path=str(xsd_path),
+        schematron_path=str(schematron_path),
+        report_prefix="kosit_test",
+    )
+
+    assert result["executed"] is True
+    assert result["valid"] is False
+    assert result["schema"]["valid"] is True
+    assert result["schematron"]["valid"] is False
+    assert "BR-DE-15" in result["rule_ids"]
 
 
 @pytest.mark.parametrize(
