@@ -631,7 +631,15 @@ def _page_stream(
             ]
         )
 
-    commands.extend(["BT", f"/{font_resource_name} {font_size} Tf", f"{leading} TL", f"{left_margin} {PAGE_HEIGHT - top_margin} Td"])
+    commands.extend(
+        [
+            "0 0 0 rg",
+            "BT",
+            f"/{font_resource_name} {font_size} Tf",
+            f"{leading} TL",
+            f"{left_margin} {PAGE_HEIGHT - top_margin} Td",
+        ]
+    )
     for index, line in enumerate(lines):
         commands.append(f"({_escape_pdf_text(line)}) Tj")
         if index != len(lines) - 1:
