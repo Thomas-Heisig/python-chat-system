@@ -3,6 +3,11 @@
 /Type /Metadata
 /FontFile2
 /ToUnicode
+/OutputIntents
+/Type /OutputIntent
+/S /GTS_PDFA1
+/OutputConditionIdentifier (sRGB IEC61966-2.1)
+/DestOutputProfile
 /ID [<
 /EmbeddedFile
 /AFRelationship /Alternative

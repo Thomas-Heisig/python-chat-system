@@ -544,7 +544,7 @@ Zur Laufzeit werden diese Defaults bereits fuer BuyerReference, PaymentReference
 * `store_xml_artifact`
 * `archive_validation_report`
 
-ZUGFeRD-PDFs verwenden eingebettete DejaVu-Schriften; die Lizenz liegt unter `renderers/fonts/LICENSE_DEJAVU`.
+ZUGFeRD-PDFs verwenden eingebettete DejaVu-Schriften und ein sRGB-Ausgabeprofil; die Schriftenlizenz liegt unter `renderers/fonts/LICENSE_DEJAVU`.
 
 ### Persistenz und Archivierung
 

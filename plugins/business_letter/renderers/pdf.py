@@ -784,6 +784,21 @@ def _build_pdf_bytes(
 
     metadata_xml = _xmp_packet(title=title, metadata=xmp_metadata, pdfa_part=pdfa_part, pdfa_conformance=pdfa_conformance)
     metadata_id = add(b"<< /Type /Metadata /Subtype /XML /Length " + str(len(metadata_xml)).encode("ascii") + b" >>\nstream\n" + metadata_xml + b"\nendstream")
+    icc_profile = (Path(__file__).with_name("color") / "sRGB.icc").read_bytes()
+    output_profile_id = add(
+        (
+            f"<< /N 3 /Alternate /DeviceRGB /Length {len(icc_profile)} >>\nstream\n".encode("ascii")
+            + icc_profile
+            + b"\nendstream"
+        )
+    )
+    output_intent_id = add(
+        (
+            f"<< /Type /OutputIntent /S /GTS_PDFA1 "
+            f"/OutputConditionIdentifier (sRGB IEC61966-2.1) /Info (sRGB IEC61966-2.1) "
+            f"/DestOutputProfile {output_profile_id} 0 R >>"
+        ).encode("ascii")
+    )
 
     file_spec_ids: list[int] = []
     if attachments:
@@ -817,7 +832,8 @@ def _build_pdf_bytes(
             embedded_names.append(f"(attachment_{index}) {spec_id} 0 R")
         names_clause = " /Names << /EmbeddedFiles << /Names [" + " ".join(embedded_names) + "] >> >>"
     objects[catalog_id - 1] = (
-        f"<< /Type /Catalog /Pages 2 0 R /Metadata {metadata_id} 0 R{af_clause}{names_clause} >>"
+        f"<< /Type /Catalog /Pages 2 0 R /Metadata {metadata_id} 0 R "
+        f"/OutputIntents [{output_intent_id} 0 R]{af_clause}{names_clause} >>"
     ).encode("ascii")
 
     header = b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n"
