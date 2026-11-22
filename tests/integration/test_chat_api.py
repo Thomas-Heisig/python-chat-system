@@ -252,7 +252,7 @@ def test_prompt_diagnostics_endpoint_returns_recent_entries_in_local_mode(app_cl
 
 	backend = _CapturingBackend()
 	model_manager.active_backend = backend
-	model_manager.active_model_id = 27
+	model_manager.active_model_id = None
 	model_manager.active_backend_name = "transformers"
 
 	previous = os.environ.get("LOCAL_PROMPT_DIAGNOSTICS")
@@ -285,4 +285,3 @@ def test_prompt_diagnostics_endpoint_returns_recent_entries_in_local_mode(app_cl
 			os.environ.pop("LOCAL_PROMPT_DIAGNOSTICS", None)
 		else:
 			os.environ["LOCAL_PROMPT_DIAGNOSTICS"] = previous
-

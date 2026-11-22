@@ -5,11 +5,13 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 import sqlite3
+import subprocess
 from typing import Any
 
 import pytest
 
 from plugins.business_letter import plugin as business_letter_module
+from plugins.business_letter.einvoice import official_validation
 from plugins.business_letter.plugin import BusinessLetterPlugin
 from plugins.business_letter.services.numbering import NumberSequenceStore
 from plugins.business_letter.services.persistence import BusinessLetterPersistence
@@ -30,6 +32,10 @@ def _base_payload() -> dict[str, Any]:
         "customer_country": "Deutschland",
         "recipient_email": "kunde@example.de",
         "buyer_reference": "BR-2026-01",
+        "buyer_electronic_address": "kunde@example.de",
+        "buyer_electronic_address_scheme": "EM",
+        "buyer_vat_id": "DE123456788",
+        "payment_terms": "Zahlbar innerhalb von 14 Tagen.",
         "issue_date": "2026-07-18",
         "positions": [
             {
@@ -47,9 +53,18 @@ def _base_payload() -> dict[str, Any]:
             "company_city": "Hannover",
             "company_zip": "30159",
             "company_manager": "Maria Real",
+            "company_phone": "0511 123456",
+            "company_email": "rechnung@steinbau-real.de",
+            "company_electronic_address": "rechnung@steinbau-real.de",
+            "company_electronic_address_scheme": "EM",
+            "company_iban": "DE75512108001245126199",
             "company_vat_id": "DE998877665",
         },
     }
+
+
+def _invoice_payload() -> dict[str, Any]:
+    return {**_base_payload(), "letter_type": "rechnung"}
 
 
 def _execute(payload: dict[str, Any]) -> dict[str, Any]:
@@ -299,7 +314,7 @@ def test_persistence_applies_retention_hash_and_archive_group(monkeypatch: pytes
     monkeypatch.setattr(business_letter_module, "DEFAULT_PERSISTENCE", persistence)
 
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "document_number": "DOC-ARCHIVE-1",
         "persist_to_database": True,
         "einvoice": {"enabled": True, "standard": "xrechnung"},
@@ -407,17 +422,37 @@ def test_released_documents_become_immutable(monkeypatch: pytest.MonkeyPatch, tm
 
 
 def test_xrechnung_output_includes_xml_and_validation() -> None:
-    result = _execute({**_base_payload(), "einvoice": {"enabled": True, "standard": "xrechnung"}})
+    result = _execute({**_invoice_payload(), "einvoice": {"enabled": True, "standard": "xrechnung"}})
 
     assert "error" not in result
     assert result["einvoice"]["standard"] == "XRechnung"
     assert result["einvoice"]["validation"]["valid"] is True
     assert "<cac:LegalMonetaryTotal>" in result["einvoice"]["xml"]
     assert "<cbc:PayableAmount currencyID=\"EUR\">" in result["einvoice"]["xml"]
+    assert "<cbc:Telephone>0511 123456</cbc:Telephone>" in result["einvoice"]["xml"]
+    assert "<cbc:ElectronicMail>rechnung@steinbau-real.de</cbc:ElectronicMail>" in result["einvoice"]["xml"]
+
+
+def test_xrechnung_document_adjustments_precede_tax_total() -> None:
+    payload = {
+        **_invoice_payload(),
+        "document_allowances": [{"reason": "Projektbonus", "amount": "10.00"}],
+        "document_charges": [{"reason": "Mindermengenzuschlag", "amount": "5.00"}],
+        "einvoice": {"enabled": True, "standard": "xrechnung"},
+    }
+
+    result = _execute(payload)
+
+    assert "error" not in result
+    xml = result["einvoice"]["xml"]
+    assert xml.index("<cac:AllowanceCharge>") < xml.index("<cac:TaxTotal>")
+    allowance = xml.split("<cac:AllowanceCharge>", 1)[1].split("</cac:AllowanceCharge>", 1)[0]
+    assert "<cbc:ID>S</cbc:ID>" in allowance
+    assert "<cbc:Percent>19.00</cbc:Percent>" in allowance
 
 
 def test_zugferd_output_requires_pdfa3_and_wraps_xrechnung() -> None:
-    result = _execute({**_base_payload(), "einvoice": {"enabled": True, "standard": "zugferd"}})
+    result = _execute({**_invoice_payload(), "einvoice": {"enabled": True, "standard": "zugferd"}})
 
     assert "error" not in result
     assert result["einvoice"]["standard"] == "ZUGFeRD"
@@ -426,7 +461,7 @@ def test_zugferd_output_requires_pdfa3_and_wraps_xrechnung() -> None:
 
 
 def test_xrechnung_validation_reports_missing_buyer_reference() -> None:
-    result = _execute({**_base_payload(), "buyer_reference": "", "einvoice": {"enabled": True, "standard": "xrechnung"}})
+    result = _execute({**_invoice_payload(), "buyer_reference": "", "einvoice": {"enabled": True, "standard": "xrechnung"}})
 
     errors = result["einvoice"]["validation"]["errors"]
     assert any(entry["code"] == "BR-DE-001" for entry in errors)
@@ -483,7 +518,7 @@ def test_sensitive_plugin_settings_are_masked_in_resolved_settings(monkeypatch: 
 
 def test_runtime_defaults_from_settings_are_applied_to_commercial_document() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "currency": "",
         "payment_terms": "",
         "payment_method_code": "",
@@ -507,7 +542,7 @@ def test_runtime_defaults_from_settings_are_applied_to_commercial_document() -> 
 
 def test_priority3_mapping_matrix_reverse_charge_and_tax_exemption() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "buyer_electronic_address": "leitweg-4711",
         "buyer_electronic_address_scheme": "0204",
         "seller_electronic_address": "rechnung@steinbau-real.de",
@@ -548,11 +583,14 @@ def test_priority3_mapping_matrix_reverse_charge_and_tax_exemption() -> None:
     assert "<cbc:EndpointID schemeID=\"EM\">rechnung@steinbau-real.de</cbc:EndpointID>" in xml
     assert "<cbc:TaxExemptionReason>Reverse charge</cbc:TaxExemptionReason>" in xml
     assert "<cbc:TaxExemptionReasonCode>VATEX-EU-132</cbc:TaxExemptionReasonCode>" in xml
+    for classified_tax_category in xml.split("<cac:ClassifiedTaxCategory>")[1:]:
+        line_tax_category = classified_tax_category.split("</cac:ClassifiedTaxCategory>", 1)[0]
+        assert "TaxExemptionReason" not in line_tax_category
 
 
 def test_priority3_mapping_matrix_base_quantity_shipping_rounding_and_multiple_tax_rates() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "purchase_order_reference": "PO-2026-77",
         "contract_reference": "CTR-2026-12",
         "project_reference": "PRJ-ALPHA",
@@ -749,18 +787,68 @@ def test_priority3_mapping_matrix_final_invoice_uses_prepayment() -> None:
 
 
 def test_cii_output_includes_root_and_validation() -> None:
-    result = _execute({**_base_payload(), "einvoice": {"enabled": True, "standard": "xrechnung", "syntax": "CII"}})
+    result = _execute({**_invoice_payload(), "einvoice": {"enabled": True, "standard": "xrechnung", "syntax": "CII"}})
 
     assert "error" not in result
     assert result["einvoice"]["syntax"] == "CII"
     assert result["einvoice"]["validation"]["valid"] is True
     assert "<rsm:CrossIndustryInvoice" in result["einvoice"]["xml"]
     assert "<ram:DuePayableAmount>" in result["einvoice"]["xml"]
+    xml = result["einvoice"]["xml"]
+    assert "<ram:CompleteNumber>0511 123456</ram:CompleteNumber>" in xml
+    assert "<ram:URIID>rechnung@steinbau-real.de</ram:URIID>" in xml
+    assert "<ram:CountryID>DE</ram:CountryID>" in xml
+    assert xml.index("<ram:ApplicableTradeTax>") < xml.index("<ram:SpecifiedTradePaymentTerms>")
+
+
+@pytest.mark.parametrize(
+    ("report_valid", "recommendation", "expected_valid"),
+    [(True, "reject", True), (False, "accept", False)],
+)
+def test_kosit_report_validity_is_not_its_acceptance_recommendation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    report_valid: bool,
+    recommendation: str,
+    expected_valid: bool,
+) -> None:
+    report = (
+        '<report xmlns="http://www.xoev.de/de/validator/varl/1" '
+        f'valid="{str(report_valid).lower()}">'
+        '<scenarioMatched>'
+        '<validationStepResult id="val-xml" valid="true"/>'
+        '<validationStepResult id="val-sch.1" valid="true"/>'
+        '</scenarioMatched>'
+        f'<assessment><{recommendation}/></assessment>'
+        '</report>'
+    )
+    monkeypatch.setattr(official_validation.shutil, "which", lambda _: "java")
+    monkeypatch.setattr(
+        official_validation.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, stdout=report, stderr=""),
+    )
+
+    result = official_validation._validate_with_kosit_cli(
+        "<Invoice />",
+        validator_jar=tmp_path / "validator.jar",
+        config_root=tmp_path,
+        report_prefix="invoice",
+        report_dir=None,
+        xsd_path=None,
+        schematron_path=None,
+        syntax="UBL",
+    )
+
+    assert result["valid"] is expected_valid
+    assert result["report_valid"] is report_valid
+    if not expected_valid:
+        assert [issue["code"] for issue in result["errors"]] == ["XR-OFFICIAL-REPORT"]
 
 
 def test_priority3_mapping_matrix_cii_parity_for_references_and_base_quantity() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "buyer_electronic_address": "leitweg-4711",
         "buyer_electronic_address_scheme": "0204",
         "seller_electronic_address": "rechnung@steinbau-real.de",
@@ -803,7 +891,7 @@ def test_priority3_mapping_matrix_cii_parity_for_references_and_base_quantity() 
 
 def test_priority3_mapping_matrix_cii_reverse_charge_and_exemption() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "buyer_electronic_address": "leitweg-4711",
         "buyer_electronic_address_scheme": "0204",
         "seller_electronic_address": "rechnung@steinbau-real.de",

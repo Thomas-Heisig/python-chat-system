@@ -6,7 +6,6 @@ import os
 import time
 from typing import Any
 
-import sqlalchemy
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 

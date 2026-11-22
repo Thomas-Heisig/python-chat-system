@@ -1,7 +1,6 @@
 # packages/plugins/currency_converter/plugin.py
 from __future__ import annotations
 
-import json
 import os
 import time
 from typing import Any

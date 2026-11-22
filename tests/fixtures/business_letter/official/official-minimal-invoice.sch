@@ -4,6 +4,8 @@
         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
         queryBinding="xslt">
   <title>Minimal XRechnung-like checks for test harness</title>
+  <ns prefix="ubl" uri="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"/>
+  <ns prefix="cbc" uri="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"/>
   <pattern id="buyer-reference-required">
     <rule context="ubl:Invoice">
       <assert id="BR-DE-001" test="normalize-space(cbc:BuyerReference) != ''">BR-DE-001 BuyerReference is required.</assert>
