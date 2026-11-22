@@ -1025,6 +1025,11 @@ Fuer produktive Installationen sollte eine klare Fehlerstrategie definiert sein,
 ## Nummernkreis
 
 Die Dokumentnummer wird aus einem persistenten Nummernkreis erzeugt.
+In den Nummernkreis-Einstellungsgruppen zeigt das Frontend eine Vorschau mit dem
+konfigurierten Startwert. Diese ist ein Beispiel und nicht zwingend die naechste
+Nummer einer bereits verwendeten Sequenz. Formate mit nicht unterstuetzten
+Platzhaltern werden als nicht verfuegbar angezeigt; die Vergabe bleibt Sache
+des Backends.
 
 Konfigurierbare Bestandteile:
 

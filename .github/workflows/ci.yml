@@ -29,9 +29,10 @@ jobs:
       - name: Install XML validator runtime and Docker
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxml2-utils unzip curl docker.io
+          sudo apt-get install -y libxml2-utils unzip curl
           sudo systemctl start docker
           xmllint --version
+          docker --version
 
       - name: Install backend dependencies
         run: |
@@ -66,6 +67,8 @@ jobs:
 
           cat .cache/validators/asset-env.txt >> "$GITHUB_ENV"
 
+      - name: Download and verify pinned validator assets
+        run: |
           curl -fL "$XRECHNUNG_VALIDATOR_URL" -o ".cache/xrechnung/$XRECHNUNG_VALIDATOR_FILE"
           curl -fL "$XRECHNUNG_SCHEMATRON_URL" -o ".cache/xrechnung/$XRECHNUNG_SCHEMATRON_FILE"
 

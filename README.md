@@ -34,7 +34,7 @@ Das Projekt befindet sich in aktiver Entwicklung. Unterstuetzt werden primar:
 ### 1) Voraussetzungen
 
 - Python 3.12
-- Node.js 22.x
+- Node.js 22.13 oder neuer innerhalb der 22.x-Reihe
 - npm
 - Git
 

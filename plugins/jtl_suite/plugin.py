@@ -8,7 +8,8 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import SQLAlchemyError
 
-from .settings import JTL_DEFAULT_SETTINGS, public_settings, resolve_settings
+from plugins.jtl_suite.settings import JTL_DEFAULT_SETTINGS as JTL_DEFAULT_SETTINGS
+from plugins.jtl_suite.settings import public_settings, resolve_settings
 
 PLUGIN_ID = "jtl_suite"
 
