@@ -1,7 +1,8 @@
 import pytest
 
 from app.tools.registry import PluginRegistry
-from plugins.jtl_suite.plugin import PLUGIN_META, JTLSuitePlugin
+from plugins.jtl_suite.plugin import JTL_DEFAULT_SETTINGS, PLUGIN_META, JTLSuitePlugin
+from plugins.jtl_suite.settings import JTL_DEFAULT_SETTINGS as SETTINGS_DEFAULTS
 
 
 def test_jtl_plugin_registration():
@@ -9,6 +10,7 @@ def test_jtl_plugin_registration():
 
     assert PLUGIN_META["id"] == "jtl_suite"
     assert plugin.name == "jtl_suite"
+    assert JTL_DEFAULT_SETTINGS is SETTINGS_DEFAULTS
 
 
 def test_jtl_plugin_is_discoverable_by_the_runtime_registry():
