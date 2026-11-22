@@ -3,7 +3,7 @@ from __future__ import annotations
 # pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportUnknownLambdaType=false, reportUnusedImport=false
 
 import os
-from typing import Any, AsyncGenerator, cast
+from typing import Any
 
 import httpx
 

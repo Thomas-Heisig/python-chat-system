@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { BusinessLetterManualPage } from "../../../../plugins/business_letter/frontend/BusinessLetterManualPage";
+import { CalculatorManualPage } from "../../../../plugins/calculator/frontend/CalculatorManualPage";
 import { getAuthToken } from "../../services/backend";
 import type {
   AuthUser,
@@ -1245,9 +1247,8 @@ export function WorkspacePage({
   };
 
   const buildBusinessLetterNumberingPreview = (pluginId: string, fields: PluginSettingField[]) => {
-    const relevantKeys = new Set(fields.map((field) => field.key));
+    const fieldsByKey = new Map(fields.map((field) => [field.key, field]));
     const now = new Date();
-    const year = now.getFullYear();
     const month = `${now.getMonth() + 1}`.padStart(2, "0");
     const day = `${now.getDate()}`.padStart(2, "0");
     const scopes = [
@@ -1263,36 +1264,44 @@ export function WorkspacePage({
       { key: "mahnung", label: "Mahnung" },
     ];
 
-    const readValue = (scope: string, suffix: string, fallback: string | number | boolean) => {
-      const key = scope === "document" ? `document_number_${suffix}` : `${scope}_document_number_${suffix}`;
-      if (!relevantKeys.has(key)) {
-        return fallback;
+    const readValue = (scope: string, suffix: string, fallback: string | number): string | number | boolean => {
+      const readField = (key: string): string | number | boolean | undefined => {
+        const field = fieldsByKey.get(key);
+        return field ? getPluginFieldValue(pluginId, key, field.type, field.default ?? fallback) : undefined;
+      };
+      const genericValue = readField(`document_number_${suffix}`) ?? fallback;
+      if (scope === "document") {
+        return genericValue;
       }
-      const field = fields.find((entry) => entry.key === key);
-      const fieldFallback = field?.default ?? fallback;
-      return getPluginFieldValue(pluginId, key, field?.type ?? "string", fieldFallback);
+      const scopedValue = readField(`${scope}_document_number_${suffix}`);
+      return scopedValue === undefined || scopedValue === "" ? genericValue : scopedValue;
     };
 
     return scopes.map((scope) => {
-      const prefix = String(readValue(scope.key, "prefix", scope.key === "document" ? "DOC" : scope.label.slice(0, 3).toUpperCase())).trim() || "DOC";
-      const pattern = String(readValue(scope.key, "pattern", "{prefix}-{year}-{sequence_text}")).trim() || "{prefix}-{year}-{sequence_text}";
-      const width = Number(readValue(scope.key, "width", 5)) || 5;
-      const startValue = Number(readValue(scope.key, "start_value", 1)) || 1;
-      const nextValue = Math.max(1, startValue);
-      const sequenceText = `${nextValue}`.padStart(Math.max(1, width), "0");
-      let preview = `${prefix}-${year}-${sequenceText}`;
-      try {
-        preview = pattern
-          .split("{prefix}").join(prefix)
-          .split("{year}").join(`${year}`)
-          .split("{month}").join(month)
-          .split("{day}").join(day)
-          .split("{sequence}").join(`${nextValue}`)
-          .split("{sequence_text}").join(sequenceText);
-      } catch {
-        preview = `${prefix}-${year}-${sequenceText}`;
-      }
+      const rawPrefix = String(readValue(scope.key, "prefix", ""));
+      const prefix = (rawPrefix || (scope.key === "document" ? "DOC" : scope.key))
+        .trim().toUpperCase().slice(0, 12) || "DOC";
+      const pattern = String(readValue(scope.key, "pattern", "{prefix}-{year}-{sequence_text}")).trim()
+        || "{prefix}-{year}-{sequence_text}";
+      const width = Math.max(1, Math.min(12, Math.trunc(Number(readValue(scope.key, "width", 5)) || 5)));
+      const nextValue = Math.max(1, Math.trunc(Number(readValue(scope.key, "start_value", 1)) || 1));
+      const year = Math.trunc(Number(readValue(scope.key, "year", now.getFullYear())) || now.getFullYear());
+      const substitutions: Record<string, string> = {
+        prefix,
+        year: String(year),
+        month,
+        day,
+        sequence: String(nextValue),
+        sequence_text: String(nextValue).padStart(width, "0"),
+        width: String(width),
+      };
+      const tokens = /\{(prefix|year|month|day|sequence|sequence_text|width)\}/g;
+      const unsupportedFormat = /[{}]/.test(pattern.replace(tokens, ""));
+      const preview = unsupportedFormat
+        ? "Vorschau fuer dieses Format nicht verfuegbar"
+        : pattern.replace(tokens, (_match, token: string) => substitutions[token]);
       return {
+        key: scope.key,
         scope: scope.label,
         preview,
         startValue: nextValue,
@@ -3489,7 +3498,7 @@ export function WorkspacePage({
                 {pluginPopupTab === "frontend" ? (
                   <div className="plugin-popup__body">
                     {selectedPluginDescriptor?.id === "business_letter" ? (
-                      <PluginManualPage
+                      <BusinessLetterManualPage
                         currentUserId={currentUser.id}
                         executePlugin={async (payload) => {
                           if (!onExecutePlugin) {
@@ -3502,7 +3511,7 @@ export function WorkspacePage({
                     ) : null}
 
                     {selectedPluginDescriptor?.id === "calculator" ? (
-                      <PluginManualPage
+                      <CalculatorManualPage
                         currentUserId={currentUser.id}
                         executePlugin={async (payload) => {
                           if (!onExecutePlugin) {
@@ -5199,6 +5208,27 @@ export function WorkspacePage({
                           );
                         })}
                       </div>
+                      {settingsPopupPluginDescriptor.id === "business_letter" &&
+                      settingsPopupGroupFields.some((field) => field.key.includes("document_number_")) ? (
+                        <div>
+                          <strong>Nummernkreis-Vorschau (Startwert)</strong>
+                          <div className="model-settings-meta">
+                            {buildBusinessLetterNumberingPreview(
+                              settingsPopupPluginDescriptor.id,
+                              settingsPopupPluginFields,
+                            )
+                              .filter((entry) => {
+                                const prefix = entry.key === "document"
+                                  ? "document_number_"
+                                  : `${entry.key}_document_number_`;
+                                return settingsPopupGroupFields.some((field) => field.key.startsWith(prefix));
+                              })
+                              .map((entry) => (
+                                <span key={entry.key}>{entry.scope}: {entry.preview}</span>
+                              ))}
+                          </div>
+                        </div>
+                      ) : null}
                     </article>
                   </div>
                 </div>

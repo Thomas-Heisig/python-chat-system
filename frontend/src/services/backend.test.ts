@@ -79,6 +79,50 @@ describe("settings scope parameters", () => {
     window.localStorage.clear();
   });
 
+  describe("plugin frontend metadata", () => {
+    beforeEach(() => {
+      vi.resetModules();
+      vi.unstubAllGlobals();
+      window.localStorage.clear();
+    });
+
+    it("preserves valid tabs and rejects unsupported tabs for cards and actions", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+        items: [{
+          id: "example",
+          name: "Example",
+          plugin_frontend: {
+            page: {
+              sections: [{
+                id: "page",
+                title: "Page",
+                cards: [
+                  { id: "valid-card", title: "Valid", openTab: "manual" },
+                  { id: "invalid-card", title: "Invalid", openTab: "other" },
+                ],
+              }],
+            },
+            sections: [{
+              id: "section",
+              title: "Section",
+              actions: [
+                { id: "valid-action", label: "Valid", openTab: "settings" },
+                { id: "invalid-action", label: "Invalid", openTab: "other" },
+              ],
+            }],
+          },
+        }],
+      }), { status: 200 })));
+
+      const { getPlugins } = await import("./backend");
+      const [plugin] = await getPlugins();
+      const cards = plugin.pluginFrontend?.page?.sections?.[0]?.cards;
+      const actions = plugin.pluginFrontend?.sections?.[0]?.actions;
+      expect(cards?.map((card) => card.openTab)).toEqual(["manual", undefined]);
+      expect(actions?.map((action) => action.openTab)).toEqual(["settings", undefined]);
+    });
+  });
+
   it("passes team_id in getSetting query string", async () => {
     const fetchMock = vi
       .fn()

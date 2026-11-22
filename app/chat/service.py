@@ -1520,7 +1520,7 @@ class ChatService:
                         "event": "token",
                         "data": {"token": chunk},
                     }
-        except Exception as exc:
+        except Exception:
             await self.session.rollback()
             yield {
                 "event": "error",

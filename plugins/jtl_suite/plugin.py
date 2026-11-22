@@ -8,8 +8,10 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import SQLAlchemyError
 
-from .settings import JTL_DEFAULT_SETTINGS, public_settings, resolve_settings
+from plugins.jtl_suite import settings
+from plugins.jtl_suite.settings import public_settings, resolve_settings
 
+JTL_DEFAULT_SETTINGS = settings.JTL_DEFAULT_SETTINGS
 PLUGIN_ID = "jtl_suite"
 
 PLUGIN_META: dict[str, Any] = {

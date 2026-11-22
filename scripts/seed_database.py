@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
 	sys.path.insert(0, str(ROOT))
 
-from app.startup import initialize_runtime
+from app.startup import initialize_runtime  # noqa: E402
 
 
 async def main() -> None:

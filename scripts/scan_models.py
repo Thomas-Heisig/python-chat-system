@@ -7,9 +7,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.database.session import get_session_maker
-from app.models.scanner import ModelScanner
-from app.settings.service import SettingsService
+from app.database.session import get_session_maker  # noqa: E402
+from app.models.scanner import ModelScanner  # noqa: E402
+from app.settings.service import SettingsService  # noqa: E402
 
 
 def _safe_model_summary(model: object) -> str:

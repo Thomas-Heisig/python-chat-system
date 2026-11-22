@@ -170,8 +170,6 @@ class PluginExecutionPolicy:
         if context.dry_run:
             return
 
-        function_name = str(function_meta.get("name") or "execute").strip() or "execute"
-        read_only = bool(function_meta.get("read_only", False))
         side_effect = str(function_meta.get("side_effect") or "").strip().lower()
         known_mutating_side_effect = side_effect not in self._NON_MUTATING_SIDE_EFFECTS and side_effect != "unknown"
         requires_idempotency = known_mutating_side_effect
