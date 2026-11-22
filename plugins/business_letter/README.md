@@ -294,6 +294,7 @@ Beispiel:
 * `recipient_email`
 * `buyer_electronic_address`
 * `buyer_electronic_address_scheme`
+* `buyer_vat_id`
 * `seller_electronic_address`
 * `seller_electronic_address_scheme`
 
@@ -542,6 +543,8 @@ Zur Laufzeit werden diese Defaults bereits fuer BuyerReference, PaymentReference
 * `block_send_on_validation_error`
 * `store_xml_artifact`
 * `archive_validation_report`
+
+ZUGFeRD-PDFs verwenden eingebettete DejaVu-Schriften; die Lizenz liegt unter `renderers/fonts/LICENSE_DEJAVU`.
 
 ### Persistenz und Archivierung
 

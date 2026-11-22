@@ -30,6 +30,10 @@ def _base_payload() -> dict[str, Any]:
         "customer_country": "Deutschland",
         "recipient_email": "kunde@example.de",
         "buyer_reference": "BR-2026-01",
+        "buyer_electronic_address": "kunde@example.de",
+        "buyer_electronic_address_scheme": "EM",
+        "buyer_vat_id": "DE123456788",
+        "payment_terms": "Zahlbar innerhalb von 14 Tagen.",
         "issue_date": "2026-07-18",
         "positions": [
             {
@@ -47,6 +51,10 @@ def _base_payload() -> dict[str, Any]:
             "company_city": "Hannover",
             "company_zip": "30159",
             "company_manager": "Maria Real",
+            "company_email": "rechnung@steinbau-real.de",
+            "company_electronic_address": "rechnung@steinbau-real.de",
+            "company_electronic_address_scheme": "EM",
+            "company_iban": "DE75512108001245126199",
             "company_vat_id": "DE998877665",
         },
     }
@@ -420,6 +428,21 @@ def test_xrechnung_output_includes_xml_and_validation() -> None:
     assert "<cbc:PayableAmount currencyID=\"EUR\">" in result["einvoice"]["xml"]
 
 
+def test_xrechnung_document_adjustments_precede_tax_total() -> None:
+    payload = {
+        **_invoice_payload(),
+        "document_allowances": [{"reason": "Projektbonus", "amount": "10.00"}],
+        "document_charges": [{"reason": "Mindermengenzuschlag", "amount": "5.00"}],
+        "einvoice": {"enabled": True, "standard": "xrechnung"},
+    }
+
+    result = _execute(payload)
+
+    assert "error" not in result
+    xml = result["einvoice"]["xml"]
+    assert xml.index("<cac:AllowanceCharge>") < xml.index("<cac:TaxTotal>")
+
+
 def test_zugferd_output_requires_pdfa3_and_wraps_xrechnung() -> None:
     result = _execute({**_invoice_payload(), "einvoice": {"enabled": True, "standard": "zugferd"}})
 
@@ -760,6 +783,8 @@ def test_cii_output_includes_root_and_validation() -> None:
     assert result["einvoice"]["validation"]["valid"] is True
     assert "<rsm:CrossIndustryInvoice" in result["einvoice"]["xml"]
     assert "<ram:DuePayableAmount>" in result["einvoice"]["xml"]
+    xml = result["einvoice"]["xml"]
+    assert xml.index("<ram:ApplicableTradeTax>") < xml.index("<ram:SpecifiedTradePaymentTerms>")
 
 
 def test_priority3_mapping_matrix_cii_parity_for_references_and_base_quantity() -> None:

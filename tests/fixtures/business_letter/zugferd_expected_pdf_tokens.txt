@@ -1,9 +1,13 @@
 # Deterministic semantic markers for ZUGFeRD PDF/A-3 output
-%PDF-1.4
+%PDF-1.7
 /Type /Metadata
+/FontFile2
+/ToUnicode
+/ID [<
 /EmbeddedFile
 /AFRelationship /Alternative
 factur-x.xml
+<pdfaExtension:schemas>
 <zf:ConformanceLevel>EN 16931</zf:ConformanceLevel>
 <zf:DocumentType>INVOICE</zf:DocumentType>
 <zf:Version>2.3</zf:Version>

@@ -73,6 +73,7 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
     seller_zip = str(company.get("zip") or "").strip() or "00000"
     seller_country = _country_code(str(company.get("country") or "DE"))
     buyer_name = str(validation.get("buyer_name") or "").strip() or "Buyer"
+    buyer_vat_id = str(buyer.get("vat_id") or recipient.get("vat_id") or "").strip()
     buyer_street = str(buyer.get("street") or "").strip() or str(recipient.get("street") or "").strip() or "Unknown Street"
     buyer_city = str(buyer.get("city") or "").strip() or str(recipient.get("city") or "").strip() or "Unknown City"
     buyer_zip = str(buyer.get("postal_code") or "").strip() or str(recipient.get("postal_code") or "").strip() or "00000"
@@ -180,6 +181,15 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
                 "        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>",
                 "      </cac:PartyTaxScheme>",
                 f"      <cac:PartyLegalEntity><cbc:RegistrationName>{escape(seller_name)}</cbc:RegistrationName></cac:PartyLegalEntity>",
+                *(
+                    [
+                        "      <cac:Contact>",
+                        f"        <cbc:Name>{escape(str(company.get('manager') or ''))}</cbc:Name>",
+                        "      </cac:Contact>",
+                    ]
+                    if str(company.get("manager") or "").strip()
+                    else []
+                ),
                 "    </cac:Party>",
                 "  </cac:AccountingSupplierParty>",
                 "  <cac:AccountingCustomerParty>",
@@ -192,6 +202,17 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
                 f"        <cbc:PostalZone>{escape(buyer_zip)}</cbc:PostalZone>",
                 f"        <cac:Country><cbc:IdentificationCode>{escape(buyer_country)}</cbc:IdentificationCode></cac:Country>",
                 "      </cac:PostalAddress>",
+                *(
+                    [
+                        "      <cac:PartyTaxScheme>",
+                        f"        <cbc:CompanyID>{escape(buyer_vat_id)}</cbc:CompanyID>",
+                        "        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>",
+                        "      </cac:PartyTaxScheme>",
+                    ]
+                    if buyer_vat_id
+                    else []
+                ),
+                f"      <cac:PartyLegalEntity><cbc:RegistrationName>{escape(buyer_name)}</cbc:RegistrationName></cac:PartyLegalEntity>",
                 "    </cac:Party>",
                 "  </cac:AccountingCustomerParty>",
             ]
@@ -202,22 +223,40 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
             if payment_reference:
                 xml_lines.append(f"    <cbc:PaymentID>{escape(payment_reference)}</cbc:PaymentID>")
             if seller_iban:
-                xml_lines.extend(
-                    [
-                        "    <cac:PayeeFinancialAccount>",
-                        f"      <cbc:ID>{escape(seller_iban)}</cbc:ID>",
-                        f"      <cbc:Name>{escape(seller_account_holder)}</cbc:Name>",
-                        "      <cac:FinancialInstitutionBranch>",
-                        f"        <cbc:ID>{escape(seller_bic)}</cbc:ID>",
-                        f"        <cbc:Name>{escape(seller_bank_name)}</cbc:Name>",
-                        "      </cac:FinancialInstitutionBranch>",
-                        "    </cac:PayeeFinancialAccount>",
-                    ]
-                )
+                xml_lines.extend(["    <cac:PayeeFinancialAccount>", f"      <cbc:ID>{escape(seller_iban)}</cbc:ID>"])
+                if seller_account_holder:
+                    xml_lines.append(f"      <cbc:Name>{escape(seller_account_holder)}</cbc:Name>")
+                if seller_bic or seller_bank_name:
+                    xml_lines.append("      <cac:FinancialInstitutionBranch>")
+                    if seller_bic:
+                        xml_lines.append(f"        <cbc:ID>{escape(seller_bic)}</cbc:ID>")
+                    if seller_bank_name:
+                        xml_lines.append(f"        <cbc:Name>{escape(seller_bank_name)}</cbc:Name>")
+                    xml_lines.append("      </cac:FinancialInstitutionBranch>")
+                xml_lines.append("    </cac:PayeeFinancialAccount>")
             xml_lines.append("  </cac:PaymentMeans>")
         if payment_terms:
             xml_lines.extend(["  <cac:PaymentTerms>", f"    <cbc:Note>{escape(payment_terms)}</cbc:Note>", "  </cac:PaymentTerms>"])
-        if tax_breakdown:
+
+        for adjustment, charge_indicator in [
+            (document_allowances, False),
+            (document_charges, True),
+        ]:
+            for raw_item in adjustment:
+                item = _as_dict(raw_item)
+                xml_lines.extend(
+                    [
+                        "  <cac:AllowanceCharge>",
+                        f"    <cbc:ChargeIndicator>{str(charge_indicator).lower()}</cbc:ChargeIndicator>",
+                        *([f"    <cbc:AllowanceChargeReasonCode>{escape(str(item.get('reason_code', '')))}</cbc:AllowanceChargeReasonCode>"] if str(item.get('reason_code', '')).strip() else []),
+                        *([f"    <cbc:AllowanceChargeReason>{escape(str(item.get('reason', '')))}</cbc:AllowanceChargeReason>"] if str(item.get('reason', '')).strip() else []),
+                        *([f"    <cbc:MultiplierFactorNumeric>{escape(str(item.get('percentage', '')))}</cbc:MultiplierFactorNumeric>"] if str(item.get('percentage', '')).strip() not in {'', '0.00', '0'} else []),
+                        f"    <cbc:Amount currencyID=\"{escape(currency)}\">{escape(str(item.get('amount', '0.00')))}</cbc:Amount>",
+                        "  </cac:AllowanceCharge>",
+                    ]
+                )
+
+        if tax_breakdown or document_allowances or document_charges:
             xml_lines.extend([
                 "  <cac:TaxTotal>",
                 f"    <cbc:TaxAmount currencyID=\"{escape(currency)}\">{escape(tax_total_amount)}</cbc:TaxAmount>",
@@ -240,24 +279,6 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
                     ]
                 )
             xml_lines.append("  </cac:TaxTotal>")
-
-        for adjustment, charge_indicator in [
-            (document_allowances, False),
-            (document_charges, True),
-        ]:
-            for raw_item in adjustment:
-                item = _as_dict(raw_item)
-                xml_lines.extend(
-                    [
-                        "  <cac:AllowanceCharge>",
-                        f"    <cbc:ChargeIndicator>{str(charge_indicator).lower()}</cbc:ChargeIndicator>",
-                        *([f"    <cbc:AllowanceChargeReasonCode>{escape(str(item.get('reason_code', '')))}</cbc:AllowanceChargeReasonCode>"] if str(item.get('reason_code', '')).strip() else []),
-                        *([f"    <cbc:AllowanceChargeReason>{escape(str(item.get('reason', '')))}</cbc:AllowanceChargeReason>"] if str(item.get('reason', '')).strip() else []),
-                        *([f"    <cbc:MultiplierFactorNumeric>{escape(str(item.get('percentage', '')))}</cbc:MultiplierFactorNumeric>"] if str(item.get('percentage', '')).strip() not in {'', '0.00', '0'} else []),
-                        f"    <cbc:Amount currencyID=\"{escape(currency)}\">{escape(str(item.get('amount', '0.00')))}</cbc:Amount>",
-                        "  </cac:AllowanceCharge>",
-                    ]
-                )
 
         xml_lines.extend(
             [

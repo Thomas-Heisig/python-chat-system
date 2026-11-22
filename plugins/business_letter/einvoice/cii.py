@@ -85,6 +85,7 @@ def build_cii_xml(
     seller_bic = str(seller.get("bic") or company.get("bic") or "").strip()
 
     buyer_name = str(validation.get("buyer_name") or buyer.get("name") or recipient.get("company") or recipient.get("name") or "Buyer").strip() or "Buyer"
+    buyer_vat_id = str(buyer.get("vat_id") or recipient.get("vat_id") or "").strip()
     buyer_endpoint = str(buyer.get("electronic_address") or recipient.get("electronic_address") or "").strip()
     buyer_endpoint_scheme = str(buyer.get("electronic_address_scheme") or recipient.get("electronic_address_scheme") or "").strip()
     buyer_postal = str(buyer.get("postal_code") or recipient.get("postal_code") or "").strip()
@@ -219,6 +220,7 @@ def build_cii_xml(
             f'        <ram:Name>{escape(buyer_name)}</ram:Name>',
             *(['        <ram:PostalTradeAddress>', f'          <ram:PostcodeCode>{escape(buyer_postal)}</ram:PostcodeCode>', f'          <ram:CityName>{escape(buyer_city)}</ram:CityName>', f'          <ram:CountryID>{escape(buyer_country)}</ram:CountryID>', '        </ram:PostalTradeAddress>'] if (buyer_postal or buyer_city or buyer_country) else []),
             *(['        <ram:URIUniversalCommunication>', f'          <ram:URIID schemeID="{escape(buyer_endpoint_scheme)}">{escape(buyer_endpoint)}</ram:URIID>', '        </ram:URIUniversalCommunication>'] if buyer_endpoint and buyer_endpoint_scheme else []),
+            *(['        <ram:SpecifiedTaxRegistration>', f'          <ram:ID schemeID="VA">{escape(buyer_vat_id)}</ram:ID>', '        </ram:SpecifiedTaxRegistration>'] if buyer_vat_id else []),
             '      </ram:BuyerTradeParty>',
             *(['      <ram:BuyerOrderReferencedDocument>', f'        <ram:IssuerAssignedID>{escape(purchase_order_reference)}</ram:IssuerAssignedID>', '      </ram:BuyerOrderReferencedDocument>'] if purchase_order_reference else []),
             *(['      <ram:ContractReferencedDocument>', f'        <ram:IssuerAssignedID>{escape(contract_reference)}</ram:IssuerAssignedID>', '      </ram:ContractReferencedDocument>'] if contract_reference else []),
@@ -243,14 +245,6 @@ def build_cii_xml(
             ]
         )
 
-    if payment_terms or due_date:
-        xml_lines.extend(['      <ram:SpecifiedTradePaymentTerms>'])
-        if payment_terms:
-            xml_lines.append(f'        <ram:Description>{escape(payment_terms)}</ram:Description>')
-        if due_date:
-            xml_lines.extend(['        <ram:DueDateDateTime>', f'          <udt:DateTimeString format="102">{escape(due_date)}</udt:DateTimeString>', '        </ram:DueDateDateTime>'])
-        xml_lines.append('      </ram:SpecifiedTradePaymentTerms>')
-
     for raw_item in tax_breakdown:
         item = _as_dict(raw_item)
         category = str(item.get("category") or "S").strip() or "S"
@@ -272,6 +266,14 @@ def build_cii_xml(
                 '      </ram:ApplicableTradeTax>',
             ]
         )
+
+    if payment_terms or due_date:
+        xml_lines.extend(['      <ram:SpecifiedTradePaymentTerms>'])
+        if payment_terms:
+            xml_lines.append(f'        <ram:Description>{escape(payment_terms)}</ram:Description>')
+        if due_date:
+            xml_lines.extend(['        <ram:DueDateDateTime>', f'          <udt:DateTimeString format="102">{escape(due_date)}</udt:DateTimeString>', '        </ram:DueDateDateTime>'])
+        xml_lines.append('      </ram:SpecifiedTradePaymentTerms>')
 
     xml_lines.extend(
         [

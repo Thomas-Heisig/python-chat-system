@@ -34,6 +34,10 @@ def _payload() -> dict[str, Any]:
         "customer_country": "Deutschland",
         "recipient_email": "kunde@example.de",
         "buyer_reference": "BR-2026-01",
+        "buyer_electronic_address": "kunde@example.de",
+        "buyer_electronic_address_scheme": "EM",
+        "buyer_vat_id": "DE123456788",
+        "payment_terms": "Zahlbar innerhalb von 14 Tagen.",
         "issue_date": "2026-07-18",
         "document_number": "DOC-TEST-1001",
         "positions": [
@@ -52,6 +56,10 @@ def _payload() -> dict[str, Any]:
             "company_city": "Hannover",
             "company_zip": "30159",
             "company_manager": "Maria Real",
+            "company_email": "rechnung@steinbau-real.de",
+            "company_electronic_address": "rechnung@steinbau-real.de",
+            "company_electronic_address_scheme": "EM",
+            "company_iban": "DE75512108001245126199",
             "company_vat_id": "DE998877665",
         },
     }
@@ -575,7 +583,7 @@ def test_official_kosit_invalid_derived_case_reports_expected_rule_ids(
     assert "BR-DE-15" in rule_ids
     assert "PEPPOL-EN16931-R010" in rule_ids
     assert "PEPPOL-EN16931-R020" in rule_ids
-    assert "BR-DEX-09" in rule_ids
+    assert "BR-CO-16" in rule_ids
 
     classification = result.get("classification", {})
     assert classification.get("xsd") is False
@@ -692,7 +700,7 @@ def test_official_kosit_cii_invalid_derived_case_reports_expected_rule_ids(
     assert "BR-DE-15" in rule_ids
     assert "PEPPOL-EN16931-R010" in rule_ids
     assert "PEPPOL-EN16931-R020" in rule_ids
-    assert "BR-DEX-09" in rule_ids
+    assert "BR-CO-16" in rule_ids
 
 
 def test_persist_to_plugin_and_guest_system_sqlite(tmp_path: Path) -> None:
