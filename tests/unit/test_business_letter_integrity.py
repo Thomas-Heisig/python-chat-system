@@ -444,6 +444,9 @@ def test_xrechnung_document_adjustments_precede_tax_total() -> None:
     assert "error" not in result
     xml = result["einvoice"]["xml"]
     assert xml.index("<cac:AllowanceCharge>") < xml.index("<cac:TaxTotal>")
+    allowance = xml.split("<cac:AllowanceCharge>", 1)[1].split("</cac:AllowanceCharge>", 1)[0]
+    assert "<cbc:ID>S</cbc:ID>" in allowance
+    assert "<cbc:Percent>19.00</cbc:Percent>" in allowance
 
 
 def test_zugferd_output_requires_pdfa3_and_wraps_xrechnung() -> None:
@@ -789,6 +792,7 @@ def test_cii_output_includes_root_and_validation() -> None:
     xml = result["einvoice"]["xml"]
     assert "<ram:CompleteNumber>0511 123456</ram:CompleteNumber>" in xml
     assert "<ram:URIID>rechnung@steinbau-real.de</ram:URIID>" in xml
+    assert "<ram:CountryID>DE</ram:CountryID>" in xml
     assert xml.index("<ram:ApplicableTradeTax>") < xml.index("<ram:SpecifiedTradePaymentTerms>")
 
 

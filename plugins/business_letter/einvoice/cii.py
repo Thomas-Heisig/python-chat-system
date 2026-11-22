@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, cast
 from xml.sax.saxutils import escape
 
+from plugins.business_letter.einvoice.common import country_code
+
 
 def _cii_date(value: str) -> str:
     text = (value or "").strip()
@@ -80,7 +82,7 @@ def build_cii_xml(
     seller_endpoint_scheme = str(seller.get("electronic_address_scheme") or company.get("electronic_address_scheme") or "").strip()
     seller_postal = str(seller.get("postal_code") or company.get("zip") or "").strip()
     seller_city = str(seller.get("city") or company.get("city") or "").strip()
-    seller_country = str(seller.get("country") or company.get("country") or "DE").strip() or "DE"
+    seller_country = country_code(str(seller.get("country") or company.get("country") or "DE"))
     seller_contact_name = str(seller.get("manager") or company.get("manager") or "").strip()
     seller_phone = str(seller.get("phone") or company.get("phone") or "").strip()
     seller_email = str(seller.get("email") or company.get("email") or "").strip()
@@ -115,7 +117,7 @@ def build_cii_xml(
     buyer_endpoint_scheme = str(buyer.get("electronic_address_scheme") or recipient.get("electronic_address_scheme") or "").strip()
     buyer_postal = str(buyer.get("postal_code") or recipient.get("postal_code") or "").strip()
     buyer_city = str(buyer.get("city") or recipient.get("city") or "").strip()
-    buyer_country = str(buyer.get("country") or recipient.get("country") or "DE").strip() or "DE"
+    buyer_country = country_code(str(buyer.get("country") or recipient.get("country") or "DE"))
 
     line_total_amount = str(totals.get("line_net_total") or totals.get("tax_exclusive_amount") or "0.00").strip() or "0.00"
     allowance_total_amount = str(totals.get("allowance_total") or "0.00").strip() or "0.00"

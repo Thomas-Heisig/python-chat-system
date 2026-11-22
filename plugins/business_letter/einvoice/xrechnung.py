@@ -4,26 +4,10 @@ from decimal import Decimal
 from typing import Any, cast
 from xml.sax.saxutils import escape
 
+from plugins.business_letter.einvoice.common import country_code
 from plugins.business_letter.einvoice.cii import build_cii_xml
 from plugins.business_letter.einvoice.official_validation import validate_xrechnung_official_conformance
 from plugins.business_letter.einvoice.validation import validate_xrechnung_document, validate_xrechnung_xml_conformance
-
-
-def _country_code(value: str) -> str:
-    normalized = value.strip().upper()
-    mapping = {
-        "DE": "DE",
-        "DEUTSCHLAND": "DE",
-        "GERMANY": "DE",
-        "AT": "AT",
-        "OESTERREICH": "AT",
-        "ÖSTERREICH": "AT",
-        "AUSTRIA": "AT",
-        "CH": "CH",
-        "SCHWEIZ": "CH",
-        "SWITZERLAND": "CH",
-    }
-    return mapping.get(normalized, "DE")
 
 
 def _as_dict(value: Any) -> dict[str, Any]:
@@ -71,13 +55,13 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
     seller_street = str(company.get("street") or "").strip() or "Unknown Street"
     seller_city = str(company.get("city") or "").strip() or "Unknown City"
     seller_zip = str(company.get("zip") or "").strip() or "00000"
-    seller_country = _country_code(str(company.get("country") or "DE"))
+    seller_country = country_code(str(company.get("country") or "DE"))
     buyer_name = str(validation.get("buyer_name") or "").strip() or "Buyer"
     buyer_vat_id = str(buyer.get("vat_id") or recipient.get("vat_id") or "").strip()
     buyer_street = str(buyer.get("street") or "").strip() or str(recipient.get("street") or "").strip() or "Unknown Street"
     buyer_city = str(buyer.get("city") or "").strip() or str(recipient.get("city") or "").strip() or "Unknown City"
     buyer_zip = str(buyer.get("postal_code") or "").strip() or str(recipient.get("postal_code") or "").strip() or "00000"
-    buyer_country = _country_code(
+    buyer_country = country_code(
         str(buyer.get("country") or "").strip()
         or str(recipient.get("country") or "DE").strip()
         or "DE"
@@ -257,6 +241,11 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
                         *([f"    <cbc:AllowanceChargeReason>{escape(str(item.get('reason', '')))}</cbc:AllowanceChargeReason>"] if str(item.get('reason', '')).strip() else []),
                         *([f"    <cbc:MultiplierFactorNumeric>{escape(str(item.get('percentage', '')))}</cbc:MultiplierFactorNumeric>"] if str(item.get('percentage', '')).strip() not in {'', '0.00', '0'} else []),
                         f"    <cbc:Amount currencyID=\"{escape(currency)}\">{escape(str(item.get('amount', '0.00')))}</cbc:Amount>",
+                        "    <cac:TaxCategory>",
+                        f"      <cbc:ID>{escape(str(item.get('vat_category') or 'S'))}</cbc:ID>",
+                        f"      <cbc:Percent>{escape(str(item.get('vat_rate') or '0'))}</cbc:Percent>",
+                        "      <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>",
+                        "    </cac:TaxCategory>",
                         "  </cac:AllowanceCharge>",
                     ]
                 )

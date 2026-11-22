@@ -353,6 +353,10 @@ Beispiel:
 * `tax_exemption_reason`
 * `tax_exemption_reason_code`
 
+Bei XRechnung und ZUGFeRD werden Steuerkategorie und Steuersatz jeder dokumentweiten
+Anpassung in die XML-Ausgabe übernommen. Fehlen diese Angaben, verwendet die Berechnung
+die Steuerwerte der ersten Rechnungsposition.
+
 ### Templates und Artefakte
 
 * `company_logo_file`
