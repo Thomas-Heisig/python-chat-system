@@ -755,6 +755,10 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
   const selectedProjectIdForLabel = selectedChatProjectId ?? selectedProjectId ?? -1;
   const selectedProject = projects.find((project) => project.id === selectedProjectIdForLabel) ?? null;
   const selectedProjectLabel = selectedProject != null ? buildProjectDisplayName(selectedProject.id) : "Kein Projekt";
+  const selectedChatProject = selectedChatProjectId == null ? null : projectById.get(selectedChatProjectId);
+  const selectedChatProjectLabel = selectedChatProject != null
+    ? buildProjectDisplayName(selectedChatProject.id)
+    : "Kein Projekt";
   const selectedChatScope = useMemo(() => {
     const lineage: number[] = [];
     const seen = new Set<number>();
@@ -3694,7 +3698,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
                 }
               }}
               sources={chatSources}
-              activeProjectLabel={selectedProjectLabel}
+              activeProjectLabel={selectedChatProjectLabel}
             />
           ) : null}
 
@@ -3736,7 +3740,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             activeTab={activeRightTab}
             selectedSourceId={selectedSourceId}
             sources={chatSources}
-            activeProjectLabel={selectedProjectLabel}
+            activeProjectLabel={selectedChatProjectLabel}
             users={presenceUsers}
             currentUserId={currentUser.id}
             currentUserIsAdmin={currentUser.is_admin}
@@ -3861,7 +3865,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             activeTab={activeRightTab}
             selectedSourceId={selectedSourceId}
             sources={chatSources}
-            activeProjectLabel={selectedProjectLabel}
+            activeProjectLabel={selectedChatProjectLabel}
             users={presenceUsers}
             currentUserId={currentUser.id}
             currentUserIsAdmin={currentUser.is_admin}

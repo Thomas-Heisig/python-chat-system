@@ -481,6 +481,50 @@ describe("AppShell polling regression", () => {
     }
   });
 
+  it.each([1280, 375])("keeps an unassigned chat separate from the selected project at width %i", async (width) => {
+    const previousWidth = window.innerWidth;
+    window.innerWidth = width;
+    try {
+      backend.getWorkspaceProjects.mockResolvedValue([
+        { id: 10, name: "Team", chats: 0, documents: 0, parent_project_id: null },
+      ]);
+      backend.getConversations.mockResolvedValue([{
+        id: 100,
+        title: "Unassigned chat",
+        updatedAt: "2026-07-10T00:00:00Z",
+        lastMessage: null,
+        ownerUserId: 1,
+        ownerUsername: "tester",
+        projectId: null,
+      }]);
+      backend.getWorkspaceSources.mockResolvedValue([
+        { id: 1, file: "unassigned.txt", position: "1", relevance: "90%", project_id: null },
+        { id: 2, file: "team.txt", position: "2", relevance: "80%", project_id: 10 },
+      ]);
+
+      renderAppShell();
+      expect(await screen.findByText("Projekt fuer diesen Chat: Kein Projekt")).toBeTruthy();
+      if (width < 1024) {
+        fireEvent.click(screen.getByRole("button", { name: "Navigation oeffnen" }));
+        const navigation = screen.getByRole("dialog", { name: "Navigation" });
+        fireEvent.click(await within(navigation).findByRole("button", { name: "Projektordner Team" }));
+        fireEvent.click(within(navigation).getByLabelText("Sidebar ein-/ausklappen"));
+        fireEvent.click(screen.getByTitle("Kontext, Quellen und Werkzeuge anzeigen"));
+      } else {
+        fireEvent.click(await screen.findByRole("button", { name: "Projektordner Team" }));
+      }
+
+      expect(screen.getByText("Projekt fuer diesen Chat: Kein Projekt")).toBeTruthy();
+      const sidebar = await screen.findByRole("complementary", { name: "Informationsbereich" });
+      fireEvent.click(within(sidebar).getByRole("button", { name: "Quellen" }));
+      expect(within(sidebar).getByText("Kein Projekt")).toBeTruthy();
+      expect(within(sidebar).getByText("unassigned.txt")).toBeTruthy();
+      expect(within(sidebar).queryByText("team.txt")).toBeNull();
+    } finally {
+      window.innerWidth = previousWidth;
+    }
+  });
+
   it("supports project selection and assignment in the mobile navigation", async () => {
     const previousWidth = window.innerWidth;
     window.innerWidth = 375;
