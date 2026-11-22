@@ -7,6 +7,7 @@ import shlex
 import shutil
 import sqlite3
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -296,26 +297,32 @@ def test_official_xrechnung_validation_executes_with_xsd_and_schematron(monkeypa
 
 
 def test_external_pdfa_validator_if_available(tmp_path: Path) -> None:
-    result = _execute({**_payload(), "einvoice": {"enabled": True, "standard": "zugferd", "profile": "en16931"}})
-    pdf_path = tmp_path / "invoice.pdf"
-    pdf_path.write_bytes(bytes(result["einvoice"]["pdf"]["bytes"]))
-
-    verapdf_cmd = _verapdf_command(pdf_path)
-    if not verapdf_cmd:
-        if _require_external_validators():
-            pytest.fail("veraPDF command is required but not available")
-        pytest.skip("veraPDF not available in environment")
-
-    completed = subprocess.run(verapdf_cmd, capture_output=True, text=True)
-    report_dir = os.getenv("VERAPDF_REPORT_DIR", "").strip()
-    if report_dir:
-        report_path = Path(report_dir)
-        report_path.mkdir(parents=True, exist_ok=True)
-        (report_path / "verapdf-report.txt").write_text(
-            (completed.stdout or "") + "\n" + (completed.stderr or ""),
-            encoding="utf-8",
+    with tempfile.TemporaryDirectory(
+        prefix="verapdf-test-",
+        dir=os.getenv("GITHUB_WORKSPACE", str(tmp_path)),
+    ) as pdf_directory:
+        result = _execute(
+            {**_payload(), "einvoice": {"enabled": True, "standard": "zugferd", "profile": "en16931"}}
         )
-    assert completed.returncode == 0, completed.stdout + completed.stderr
+        pdf_path = Path(pdf_directory) / "invoice.pdf"
+        pdf_path.write_bytes(bytes(result["einvoice"]["pdf"]["bytes"]))
+
+        verapdf_cmd = _verapdf_command(pdf_path)
+        if not verapdf_cmd:
+            if _require_external_validators():
+                pytest.fail("veraPDF command is required but not available")
+            pytest.skip("veraPDF not available in environment")
+
+        completed = subprocess.run(verapdf_cmd, capture_output=True, text=True)
+        report_dir = os.getenv("VERAPDF_REPORT_DIR", "").strip()
+        if report_dir:
+            report_path = Path(report_dir)
+            report_path.mkdir(parents=True, exist_ok=True)
+            (report_path / "verapdf-report.txt").write_text(
+                (completed.stdout or "") + "\n" + (completed.stderr or ""),
+                encoding="utf-8",
+            )
+        assert completed.returncode == 0, completed.stdout + completed.stderr
 
 
 def test_verapdf_docker_command_mounts_the_input_directory(

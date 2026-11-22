@@ -115,18 +115,25 @@ def _validate_with_kosit_cli(
             timeout=120,
         )
 
-    raw_output = (completed.stdout or "").strip()
-    report_start = raw_output.find("<?xml")
-    if report_start < 0:
-        report_start = raw_output.find("<rep:report")
-    report_text = raw_output[report_start:] if report_start >= 0 else raw_output
+    raw_output = "\n".join(part for part in (completed.stdout, completed.stderr) if part).strip()
     namespace = "http://www.xoev.de/de/validator/varl/1"
     report: ET.Element | None = None
     parse_error = ""
-    try:
-        report = ET.fromstring(report_text)
-    except ET.ParseError as error:
-        parse_error = str(error)
+    report_text = raw_output
+    for output in (completed.stdout or "", completed.stderr or ""):
+        report_start = output.find("<?xml")
+        if report_start < 0:
+            report_start = output.find("<rep:report")
+        if report_start < 0:
+            report_start = output.find("<report")
+        if report_start < 0:
+            continue
+        report_text = output[report_start:]
+        try:
+            report = ET.fromstring(report_text)
+            break
+        except ET.ParseError as error:
+            parse_error = str(error)
 
     steps = (
         [
@@ -166,6 +173,8 @@ def _validate_with_kosit_cli(
                 "schematron_path": str(schematron_path) if schematron_path else "",
                 "validator": str(validator_jar),
                 "returncode": completed.returncode,
+                "validator_output": raw_output[:4000] if report is None else "",
+                "report_parse_error": parse_error,
             },
             ensure_ascii=False,
             indent=2,
@@ -180,11 +189,17 @@ def _validate_with_kosit_cli(
     if report is None:
         details = (completed.stderr or "").strip() or parse_error or "Validator did not return an XML report."
         issues.append(_issue("XR-OFFICIAL-CLI", "xml", details))
+        _write_report(report_dir, f"{report_prefix}_official_cli.txt", raw_output)
     elif completed.returncode != 0 and not issues:
         details = (completed.stderr or "").strip() or "KoSIT validator rejected the invoice."
         issues.append(_issue("XR-OFFICIAL-CLI", "xml", details))
 
     classification = _classify_outputs(schema_output, schematron_output)
+    classification["xsd"] = not schema_valid
+    classification["schematron"] = not schematron_valid
+    classification["xml_syntax"] = any(
+        step.get("id") == "val-xml" and step.get("valid") != "true" for step in schema_steps
+    )
     return {
         "executed": True,
         "valid": valid,
@@ -234,12 +249,14 @@ def validate_xrechnung_official_conformance(
     validator_jar = Path(os.getenv("XRECHNUNG_VALIDATOR_JAR", "").strip())
     assets_root = Path(os.getenv("XRECHNUNG_VALIDATOR_ASSETS_ROOT", "").strip())
     config_root = Path(os.getenv("XRECHNUNG_VALIDATOR_CONFIG_ROOT", "").strip())
-    explicit_paths = [Path(path) for path in (xsd_path, schematron_path) if path]
+    selected_paths = [path for path in (resolved_xsd, resolved_schematron) if path is not None]
+    selected_paths.extend(Path(path) for path in (xsd_path, schematron_path) if path)
     use_kosit_cli = (
         validator_jar.is_file()
         and assets_root.is_dir()
         and config_root.is_dir()
-        and all(_is_within_directory(path, assets_root) for path in explicit_paths)
+        and bool(selected_paths)
+        and all(_is_within_directory(path, assets_root) for path in selected_paths)
     )
     if use_kosit_cli:
         return _validate_with_kosit_cli(
@@ -320,6 +337,8 @@ def validate_xrechnung_official_conformance(
 
     rule_ids = _extract_rule_ids(schema_output, schematron_output)
     classification = _classify_outputs(schema_output, schematron_output)
+    classification["xsd"] = not schema_valid
+    classification["schematron"] = not schematron_valid
 
     issues: list[dict[str, str]] = []
     if not schema_valid:
