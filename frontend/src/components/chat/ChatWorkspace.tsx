@@ -95,6 +95,7 @@ type ChatWorkspaceProps = {
     category: "lokal" | "remote" | "ollama_local" | "ollama_cloud";
   }>;
   sources: Array<{ id: number; file: string; position: string; relevance: string }>;
+  activeProjectLabel: string;
   selectedModelId: string;
   modelLoaded: boolean;
   sendState: SendWorkflowState;
@@ -123,6 +124,7 @@ export function ChatWorkspace({
   modelEntries,
   messages,
   sources,
+  activeProjectLabel,
   selectedModelId,
   modelLoaded,
   sendState,
@@ -412,7 +414,7 @@ export function ChatWorkspace({
       <header className="chat-header">
         <div>
           <h1 className="chat-title">{chatTitle}</h1>
-          <p className="meta-line">Projektzuordnung fuer diesen Chat</p>
+          <p className="meta-line">{ui.projectSelect}: {activeProjectLabel}</p>
         </div>
 
         <div className="chat-meta">

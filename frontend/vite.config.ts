@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import { fileURLToPath, URL } from "node:url";
+import { configDefaults } from "vitest/config";
 
 function parseAllowedHosts(rawValue: string | undefined): true | string[] {
   if (!rawValue) {
@@ -31,6 +32,7 @@ export default defineConfig(() => {
       environment: "jsdom",
       globals: true,
       setupFiles: "./src/test/setup.ts",
+      exclude: [...configDefaults.exclude, "e2e/**"],
     },
     server: {
       fs: {

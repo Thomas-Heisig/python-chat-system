@@ -1803,7 +1803,6 @@ async def batch_jobs_from_training_folder(
     """Discover complete bundles and enqueue each unprocessed folder exactly once."""
     user_repo = UserRepository(session)
     dataset_repo = TrainingDatasetRepository(session)
-    file_repo = TrainingDatasetFileRepository(session)
     job_repo = TrainingJobRepository(session)
     project_repo = ProjectRepository(session)
     settings = SettingsService(session)

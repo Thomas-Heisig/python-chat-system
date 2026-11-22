@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -438,5 +438,122 @@ describe("AppShell polling regression", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Projektordner Heisig Naturstein / Angebote / Kläner" }).getAttribute("aria-pressed")).toBe("true");
     });
+  });
+
+  it.each([1280, 375])("shows only the active chat's project-scope sources at width %i", async (width) => {
+    const previousWidth = window.innerWidth;
+    window.innerWidth = width;
+    try {
+      backend.getWorkspaceProjects.mockResolvedValue([
+        { id: 10, name: "Parent", chats: 0, documents: 0, parent_project_id: null },
+        { id: 11, name: "Child", chats: 0, documents: 0, parent_project_id: 10 },
+        { id: 12, name: "Other", chats: 0, documents: 0, parent_project_id: null },
+      ]);
+      backend.getConversations.mockResolvedValue([{
+        id: 100,
+        title: "Scoped chat",
+        updatedAt: "2026-07-10T00:00:00Z",
+        lastMessage: null,
+        ownerUserId: 1,
+        ownerUsername: "tester",
+        projectId: 11,
+      }]);
+      backend.getWorkspaceSources.mockResolvedValue([
+        { id: 1, file: "parent.txt", position: "1", relevance: "90%", project_id: 10 },
+        { id: 2, file: "child.txt", position: "2", relevance: "80%", project_id: 11 },
+        { id: 3, file: "other.txt", position: "3", relevance: "70%", project_id: 12 },
+        { id: 4, file: "unassigned.txt", position: "4", relevance: "60%", project_id: null },
+      ]);
+
+      renderAppShell();
+      expect(await screen.findByText("Projekt fuer diesen Chat: Parent / Child")).toBeTruthy();
+      if (width < 1024) {
+        fireEvent.click(screen.getByTitle("Kontext, Quellen und Werkzeuge anzeigen"));
+      }
+      const sidebar = await screen.findByRole("complementary", { name: "Informationsbereich" });
+      fireEvent.click(within(sidebar).getByRole("button", { name: "Quellen" }));
+      expect(within(sidebar).getByText("parent.txt")).toBeTruthy();
+      expect(within(sidebar).getByText("child.txt")).toBeTruthy();
+      expect(within(sidebar).queryByText("other.txt")).toBeNull();
+      expect(within(sidebar).queryByText("unassigned.txt")).toBeNull();
+    } finally {
+      window.innerWidth = previousWidth;
+    }
+  });
+
+  it.each([1280, 375])("keeps an unassigned chat separate from the selected project at width %i", async (width) => {
+    const previousWidth = window.innerWidth;
+    window.innerWidth = width;
+    try {
+      backend.getWorkspaceProjects.mockResolvedValue([
+        { id: 10, name: "Team", chats: 0, documents: 0, parent_project_id: null },
+      ]);
+      backend.getConversations.mockResolvedValue([{
+        id: 100,
+        title: "Unassigned chat",
+        updatedAt: "2026-07-10T00:00:00Z",
+        lastMessage: null,
+        ownerUserId: 1,
+        ownerUsername: "tester",
+        projectId: null,
+      }]);
+      backend.getWorkspaceSources.mockResolvedValue([
+        { id: 1, file: "unassigned.txt", position: "1", relevance: "90%", project_id: null },
+        { id: 2, file: "team.txt", position: "2", relevance: "80%", project_id: 10 },
+      ]);
+
+      renderAppShell();
+      expect(await screen.findByText("Projekt fuer diesen Chat: Kein Projekt")).toBeTruthy();
+      if (width < 1024) {
+        fireEvent.click(screen.getByRole("button", { name: "Navigation oeffnen" }));
+        const navigation = screen.getByRole("dialog", { name: "Navigation" });
+        fireEvent.click(await within(navigation).findByRole("button", { name: "Projektordner Team" }));
+        fireEvent.click(within(navigation).getByLabelText("Sidebar ein-/ausklappen"));
+        fireEvent.click(screen.getByTitle("Kontext, Quellen und Werkzeuge anzeigen"));
+      } else {
+        fireEvent.click(await screen.findByRole("button", { name: "Projektordner Team" }));
+      }
+
+      expect(screen.getByText("Projekt fuer diesen Chat: Kein Projekt")).toBeTruthy();
+      const sidebar = await screen.findByRole("complementary", { name: "Informationsbereich" });
+      fireEvent.click(within(sidebar).getByRole("button", { name: "Quellen" }));
+      expect(within(sidebar).getByText("Kein Projekt")).toBeTruthy();
+      expect(within(sidebar).getByText("unassigned.txt")).toBeTruthy();
+      expect(within(sidebar).queryByText("team.txt")).toBeNull();
+    } finally {
+      window.innerWidth = previousWidth;
+    }
+  });
+
+  it("supports project selection and assignment in the mobile navigation", async () => {
+    const previousWidth = window.innerWidth;
+    window.innerWidth = 375;
+    try {
+      backend.getWorkspaceProjects.mockResolvedValue([
+        { id: 10, name: "Team", chats: 0, documents: 0, parent_project_id: null },
+      ]);
+      backend.getConversations.mockResolvedValue([{
+        id: 100,
+        title: "Mobile chat",
+        updatedAt: "2026-07-10T00:00:00Z",
+        lastMessage: null,
+        ownerUserId: 1,
+        ownerUsername: "tester",
+        projectId: null,
+      }]);
+
+      renderAppShell();
+      fireEvent.click(await screen.findByRole("button", { name: "Navigation oeffnen" }));
+      const navigation = await screen.findByRole("dialog", { name: "Navigation" });
+      fireEvent.click(await within(navigation).findByLabelText("Chat Mobile chat Aktionen"));
+      fireEvent.change(await within(navigation).findByLabelText("Projektzuordnung"), { target: { value: "10" } });
+      fireEvent.click(within(navigation).getByRole("button", { name: "Projekt speichern" }));
+      await waitFor(() => expect(backend.assignConversationProject).toHaveBeenCalledWith(100, 10, 1));
+
+      fireEvent.click(within(navigation).getByRole("button", { name: "Projektordner Team" }));
+      expect(within(navigation).getByRole("button", { name: "Projektordner Team" }).getAttribute("aria-pressed")).toBe("true");
+    } finally {
+      window.innerWidth = previousWidth;
+    }
   });
 });
