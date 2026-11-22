@@ -1,100 +1,111 @@
 import React, { FormEvent, useCallback, useMemo, useRef, useState } from 'react';
-import './JTLSuitePage.css';
 import { usePluginDraft } from '../../shared/frontend/usePluginDraft';
-// import logo from '../assets/logo.svg'; // falls vorhanden
+import './JTLSuitePage.css';
 
-// Typen (können auch aus einer zentralen Typdefinition kommen)
+type JsonObject = Record<string, unknown>;
+
 type ExecutePayload = {
   pluginId: string;
-  pluginInput?: Record<string, unknown>;
-  pluginSettings?: Record<string, unknown>;
+  pluginInput?: JsonObject;
+  pluginSettings?: JsonObject;
   userId?: number;
 };
 
-type Props = {
-  currentUserId?: number;
-  executePlugin?: (payload: ExecutePayload) => Promise<unknown>;
-};
-
-// Die PLUGIN_META muss zur Laufzeit verfügbar sein – wird meist vom Backend geliefert
-// Hier als globale Variable angenommen, kann auch per Context oder Prop reingereicht werden
-declare const PLUGIN_META: any;
-
-// Typ für eine Action aus der pluginFrontend-Konfiguration
 type PluginAction = {
   id: string;
   label: string;
   description?: string;
-  pluginInput: Record<string, any>;
+  openTab?: 'manual' | 'settings';
+  pluginInput?: JsonObject;
 };
 
 type PluginSection = {
   id: string;
   title: string;
   description?: string;
-  actions: PluginAction[];
+  actions?: PluginAction[];
+};
+
+type PluginMeta = {
+  name?: string;
+  description?: string;
+  icon?: string;
+  pluginFrontend?: {
+    title?: string;
+    description?: string;
+    sections?: PluginSection[];
+  };
+};
+
+type Props = {
+  currentUserId?: number;
+  executePlugin?: (payload: ExecutePayload) => Promise<unknown>;
+  pluginMeta?: PluginMeta;
+  onClose?: () => void;
+  onOpenSettings?: () => void;
 };
 
 type Draft = {
   lastActionId?: string;
-  lastParams?: Record<string, any>;
+  lastParams?: JsonObject;
   savedAt?: string;
 };
 
 const PLUGIN_ID = 'jtl_suite';
 
-export function JTLSuitePage({ currentUserId, executePlugin }: Props) {
-  const applyingDraftRef = useRef(false);
+function fieldValue(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  return String(value);
+}
 
-  // Zustand für ausgewählte Aktion und Parameter
+function parseFieldValue(original: unknown, value: string): unknown {
+  if (typeof original === 'number') return Number(value);
+  if (typeof original === 'boolean') return value === 'true';
+  if (typeof original === 'object' && original !== null) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
+export function JTLSuitePage({ currentUserId, executePlugin, pluginMeta, onClose, onOpenSettings }: Props) {
+  const applyingDraftRef = useRef(false);
+  const sections = useMemo(() => pluginMeta?.pluginFrontend?.sections ?? [], [pluginMeta]);
+  const allActions = useMemo(() => sections.flatMap((section) => section.actions ?? []), [sections]);
   const [selectedAction, setSelectedAction] = useState<PluginAction | null>(null);
-  const [actionParams, setActionParams] = useState<Record<string, any>>({});
-  const [result, setResult] = useState<any>(null);
+  const [actionParams, setActionParams] = useState<JsonObject>({});
+  const [result, setResult] = useState<unknown>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
 
-  // Hole die Sections aus PLUGIN_META
-  const sections: PluginSection[] = useMemo(
-    () => PLUGIN_META?.pluginFrontend?.sections || [],
-    []
-  );
-
-  // Draft für Autosave (optional)
-  const draftSnapshot = useMemo<Draft>(
-    () => ({
-      lastActionId: selectedAction?.id,
-      lastParams: actionParams,
-      savedAt: new Date().toISOString(),
-    }),
-    [selectedAction, actionParams]
-  );
+  const draftSnapshot = useMemo<Draft>(() => ({
+    lastActionId: selectedAction?.id,
+    lastParams: actionParams,
+    savedAt: new Date().toISOString(),
+  }), [selectedAction, actionParams]);
 
   const normalizeDraft = useCallback((raw: unknown): Draft | null => {
-    if (typeof raw !== 'object' || raw == null) return null;
-    const d = raw as Partial<Draft>;
+    if (!raw || typeof raw !== 'object') return null;
+    const value = raw as Draft;
     return {
-      lastActionId: d.lastActionId || undefined,
-      lastParams: d.lastParams || {},
-      savedAt: d.savedAt || '',
+      lastActionId: value.lastActionId,
+      lastParams: value.lastParams ?? {},
+      savedAt: value.savedAt,
     };
   }, []);
 
   const applyDraft = useCallback((draft: Draft) => {
     applyingDraftRef.current = true;
-    if (draft.lastActionId) {
-      // Suche die Aktion in allen Sections
-      for (const section of sections) {
-        const found = section.actions.find(a => a.id === draft.lastActionId);
-        if (found) {
-          setSelectedAction(found);
-          setActionParams(draft.lastParams || {});
-          break;
-        }
-      }
-    }
-  }, [sections]);
+    const action = allActions.find((candidate) => candidate.id === draft.lastActionId);
+    if (action) setSelectedAction(action);
+    setActionParams(draft.lastParams ?? action?.pluginInput ?? {});
+  }, [allActions]);
 
-  const { draftStatus, draftMessage, saveDraftNow, reloadDraftNow } = usePluginDraft<Draft>({
+  const { draftStatus, draftMessage, saveDraftNow, reloadDraftNow } = usePluginDraft({
     pluginId: PLUGIN_ID,
     currentUserId,
     draftSnapshot,
@@ -104,65 +115,47 @@ export function JTLSuitePage({ currentUserId, executePlugin }: Props) {
     autosaveDelayMs: 600,
   });
 
-  // Handler für Action-Klick
-  const handleActionClick = (action: PluginAction) => {
-    setSelectedAction(action);
-    // Setze Parameter aus pluginInput als Vorschlag, aber kopiere sie, damit der Benutzer sie anpassen kann
-    setActionParams({ ...action.pluginInput });
-    setError('');
-    setResult(null);
-  };
-
-  // Parameter-Änderung
-  const handleParamChange = (key: string, value: any) => {
-    setActionParams(prev => ({ ...prev, [key]: value }));
-  };
-
-  // Submit des Befehls
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!selectedAction) {
-      setError('Bitte wähle zuerst eine Aktion aus.');
+  const chooseAction = (action: PluginAction) => {
+    if (action.openTab === 'settings') {
+      onOpenSettings?.();
       return;
     }
-
+    setSelectedAction(action);
+    setActionParams({ ...(action.pluginInput ?? {}) });
+    setResult(null);
     setError('');
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!selectedAction) return;
     setRunning(true);
+    setError('');
     try {
       const payload: ExecutePayload = {
         pluginId: PLUGIN_ID,
         userId: currentUserId,
-        pluginInput: {
-          ...selectedAction.pluginInput,
-          ...actionParams,  // überschreibt mit benutzerdefinierten Werten
-        },
-        pluginSettings: {}, // ggf. globale Settings
+        pluginInput: { ...(selectedAction.pluginInput ?? {}), ...actionParams },
       };
-
-      let response: unknown;
       if (executePlugin) {
-        response = await executePlugin(payload);
+        setResult(await executePlugin(payload));
       } else {
-        const fetchResponse = await fetch('/api/plugins/execute', {
+        const response = await fetch('/api/plugins/execute', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             plugin_id: payload.pluginId,
             plugin_input: payload.pluginInput,
-            plugin_settings: payload.pluginSettings,
             user_id: payload.userId ?? null,
           }),
         });
-        const body = await fetchResponse.json().catch(() => null);
-        if (!fetchResponse.ok) {
-          throw new Error((body as { detail?: string } | null)?.detail || `Plugin-Aufruf fehlgeschlagen (${fetchResponse.status})`);
-        }
-        response = body;
+        const body = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(body?.detail ?? `Plugin-Aufruf fehlgeschlagen (${response.status})`);
+        setResult(body);
       }
-      setResult(response);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Unbekannter Fehler.');
+      setError(reason instanceof Error ? reason.message : 'Unbekannter Fehler');
     } finally {
       setRunning(false);
     }
@@ -170,109 +163,76 @@ export function JTLSuitePage({ currentUserId, executePlugin }: Props) {
 
   return (
     <div className="jtl-suite-page">
-      <header className="jtl-header">
-        <div className="jtl-branding">
-          {/* Logo optional */}
-          <h1>JTL Suite</h1>
-          <p className="jtl-subtitle">Maximale JTL-Integration – Wawi, Shop, WMS, eazyAuction</p>
+      <header className="jtl-suite-header">
+        <div className="jtl-suite-brand">
+          <img src={pluginMeta?.icon ?? '/api/plugins/jtl_suite/assets/logo.svg'} alt="" />
+          <div>
+            <h1>{pluginMeta?.pluginFrontend?.title ?? pluginMeta?.name ?? 'JTL Suite'}</h1>
+            <p>{pluginMeta?.pluginFrontend?.description ?? pluginMeta?.description}</p>
+          </div>
         </div>
+        {onClose && <button className="jtl-suite-close" type="button" onClick={onClose} aria-label="Plugin schließen">×</button>}
       </header>
 
-      <div className="jtl-layout">
-        {/* Linke Spalte: Sections und Actions */}
-        <div className="jtl-actions-sidebar">
+      <div className="jtl-suite-layout">
+        <nav className="jtl-suite-navigation" aria-label="JTL Aktionen">
           {sections.map((section) => (
-            <div key={section.id} className="jtl-section">
-              <h3>{section.title}</h3>
-              {section.description && <p className="jtl-section-desc">{section.description}</p>}
-              <div className="jtl-action-grid">
-                {section.actions.map((action) => (
+            <section key={section.id}>
+              <h2>{section.title}</h2>
+              {section.description && <p>{section.description}</p>}
+              <div className="jtl-suite-actions">
+                {(section.actions ?? []).map((action) => (
                   <button
                     key={action.id}
-                    className={`jtl-action-btn ${selectedAction?.id === action.id ? 'active' : ''}`}
-                    onClick={() => handleActionClick(action)}
-                    title={action.description}
+                    type="button"
+                    className={selectedAction?.id === action.id ? 'is-active' : ''}
+                    onClick={() => chooseAction(action)}
                   >
-                    {action.label}
+                    <strong>{action.label}</strong>
+                    {action.description && <span>{action.description}</span>}
                   </button>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
-        </div>
+        </nav>
 
-        {/* Rechte Spalte: Ausführung und Ergebnis */}
-        <div className="jtl-execution-panel">
-          {selectedAction ? (
-            <form onSubmit={submit} className="jtl-exec-form">
-              <div className="jtl-exec-header">
-                <h2>{selectedAction.label}</h2>
-                <p className="jtl-exec-desc">{selectedAction.description}</p>
-              </div>
-
-              {/* Dynamische Parameter-Felder */}
-              <div className="jtl-params">
-                {Object.entries(actionParams).map(([key, value]) => {
-                  // Je nach Typ des Wertes entscheiden wir, welches Input-Feld gerendert wird
-                  const inputType = typeof value === 'number' ? 'number' : 'text';
-                  return (
-                    <div key={key} className="jtl-param-row">
-                      <label htmlFor={`param-${key}`}>{key}</label>
-                      <input
-                        id={`param-${key}`}
-                        type={inputType}
-                        value={value ?? ''}
-                        onChange={(e) => {
-                          const newVal = inputType === 'number' ? Number(e.target.value) : e.target.value;
-                          handleParamChange(key, newVal);
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              <button type="submit" className="jtl-submit-btn" disabled={running}>
-                {running ? 'Wird ausgeführt...' : 'Ausführen'}
-              </button>
-
-              {error && <div className="jtl-error">{error}</div>}
-            </form>
+        <main className="jtl-suite-workspace">
+          {!selectedAction ? (
+            <div className="jtl-suite-empty">Wähle links eine Aktion aus.</div>
           ) : (
-            <div className="jtl-placeholder">
-              <p>Wähle eine Aktion aus der linken Liste, um sie auszuführen.</p>
-            </div>
+            <form onSubmit={submit}>
+              <div className="jtl-suite-form-header">
+                <div><h2>{selectedAction.label}</h2><p>{selectedAction.description}</p></div>
+                <button type="submit" disabled={running}>{running ? 'Wird ausgeführt …' : 'Ausführen'}</button>
+              </div>
+              <div className="jtl-suite-fields">
+                {Object.entries(actionParams).map(([key, value]) => (
+                  <label key={key}>
+                    <span>{key}</span>
+                    {typeof value === 'boolean' ? (
+                      <select value={String(value)} onChange={(event) => setActionParams((current) => ({ ...current, [key]: event.target.value === 'true' }))}>
+                        <option value="true">Ja</option><option value="false">Nein</option>
+                      </select>
+                    ) : typeof value === 'object' && value !== null ? (
+                      <textarea value={fieldValue(value)} rows={6} onChange={(event) => setActionParams((current) => ({ ...current, [key]: parseFieldValue(value, event.target.value) }))} />
+                    ) : (
+                      <input type={typeof value === 'number' ? 'number' : 'text'} value={fieldValue(value)} onChange={(event) => setActionParams((current) => ({ ...current, [key]: parseFieldValue(value, event.target.value) }))} />
+                    )}
+                  </label>
+                ))}
+              </div>
+            </form>
           )}
 
-          {/* Ergebnis anzeigen */}
-          {result && (
-            <div className="jtl-result">
-              <h3>Ergebnis</h3>
-              <pre>{JSON.stringify(result, null, 2)}</pre>
-            </div>
-          )}
-
-          {/* Draft-Persistenz (optional) */}
-          <div className="jtl-draft-controls">
-            <button
-              type="button"
-              className="jtl-draft-btn"
-              onClick={() => void saveDraftNow()}
-              disabled={currentUserId == null || draftStatus === 'saving'}
-            >
-              Entwurf speichern
-            </button>
-            <button
-              type="button"
-              className="jtl-draft-btn"
-              onClick={() => void reloadDraftNow()}
-              disabled={currentUserId == null || draftStatus === 'loading'}
-            >
-              Entwurf laden
-            </button>
-            {draftMessage && <span className="jtl-draft-msg">{draftMessage}</span>}
-          </div>
-        </div>
+          {error && <div className="jtl-suite-error">{error}</div>}
+          {result !== null && <section className="jtl-suite-result"><h2>Ergebnis</h2><pre>{JSON.stringify(result, null, 2)}</pre></section>}
+          <footer className="jtl-suite-draft">
+            <button type="button" onClick={() => void saveDraftNow()} disabled={currentUserId == null || draftStatus === 'saving'}>Entwurf speichern</button>
+            <button type="button" onClick={() => void reloadDraftNow()} disabled={currentUserId == null || draftStatus === 'loading'}>Entwurf laden</button>
+            {draftMessage && <span>{draftMessage}</span>}
+          </footer>
+        </main>
       </div>
     </div>
   );
