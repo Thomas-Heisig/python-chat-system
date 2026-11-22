@@ -107,18 +107,15 @@ class CareInstructionsPlugin:
 
         # Finde den passenden Eintrag (auch Teilübereinstimmung)
         stone_data = None
-        matched_key = None
         for key in _CARE_DB:
             if stone_key == key:
                 stone_data = _CARE_DB[key]
-                matched_key = key
                 break
         if not stone_data:
             # Teilübereinstimmung
             for key in _CARE_DB:
                 if stone_key in key or key in stone_key:
                     stone_data = _CARE_DB[key]
-                    matched_key = key
                     break
 
         if not stone_data:
@@ -139,4 +136,3 @@ class CareInstructionsPlugin:
             "stone": stone_data["name"],
             "instructions": instructions,
         }
-

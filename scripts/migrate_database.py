@@ -12,9 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.core.config import get_config
-from app.database.base import Base
-import app.db_models  # noqa: F401
+from app.core.config import get_config  # noqa: E402
+from app.database.base import Base  # noqa: E402
+import app.db_models  # noqa: E402,F401
 
 
 def to_sync_sqlalchemy_url(url: str) -> str:

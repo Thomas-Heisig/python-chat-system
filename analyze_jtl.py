@@ -1,4 +1,4 @@
-import os, sys
+import sys
 sys.stdout.reconfigure(encoding='utf-8')
 filepath = 'f:/symple chat/python-chat-system/plugins/jtl_suite/plugin.py'
 with open(filepath, 'r', encoding='utf-8') as f:
