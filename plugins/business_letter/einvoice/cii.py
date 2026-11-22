@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, cast
 from xml.sax.saxutils import escape
 
+from plugins.business_letter.einvoice.common import country_code
+
 
 def _cii_date(value: str) -> str:
     text = (value or "").strip()
@@ -47,7 +49,13 @@ def build_cii_xml(
 
     profile_id = "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0"
     customization_id = "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"
-    invoice_id = str(customer_visible.get("document_kind") or commercial_document.get("document_kind") or "INVOICE").strip() or "INVOICE"
+    invoice_id = str(
+        customer_visible.get("document_number")
+        or commercial_document.get("document_number")
+        or customer_visible.get("document_kind")
+        or commercial_document.get("document_kind")
+        or "INVOICE"
+    ).strip() or "INVOICE"
     issue_date = _cii_date(str(customer_visible.get("issue_date") or commercial_document.get("issue_date") or "").strip())
     due_date = _cii_date(str(customer_visible.get("payment_due_date") or "").strip())
     buyer_reference = str(validation.get("buyer_reference") or customer_visible.get("buyer_reference") or commercial_document.get("buyer_reference") or "").strip()
@@ -74,16 +82,42 @@ def build_cii_xml(
     seller_endpoint_scheme = str(seller.get("electronic_address_scheme") or company.get("electronic_address_scheme") or "").strip()
     seller_postal = str(seller.get("postal_code") or company.get("zip") or "").strip()
     seller_city = str(seller.get("city") or company.get("city") or "").strip()
-    seller_country = str(seller.get("country") or company.get("country") or "DE").strip() or "DE"
+    seller_country = country_code(str(seller.get("country") or company.get("country") or "DE"))
+    seller_contact_name = str(seller.get("manager") or company.get("manager") or "").strip()
+    seller_phone = str(seller.get("phone") or company.get("phone") or "").strip()
+    seller_email = str(seller.get("email") or company.get("email") or "").strip()
+    seller_contact_lines: list[str] = []
+    if seller_contact_name or seller_phone or seller_email:
+        seller_contact_lines.append("        <ram:DefinedTradeContact>")
+        if seller_contact_name:
+            seller_contact_lines.append(f"          <ram:PersonName>{escape(seller_contact_name)}</ram:PersonName>")
+        if seller_phone:
+            seller_contact_lines.extend(
+                [
+                    "          <ram:TelephoneUniversalCommunication>",
+                    f"            <ram:CompleteNumber>{escape(seller_phone)}</ram:CompleteNumber>",
+                    "          </ram:TelephoneUniversalCommunication>",
+                ]
+            )
+        if seller_email:
+            seller_contact_lines.extend(
+                [
+                    "          <ram:EmailURIUniversalCommunication>",
+                    f"            <ram:URIID>{escape(seller_email)}</ram:URIID>",
+                    "          </ram:EmailURIUniversalCommunication>",
+                ]
+            )
+        seller_contact_lines.append("        </ram:DefinedTradeContact>")
     seller_iban = str(seller.get("iban") or company.get("iban") or "").strip()
     seller_bic = str(seller.get("bic") or company.get("bic") or "").strip()
 
     buyer_name = str(validation.get("buyer_name") or buyer.get("name") or recipient.get("company") or recipient.get("name") or "Buyer").strip() or "Buyer"
+    buyer_vat_id = str(buyer.get("vat_id") or recipient.get("vat_id") or "").strip()
     buyer_endpoint = str(buyer.get("electronic_address") or recipient.get("electronic_address") or "").strip()
     buyer_endpoint_scheme = str(buyer.get("electronic_address_scheme") or recipient.get("electronic_address_scheme") or "").strip()
     buyer_postal = str(buyer.get("postal_code") or recipient.get("postal_code") or "").strip()
     buyer_city = str(buyer.get("city") or recipient.get("city") or "").strip()
-    buyer_country = str(buyer.get("country") or recipient.get("country") or "DE").strip() or "DE"
+    buyer_country = country_code(str(buyer.get("country") or recipient.get("country") or "DE"))
 
     line_total_amount = str(totals.get("line_net_total") or totals.get("tax_exclusive_amount") or "0.00").strip() or "0.00"
     allowance_total_amount = str(totals.get("allowance_total") or "0.00").strip() or "0.00"
@@ -204,6 +238,7 @@ def build_cii_xml(
             f'      <ram:BuyerReference>{escape(buyer_reference)}</ram:BuyerReference>',
             '      <ram:SellerTradeParty>',
             f'        <ram:Name>{escape(seller_name)}</ram:Name>',
+            *seller_contact_lines,
             *(['        <ram:PostalTradeAddress>', f'          <ram:PostcodeCode>{escape(seller_postal)}</ram:PostcodeCode>', f'          <ram:CityName>{escape(seller_city)}</ram:CityName>', f'          <ram:CountryID>{escape(seller_country)}</ram:CountryID>', '        </ram:PostalTradeAddress>'] if (seller_postal or seller_city or seller_country) else []),
             *(['        <ram:URIUniversalCommunication>', f'          <ram:URIID schemeID="{escape(seller_endpoint_scheme)}">{escape(seller_endpoint)}</ram:URIID>', '        </ram:URIUniversalCommunication>'] if seller_endpoint and seller_endpoint_scheme else []),
             *(['        <ram:SpecifiedTaxRegistration>', f'          <ram:ID schemeID="VA">{escape(seller_vat_id)}</ram:ID>', '        </ram:SpecifiedTaxRegistration>'] if seller_vat_id else []),
@@ -213,6 +248,7 @@ def build_cii_xml(
             f'        <ram:Name>{escape(buyer_name)}</ram:Name>',
             *(['        <ram:PostalTradeAddress>', f'          <ram:PostcodeCode>{escape(buyer_postal)}</ram:PostcodeCode>', f'          <ram:CityName>{escape(buyer_city)}</ram:CityName>', f'          <ram:CountryID>{escape(buyer_country)}</ram:CountryID>', '        </ram:PostalTradeAddress>'] if (buyer_postal or buyer_city or buyer_country) else []),
             *(['        <ram:URIUniversalCommunication>', f'          <ram:URIID schemeID="{escape(buyer_endpoint_scheme)}">{escape(buyer_endpoint)}</ram:URIID>', '        </ram:URIUniversalCommunication>'] if buyer_endpoint and buyer_endpoint_scheme else []),
+            *(['        <ram:SpecifiedTaxRegistration>', f'          <ram:ID schemeID="VA">{escape(buyer_vat_id)}</ram:ID>', '        </ram:SpecifiedTaxRegistration>'] if buyer_vat_id else []),
             '      </ram:BuyerTradeParty>',
             *(['      <ram:BuyerOrderReferencedDocument>', f'        <ram:IssuerAssignedID>{escape(purchase_order_reference)}</ram:IssuerAssignedID>', '      </ram:BuyerOrderReferencedDocument>'] if purchase_order_reference else []),
             *(['      <ram:ContractReferencedDocument>', f'        <ram:IssuerAssignedID>{escape(contract_reference)}</ram:IssuerAssignedID>', '      </ram:ContractReferencedDocument>'] if contract_reference else []),
@@ -237,14 +273,6 @@ def build_cii_xml(
             ]
         )
 
-    if payment_terms or due_date:
-        xml_lines.extend(['      <ram:SpecifiedTradePaymentTerms>'])
-        if payment_terms:
-            xml_lines.append(f'        <ram:Description>{escape(payment_terms)}</ram:Description>')
-        if due_date:
-            xml_lines.extend(['        <ram:DueDateDateTime>', f'          <udt:DateTimeString format="102">{escape(due_date)}</udt:DateTimeString>', '        </ram:DueDateDateTime>'])
-        xml_lines.append('      </ram:SpecifiedTradePaymentTerms>')
-
     for raw_item in tax_breakdown:
         item = _as_dict(raw_item)
         category = str(item.get("category") or "S").strip() or "S"
@@ -266,6 +294,14 @@ def build_cii_xml(
                 '      </ram:ApplicableTradeTax>',
             ]
         )
+
+    if payment_terms or due_date:
+        xml_lines.extend(['      <ram:SpecifiedTradePaymentTerms>'])
+        if payment_terms:
+            xml_lines.append(f'        <ram:Description>{escape(payment_terms)}</ram:Description>')
+        if due_date:
+            xml_lines.extend(['        <ram:DueDateDateTime>', f'          <udt:DateTimeString format="102">{escape(due_date)}</udt:DateTimeString>', '        </ram:DueDateDateTime>'])
+        xml_lines.append('      </ram:SpecifiedTradePaymentTerms>')
 
     xml_lines.extend(
         [

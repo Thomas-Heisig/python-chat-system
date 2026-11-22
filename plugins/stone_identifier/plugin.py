@@ -6,7 +6,6 @@ import json
 import os
 from typing import Any
 
-import httpx
 
 
 PLUGIN_META: dict[str, Any] = {

@@ -110,7 +110,7 @@ export function RightSidebar({
       let cursor = rootNodes;
       let leafNode: SourceTreeEntry | null = null;
 
-      segments.forEach((segment, index) => {
+      for (const [index, segment] of segments.entries()) {
         const pathKey = segments.slice(0, index + 1).join(" / ");
         const existing = cursor.get(segment);
         const node: SourceTreeEntry =
@@ -123,7 +123,7 @@ export function RightSidebar({
         cursor.set(segment, node);
         cursor = node.children;
         leafNode = node;
-      });
+      }
 
       if (leafNode != null) {
         leafNode.sources.push(source);
