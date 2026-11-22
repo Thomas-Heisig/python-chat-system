@@ -6,7 +6,7 @@ import inspect
 import re
 from pathlib import Path
 from threading import Lock
-from typing import Any, Callable, cast
+from typing import Any, cast
 
 
 @dataclass(frozen=True)

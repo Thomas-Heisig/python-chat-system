@@ -285,7 +285,7 @@ describe("WorkspacePage training compatibility", () => {
   it("shows one logical training step at a time", () => {
     renderWorkspacePage();
 
-    fireEvent.click(screen.getByRole("button", { name: "Training" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Training Trainer,/ }));
     expect(screen.getByText("Schnellstart")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "2. Daten importieren" }));
@@ -300,7 +300,7 @@ describe("WorkspacePage training compatibility", () => {
   it("updates compatibility on trainer switch and disables incompatible model options", async () => {
     const { onFetchTrainingCompatibility } = renderWorkspacePage();
 
-    fireEvent.click(screen.getByRole("button", { name: "Training" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Training Trainer,/ }));
 
     const trainerSelect = screen.getByLabelText("Standard-Trainer") as HTMLSelectElement;
     fireEvent.change(trainerSelect, { target: { value: "peft_lora" } });

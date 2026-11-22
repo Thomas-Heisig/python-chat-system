@@ -5,7 +5,7 @@
     "jsx": "react-jsx",
     "moduleResolution": "Bundler",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "types": ["react", "react-dom"],
+    "types": ["node", "react", "react-dom"],
     "paths": {
       "*": ["./*"],
       "react": ["./node_modules/@types/react/index.d.ts"],
