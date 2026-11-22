@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, AsyncGenerator, cast
+from typing import Any, AsyncGenerator
 
 import httpx
 

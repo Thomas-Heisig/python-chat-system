@@ -510,7 +510,7 @@ class PeftLoRATrainer(TrainingBackend):
                     "total_steps": total_steps,
                     "current_epoch": float(state.epoch or 0.0),
                     "learning_rate": config.learning_rate,
-                    "log_line": f"first training step running" if current_step == 0 else f"step {current_step} started",
+                    "log_line": "first training step running" if current_step == 0 else f"step {current_step} started",
                 }
                 asyncio.run_coroutine_threadsafe(progress_callback(payload), loop)
                 return control

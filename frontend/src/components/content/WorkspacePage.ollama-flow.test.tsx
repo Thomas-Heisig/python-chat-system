@@ -1,13 +1,18 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import * as backend from "../../services/backend";
 import { WorkspacePage } from "./WorkspacePage";
 
 function openFirstPluginSettingsCard() {
-  const collapsedButtons = screen.queryAllByRole("button", { name: "Einstellungen anzeigen" });
-  if (collapsedButtons.length > 0) {
-    fireEvent.click(collapsedButtons[0]);
+  const categories = screen.getByRole("list", { name: "Plugin-Kategorien" });
+  const categoryButton = within(categories).getByText("Dokumente").closest("button");
+  if (!categoryButton) {
+    throw new Error("Die Kategorie Dokumente hat keine Kachel.");
   }
+  fireEvent.click(categoryButton);
+  const categoryDialog = screen.getByRole("dialog", { name: "Plugin-Kategorie" });
+  fireEvent.click(within(categoryDialog).getByRole("button", { name: "Gruppen anzeigen" }));
 }
 
 function buildBaseProps(overrides: Record<string, unknown> = {}) {
@@ -326,7 +331,7 @@ describe("WorkspacePage Ollama flow", () => {
       ],
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Modelle" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Modelle Modelle,/ }));
     fireEvent.click(screen.getByRole("button", { name: "Scan aktualisieren" }));
     expect(onScanModels).toHaveBeenCalledTimes(1);
 
@@ -367,7 +372,7 @@ describe("WorkspacePage Ollama flow", () => {
       modelEntries: [cloudBase],
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Modelle" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Modelle Modelle,/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Herunterladen" }));
     expect(initial.onPullModel).toHaveBeenCalledWith("cloud-1");
 
@@ -388,7 +393,7 @@ describe("WorkspacePage Ollama flow", () => {
         },
       ],
     });
-    fireEvent.click(screen.getByRole("button", { name: "Modelle" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Modelle Modelle,/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Abbrechen" }));
     expect(cancelling.onCancelPullModel).toHaveBeenCalledWith("cloud-1");
 
@@ -409,7 +414,7 @@ describe("WorkspacePage Ollama flow", () => {
         },
       ],
     });
-    fireEvent.click(screen.getByRole("button", { name: "Modelle" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Modelle Modelle,/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
     expect(retry.onPullModel).toHaveBeenCalledWith("cloud-1");
   });
@@ -464,14 +469,8 @@ describe("WorkspacePage Ollama flow", () => {
       onSavePluginSettings,
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Plugins" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Plugins Installiert,/ }));
     openFirstPluginSettingsCard();
-    if (!screen.queryByLabelText("E-Rechnung-Standard")) {
-      const subgroupToggle = document.querySelectorAll(".settings-plugin-subgroup-card .model-group-toggle")[0];
-      if (subgroupToggle instanceof HTMLElement) {
-        fireEvent.click(subgroupToggle);
-      }
-    }
 
     const standardSelect = screen.getByLabelText("E-Rechnung-Standard") as HTMLSelectElement;
     const enabledCheckbox = screen.getByLabelText("E-Rechnung aktiv") as HTMLInputElement;
@@ -482,7 +481,8 @@ describe("WorkspacePage Ollama flow", () => {
     expect(onPluginSettingChange).toHaveBeenCalledWith("business_letter", "default_einvoice_standard", "zugferd");
     expect(onPluginSettingChange).toHaveBeenCalledWith("business_letter", "default_einvoice_enabled", true);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Speichern" })[0]);
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Plugin-Untergruppe" }))
+      .getByRole("button", { name: "Speichern" }));
     expect(onSavePluginSettings).toHaveBeenCalledWith("business_letter");
 
     first.unmount();
@@ -522,28 +522,17 @@ describe("WorkspacePage Ollama flow", () => {
       },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Plugins" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Plugins Installiert,/ }));
     openFirstPluginSettingsCard();
-    if (!screen.queryByLabelText("E-Rechnung-Standard")) {
-      const subgroupToggle = document.querySelectorAll(".settings-plugin-subgroup-card .model-group-toggle")[0];
-      if (subgroupToggle instanceof HTMLElement) {
-        fireEvent.click(subgroupToggle);
-      }
-    }
 
     const reloadedSelect = screen.getByLabelText("E-Rechnung-Standard") as HTMLSelectElement;
     const reloadedCheckbox = screen.getByLabelText("E-Rechnung aktiv") as HTMLInputElement;
     expect(reloadedSelect.value).toBe("zugferd");
     expect(reloadedCheckbox.checked).toBe(true);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Einklappen" })[0]);
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Plugin-Untergruppe" }))
+      .getByRole("button", { name: "Schliessen" }));
     openFirstPluginSettingsCard();
-    if (!screen.queryByLabelText("E-Rechnung-Standard")) {
-      const subgroupToggle = document.querySelectorAll(".settings-plugin-subgroup-card .model-group-toggle")[0];
-      if (subgroupToggle instanceof HTMLElement) {
-        fireEvent.click(subgroupToggle);
-      }
-    }
 
     const reopenedSelect = screen.getByLabelText("E-Rechnung-Standard") as HTMLSelectElement;
     const reopenedCheckbox = screen.getByLabelText("E-Rechnung aktiv") as HTMLInputElement;
@@ -612,14 +601,8 @@ describe("WorkspacePage Ollama flow", () => {
       onPluginSettingChange,
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Plugins" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Plugins Installiert,/ }));
     openFirstPluginSettingsCard();
-    if (!screen.queryByLabelText("Validatorprofil")) {
-      const subgroupToggle = document.querySelectorAll(".settings-plugin-subgroup-card .model-group-toggle")[0];
-      if (subgroupToggle instanceof HTMLElement) {
-        fireEvent.click(subgroupToggle);
-      }
-    }
 
     expect((await screen.findAllByText("Validatorprofil")).length).toBeGreaterThan(0);
     expect(screen.getByText(/abhaengig von E-Rechnung aktiv/i)).toBeTruthy();
@@ -633,27 +616,26 @@ describe("WorkspacePage Ollama flow", () => {
       onPluginSettingChange,
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Plugins" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Plugins Installiert,/ }));
     openFirstPluginSettingsCard();
-    if (!screen.queryByLabelText("Validatorprofil")) {
-      const subgroupToggle = document.querySelectorAll(".settings-plugin-subgroup-card .model-group-toggle")[0];
-      if (subgroupToggle instanceof HTMLElement) {
-        fireEvent.click(subgroupToggle);
-      }
-    }
 
     expect((await screen.findAllByText("Validatorprofil")).length).toBeGreaterThan(0);
     expect(screen.getByText(/abhaengig von E-Rechnung aktiv/i)).toBeTruthy();
     expect(screen.queryByLabelText("Standard-CC")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /Kommunikation/ }));
+    const subgroups = screen.getByRole("list", { name: "Plugin-Untergruppen-Kacheln" });
+    const communicationButton = within(subgroups).getByText("Kommunikation").closest("button");
+    if (!communicationButton) {
+      throw new Error("Die Untergruppe Kommunikation hat keine Kachel.");
+    }
+    fireEvent.click(communicationButton);
     expect(screen.getByLabelText("Standard-CC")).toBeTruthy();
 
     reloaded.unmount();
   });
 
   it("shows numbering preview for business letter plugin settings", () => {
-    buildBaseProps({
+    const props = {
       pluginDescriptors: [
         {
           id: "business_letter",
@@ -689,23 +671,85 @@ describe("WorkspacePage Ollama flow", () => {
               default: 7,
               group: "Nummernkreis & Persistenz",
             },
+            {
+              key: "rechnung_document_number_prefix",
+              label: "Rechnung Praefix",
+              type: "string",
+              default: "RE",
+              group: "Nummernkreise je Dokumentart",
+            },
+            {
+              key: "rechnung_document_number_width",
+              label: "Rechnung Laufweite",
+              type: "number",
+              default: 20,
+              group: "Nummernkreise je Dokumentart",
+            },
+            {
+              key: "rechnung_document_number_start_value",
+              label: "Rechnung Startwert",
+              type: "number",
+              default: 2,
+              group: "Nummernkreise je Dokumentart",
+            },
           ],
         },
       ],
       pluginSettingsDrafts: {
         business_letter: {
-          document_number_prefix: "ANG",
+          document_number_prefix: "ang",
           document_number_pattern: "{prefix}-{year}-{sequence_text}",
           document_number_width: 4,
           document_number_start_value: 7,
         },
       },
-    });
+    };
+    const view = buildBaseProps(props);
 
-    fireEvent.click(screen.getByRole("button", { name: "Plugins" }));
-    fireEvent.click(screen.getAllByText("Geschaeftsbrief")[0]);
+    fireEvent.click(screen.getByRole("button", { name: /^Plugins Installiert,/ }));
+    openFirstPluginSettingsCard();
 
     const currentYear = new Date().getFullYear();
     expect(screen.getByText(new RegExp(`Allgemein: ANG-${currentYear}-0007`))).toBeTruthy();
+
+    const subgroups = screen.getByRole("list", { name: "Plugin-Untergruppen-Kacheln" });
+    const scopedButton = within(subgroups).getByText("Nummernkreise je Dokumentart").closest("button");
+    if (!scopedButton) {
+      throw new Error("Die Untergruppe Nummernkreise je Dokumentart hat keine Kachel.");
+    }
+    fireEvent.click(scopedButton);
+    expect(screen.getByText(new RegExp(`Rechnung: RE-${currentYear}-000000000002`))).toBeTruthy();
+    expect(screen.queryByText(new RegExp(`Allgemein: ANG-${currentYear}-0007`))).toBeNull();
+
+    view.unmount();
+    props.pluginSettingsDrafts.business_letter.document_number_pattern = "{tenant_id}-{sequence_text}";
+    buildBaseProps(props);
+    fireEvent.click(screen.getByRole("button", { name: /^Plugins Installiert,/ }));
+    openFirstPluginSettingsCard();
+    expect(screen.getByText("Allgemein: Vorschau fuer dieses Format nicht verfuegbar")).toBeTruthy();
+  });
+
+  it("opens the business letter and calculator frontends", async () => {
+    const getSetting = vi.spyOn(backend, "getSetting").mockResolvedValue(null);
+    buildBaseProps({
+      view: "Plugins",
+      pluginDescriptors: [
+        { id: "business_letter", name: "Geschaeftsbrief" },
+        { id: "calculator", name: "Rechner" },
+      ],
+      onExecutePlugin: vi.fn(async () => ({})),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Plugin-Frontend fuer Geschaeftsbrief oeffnen" }));
+    expect(screen.getByRole("heading", { name: "Geschäftsdokument erstellen" })).toBeTruthy();
+    await waitFor(() => expect(getSetting).toHaveBeenCalledWith("plugins", "business_letter_frontpage_draft", 1));
+    await waitFor(() => expect(screen.queryByText("Entwurf wird geladen ...")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Schließen" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Plugin-Frontend fuer Rechner oeffnen" }));
+    expect(screen.getByRole("heading", { name: "Interaktive Rechenoberflaeche" })).toBeTruthy();
+    await waitFor(() => expect(getSetting).toHaveBeenCalledWith("plugins", "calculator_frontpage_draft", 1));
+    await waitFor(() => expect(screen.queryByText("Entwurf wird geladen ...")).toBeNull());
+    getSetting.mockRestore();
   });
 });

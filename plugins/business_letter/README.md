@@ -142,7 +142,7 @@ Die Implementierung ist in klar getrennte Schichten aufgeteilt.
 
   * XSD-Ausfuehrung
   * Schematron-Ausfuehrung
-  * externe Validatorintegration
+  * externe Validatorintegration mit dem KoSIT-Validator fuer XRechnung-Schematron (XSLT 2.0)
   * Validierungsreports
 
 ### Settings
@@ -294,6 +294,7 @@ Beispiel:
 * `recipient_email`
 * `buyer_electronic_address`
 * `buyer_electronic_address_scheme`
+* `buyer_vat_id`
 * `seller_electronic_address`
 * `seller_electronic_address_scheme`
 
@@ -351,6 +352,10 @@ Beispiel:
 * `reverse_charge`
 * `tax_exemption_reason`
 * `tax_exemption_reason_code`
+
+Bei XRechnung und ZUGFeRD werden Steuerkategorie und Steuersatz jeder dokumentweiten
+Anpassung in die XML-Ausgabe übernommen. Fehlen diese Angaben, verwendet die Berechnung
+die Steuerwerte der ersten Rechnungsposition.
 
 ### Templates und Artefakte
 
@@ -542,6 +547,8 @@ Zur Laufzeit werden diese Defaults bereits fuer BuyerReference, PaymentReference
 * `block_send_on_validation_error`
 * `store_xml_artifact`
 * `archive_validation_report`
+
+ZUGFeRD-PDFs verwenden eingebettete DejaVu-Schriften und ein sRGB-Ausgabeprofil; die Schriftenlizenz liegt unter `renderers/fonts/LICENSE_DEJAVU`.
 
 ### Persistenz und Archivierung
 
@@ -1025,6 +1032,11 @@ Fuer produktive Installationen sollte eine klare Fehlerstrategie definiert sein,
 ## Nummernkreis
 
 Die Dokumentnummer wird aus einem persistenten Nummernkreis erzeugt.
+In den Nummernkreis-Einstellungsgruppen zeigt das Frontend eine Vorschau mit dem
+konfigurierten Startwert. Diese ist ein Beispiel und nicht zwingend die naechste
+Nummer einer bereits verwendeten Sequenz. Formate mit nicht unterstuetzten
+Platzhaltern werden als nicht verfuegbar angezeigt; die Vergabe bleibt Sache
+des Backends.
 
 Konfigurierbare Bestandteile:
 

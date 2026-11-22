@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 sys.stdout.reconfigure(encoding='utf-8')
 base = 'f:/symple chat/python-chat-system'
 for root, dirs, files in os.walk(base):
