@@ -147,12 +147,6 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
         ]
         if purchase_order_reference:
             xml_lines.extend(["  <cac:OrderReference>", f"    <cbc:ID>{escape(purchase_order_reference)}</cbc:ID>", "  </cac:OrderReference>"])
-        if contract_reference:
-            xml_lines.extend(["  <cac:ContractDocumentReference>", f"    <cbc:ID>{escape(contract_reference)}</cbc:ID>", "  </cac:ContractDocumentReference>"])
-        if project_reference:
-            xml_lines.extend(["  <cac:ProjectReference>", f"    <cbc:ID>{escape(project_reference)}</cbc:ID>", "  </cac:ProjectReference>"])
-        if delivery_note_reference:
-            xml_lines.extend(["  <cac:DespatchDocumentReference>", f"    <cbc:ID>{escape(delivery_note_reference)}</cbc:ID>", "  </cac:DespatchDocumentReference>"])
         if original_invoice_number:
             xml_lines.extend(
                 [
@@ -163,27 +157,12 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
                     "  </cac:BillingReference>",
                 ]
             )
-        if payment_means_code:
-            xml_lines.append("  <cac:PaymentMeans>")
-            xml_lines.append(f"    <cbc:PaymentMeansCode>{escape(payment_means_code)}</cbc:PaymentMeansCode>")
-            if payment_reference:
-                xml_lines.append(f"    <cbc:PaymentID>{escape(payment_reference)}</cbc:PaymentID>")
-            if seller_iban:
-                xml_lines.extend(
-                    [
-                        "    <cac:PayeeFinancialAccount>",
-                        f"      <cbc:ID>{escape(seller_iban)}</cbc:ID>",
-                        f"      <cbc:Name>{escape(seller_account_holder)}</cbc:Name>",
-                        "      <cac:FinancialInstitutionBranch>",
-                        f"        <cbc:ID>{escape(seller_bic)}</cbc:ID>",
-                        f"        <cbc:Name>{escape(seller_bank_name)}</cbc:Name>",
-                        "      </cac:FinancialInstitutionBranch>",
-                        "    </cac:PayeeFinancialAccount>",
-                    ]
-                )
-            xml_lines.append("  </cac:PaymentMeans>")
-        if payment_terms:
-            xml_lines.extend(["  <cac:PaymentTerms>", f"    <cbc:Note>{escape(payment_terms)}</cbc:Note>", "  </cac:PaymentTerms>"])
+        if delivery_note_reference:
+            xml_lines.extend(["  <cac:DespatchDocumentReference>", f"    <cbc:ID>{escape(delivery_note_reference)}</cbc:ID>", "  </cac:DespatchDocumentReference>"])
+        if contract_reference:
+            xml_lines.extend(["  <cac:ContractDocumentReference>", f"    <cbc:ID>{escape(contract_reference)}</cbc:ID>", "  </cac:ContractDocumentReference>"])
+        if project_reference:
+            xml_lines.extend(["  <cac:ProjectReference>", f"    <cbc:ID>{escape(project_reference)}</cbc:ID>", "  </cac:ProjectReference>"])
         xml_lines.extend(
             [
                 "  <cac:AccountingSupplierParty>",
@@ -217,6 +196,27 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
                 "  </cac:AccountingCustomerParty>",
             ]
         )
+        if payment_means_code:
+            xml_lines.append("  <cac:PaymentMeans>")
+            xml_lines.append(f"    <cbc:PaymentMeansCode>{escape(payment_means_code)}</cbc:PaymentMeansCode>")
+            if payment_reference:
+                xml_lines.append(f"    <cbc:PaymentID>{escape(payment_reference)}</cbc:PaymentID>")
+            if seller_iban:
+                xml_lines.extend(
+                    [
+                        "    <cac:PayeeFinancialAccount>",
+                        f"      <cbc:ID>{escape(seller_iban)}</cbc:ID>",
+                        f"      <cbc:Name>{escape(seller_account_holder)}</cbc:Name>",
+                        "      <cac:FinancialInstitutionBranch>",
+                        f"        <cbc:ID>{escape(seller_bic)}</cbc:ID>",
+                        f"        <cbc:Name>{escape(seller_bank_name)}</cbc:Name>",
+                        "      </cac:FinancialInstitutionBranch>",
+                        "    </cac:PayeeFinancialAccount>",
+                    ]
+                )
+            xml_lines.append("  </cac:PaymentMeans>")
+        if payment_terms:
+            xml_lines.extend(["  <cac:PaymentTerms>", f"    <cbc:Note>{escape(payment_terms)}</cbc:Note>", "  </cac:PaymentTerms>"])
         if tax_breakdown:
             xml_lines.extend([
                 "  <cac:TaxTotal>",

@@ -121,14 +121,16 @@ def _validate_with_kosit_cli(
     parse_error = ""
     report_text = raw_output
     for output in (completed.stdout or "", completed.stderr or ""):
-        report_start = output.find("<?xml")
-        if report_start < 0:
-            report_start = output.find("<rep:report")
-        if report_start < 0:
-            report_start = output.find("<report")
-        if report_start < 0:
+        report_match = re.search(r"<(?P<tag>(?:[A-Za-z_][\w.-]*:)?report)\b", output)
+        if report_match is None:
             continue
-        report_text = output[report_start:]
+        report_start = report_match.start()
+        closing_tag = re.search(rf"</{re.escape(report_match.group('tag'))}\s*>", output[report_match.end():])
+        if closing_tag is None:
+            parse_error = "KoSIT report closing tag was not found."
+            continue
+        report_end = report_match.end() + closing_tag.end()
+        report_text = output[report_start:report_end]
         try:
             report = ET.fromstring(report_text)
             break

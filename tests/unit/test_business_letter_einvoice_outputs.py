@@ -68,14 +68,15 @@ def _require_external_validators() -> bool:
 def _verapdf_command(pdf_path: Path) -> list[str] | None:
     docker_image = str(os.getenv("VERAPDF_DOCKER_IMAGE", "")).strip()
     if docker_image:
+        container_pdf_path = f"/tmp/{pdf_path.name}"
         return [
             "docker",
             "run",
             "--rm",
-            "-v",
-            f"{pdf_path.parent}:/input",
+            "--mount",
+            f"type=bind,source={pdf_path.resolve()},target={container_pdf_path},readonly",
             docker_image,
-            f"/input/{pdf_path.name}",
+            container_pdf_path,
         ]
     docker_cmd = str(os.getenv("VERAPDF_CMD", "")).strip()
     if docker_cmd:
@@ -178,6 +179,7 @@ def test_xrechnung_xml_contains_document_currency_and_invoice_lines() -> None:
     xml = str(result["einvoice"]["xml"])
     assert "<cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>" in xml
     assert "<cbc:PaymentMeansCode>58</cbc:PaymentMeansCode>" in xml
+    assert xml.index("<cac:AccountingCustomerParty>") < xml.index("<cac:PaymentMeans>")
     assert "<cac:InvoiceLine>" in xml
     assert "<cbc:InvoicedQuantity unitCode=\"C62\">" in xml
     assert "<cbc:LineExtensionAmount currencyID=\"EUR\">199.90</cbc:LineExtensionAmount>" in xml
@@ -336,10 +338,10 @@ def test_verapdf_docker_command_mounts_the_input_directory(
         "docker",
         "run",
         "--rm",
-        "-v",
-        f"{tmp_path}:/input",
+        "--mount",
+        f"type=bind,source={pdf_path.resolve()},target=/tmp/invoice.pdf,readonly",
         "verapdf/cli:test",
-        "/input/invoice.pdf",
+        "/tmp/invoice.pdf",
     ]
 
 
@@ -429,7 +431,8 @@ def test_kosit_cli_reports_schema_and_schematron_results(
         "plugins.business_letter.einvoice.official_validation.shutil.which",
         lambda name: "java" if name == "java" else None,
     )
-    report = """<?xml version="1.0"?>
+    report = """KoSIT Validator version 1.6.3
+    [Format error!] <<?xml version="1.0"?>
     <rep:report xmlns:rep="http://www.xoev.de/de/validator/varl/1">
       <rep:validationStepResult id="val-xml" valid="true"/>
       <rep:validationStepResult id="val-xsd" valid="true"/>
@@ -437,8 +440,7 @@ def test_kosit_cli_reports_schema_and_schematron_results(
         <rep:message code="BR-DE-15">Buyer reference is missing</rep:message>
       </rep:validationStepResult>
       <rep:assessment><rep:reject/></rep:assessment>
-    </rep:report>
-    """
+    </rep:report>>"""
 
     def run_validator(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(command, 1, stdout=report, stderr="")

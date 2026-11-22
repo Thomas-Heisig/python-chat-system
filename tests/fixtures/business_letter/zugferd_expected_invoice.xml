@@ -7,9 +7,6 @@
   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
   <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
   <cbc:BuyerReference>BR-2026-01</cbc:BuyerReference>
-  <cac:PaymentMeans>
-    <cbc:PaymentMeansCode>58</cbc:PaymentMeansCode>
-  </cac:PaymentMeans>
   <cac:AccountingSupplierParty>
     <cac:Party>
       <cac:PartyName><cbc:Name>Steinbau Real GmbH</cbc:Name></cac:PartyName>
@@ -37,6 +34,9 @@
       </cac:PostalAddress>
     </cac:Party>
   </cac:AccountingCustomerParty>
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>58</cbc:PaymentMeansCode>
+  </cac:PaymentMeans>
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="EUR">37.98</cbc:TaxAmount>
     <cac:TaxSubtotal>
