@@ -24,6 +24,8 @@
       <cac:PartyLegalEntity><cbc:RegistrationName>Steinbau Real GmbH</cbc:RegistrationName></cac:PartyLegalEntity>
       <cac:Contact>
         <cbc:Name>Maria Real</cbc:Name>
+        <cbc:Telephone>0511 123456</cbc:Telephone>
+        <cbc:ElectronicMail>rechnung@steinbau-real.de</cbc:ElectronicMail>
       </cac:Contact>
     </cac:Party>
   </cac:AccountingSupplierParty>

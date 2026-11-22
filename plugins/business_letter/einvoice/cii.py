@@ -81,6 +81,31 @@ def build_cii_xml(
     seller_postal = str(seller.get("postal_code") or company.get("zip") or "").strip()
     seller_city = str(seller.get("city") or company.get("city") or "").strip()
     seller_country = str(seller.get("country") or company.get("country") or "DE").strip() or "DE"
+    seller_contact_name = str(seller.get("manager") or company.get("manager") or "").strip()
+    seller_phone = str(seller.get("phone") or company.get("phone") or "").strip()
+    seller_email = str(seller.get("email") or company.get("email") or "").strip()
+    seller_contact_lines: list[str] = []
+    if seller_contact_name or seller_phone or seller_email:
+        seller_contact_lines.append("        <ram:DefinedTradeContact>")
+        if seller_contact_name:
+            seller_contact_lines.append(f"          <ram:PersonName>{escape(seller_contact_name)}</ram:PersonName>")
+        if seller_phone:
+            seller_contact_lines.extend(
+                [
+                    "          <ram:TelephoneUniversalCommunication>",
+                    f"            <ram:CompleteNumber>{escape(seller_phone)}</ram:CompleteNumber>",
+                    "          </ram:TelephoneUniversalCommunication>",
+                ]
+            )
+        if seller_email:
+            seller_contact_lines.extend(
+                [
+                    "          <ram:EmailURIUniversalCommunication>",
+                    f"            <ram:URIID>{escape(seller_email)}</ram:URIID>",
+                    "          </ram:EmailURIUniversalCommunication>",
+                ]
+            )
+        seller_contact_lines.append("        </ram:DefinedTradeContact>")
     seller_iban = str(seller.get("iban") or company.get("iban") or "").strip()
     seller_bic = str(seller.get("bic") or company.get("bic") or "").strip()
 
@@ -211,6 +236,7 @@ def build_cii_xml(
             f'      <ram:BuyerReference>{escape(buyer_reference)}</ram:BuyerReference>',
             '      <ram:SellerTradeParty>',
             f'        <ram:Name>{escape(seller_name)}</ram:Name>',
+            *seller_contact_lines,
             *(['        <ram:PostalTradeAddress>', f'          <ram:PostcodeCode>{escape(seller_postal)}</ram:PostcodeCode>', f'          <ram:CityName>{escape(seller_city)}</ram:CityName>', f'          <ram:CountryID>{escape(seller_country)}</ram:CountryID>', '        </ram:PostalTradeAddress>'] if (seller_postal or seller_city or seller_country) else []),
             *(['        <ram:URIUniversalCommunication>', f'          <ram:URIID schemeID="{escape(seller_endpoint_scheme)}">{escape(seller_endpoint)}</ram:URIID>', '        </ram:URIUniversalCommunication>'] if seller_endpoint and seller_endpoint_scheme else []),
             *(['        <ram:SpecifiedTaxRegistration>', f'          <ram:ID schemeID="VA">{escape(seller_vat_id)}</ram:ID>', '        </ram:SpecifiedTaxRegistration>'] if seller_vat_id else []),

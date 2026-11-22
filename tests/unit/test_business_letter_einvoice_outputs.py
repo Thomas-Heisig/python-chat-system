@@ -56,6 +56,7 @@ def _payload() -> dict[str, Any]:
             "company_city": "Hannover",
             "company_zip": "30159",
             "company_manager": "Maria Real",
+            "company_phone": "0511 123456",
             "company_email": "rechnung@steinbau-real.de",
             "company_electronic_address": "rechnung@steinbau-real.de",
             "company_electronic_address_scheme": "EM",

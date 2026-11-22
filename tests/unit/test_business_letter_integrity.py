@@ -51,6 +51,7 @@ def _base_payload() -> dict[str, Any]:
             "company_city": "Hannover",
             "company_zip": "30159",
             "company_manager": "Maria Real",
+            "company_phone": "0511 123456",
             "company_email": "rechnung@steinbau-real.de",
             "company_electronic_address": "rechnung@steinbau-real.de",
             "company_electronic_address_scheme": "EM",
@@ -426,6 +427,8 @@ def test_xrechnung_output_includes_xml_and_validation() -> None:
     assert result["einvoice"]["validation"]["valid"] is True
     assert "<cac:LegalMonetaryTotal>" in result["einvoice"]["xml"]
     assert "<cbc:PayableAmount currencyID=\"EUR\">" in result["einvoice"]["xml"]
+    assert "<cbc:Telephone>0511 123456</cbc:Telephone>" in result["einvoice"]["xml"]
+    assert "<cbc:ElectronicMail>rechnung@steinbau-real.de</cbc:ElectronicMail>" in result["einvoice"]["xml"]
 
 
 def test_xrechnung_document_adjustments_precede_tax_total() -> None:
@@ -784,6 +787,8 @@ def test_cii_output_includes_root_and_validation() -> None:
     assert "<rsm:CrossIndustryInvoice" in result["einvoice"]["xml"]
     assert "<ram:DuePayableAmount>" in result["einvoice"]["xml"]
     xml = result["einvoice"]["xml"]
+    assert "<ram:CompleteNumber>0511 123456</ram:CompleteNumber>" in xml
+    assert "<ram:URIID>rechnung@steinbau-real.de</ram:URIID>" in xml
     assert xml.index("<ram:ApplicableTradeTax>") < xml.index("<ram:SpecifiedTradePaymentTerms>")
 
 

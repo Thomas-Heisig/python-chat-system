@@ -107,6 +107,19 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
     seller_iban = str(seller.get("iban") or company.get("iban") or "").strip()
     seller_bic = str(seller.get("bic") or company.get("bic") or "").strip()
     seller_account_holder = str(seller.get("account_holder") or company.get("account_holder") or seller_name).strip()
+    seller_contact_name = str(seller.get("manager") or company.get("manager") or "").strip()
+    seller_phone = str(seller.get("phone") or company.get("phone") or "").strip()
+    seller_email = str(seller.get("email") or company.get("email") or "").strip()
+    seller_contact_lines: list[str] = []
+    if seller_contact_name or seller_phone or seller_email:
+        seller_contact_lines.append("      <cac:Contact>")
+        if seller_contact_name:
+            seller_contact_lines.append(f"        <cbc:Name>{escape(seller_contact_name)}</cbc:Name>")
+        if seller_phone:
+            seller_contact_lines.append(f"        <cbc:Telephone>{escape(seller_phone)}</cbc:Telephone>")
+        if seller_email:
+            seller_contact_lines.append(f"        <cbc:ElectronicMail>{escape(seller_email)}</cbc:ElectronicMail>")
+        seller_contact_lines.append("      </cac:Contact>")
     customization_id = "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"
     profile_id = "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0"
     invoice_type_code = {
@@ -181,15 +194,7 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
                 "        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>",
                 "      </cac:PartyTaxScheme>",
                 f"      <cac:PartyLegalEntity><cbc:RegistrationName>{escape(seller_name)}</cbc:RegistrationName></cac:PartyLegalEntity>",
-                *(
-                    [
-                        "      <cac:Contact>",
-                        f"        <cbc:Name>{escape(str(company.get('manager') or ''))}</cbc:Name>",
-                        "      </cac:Contact>",
-                    ]
-                    if str(company.get("manager") or "").strip()
-                    else []
-                ),
+                *seller_contact_lines,
                 "    </cac:Party>",
                 "  </cac:AccountingSupplierParty>",
                 "  <cac:AccountingCustomerParty>",
