@@ -583,6 +583,9 @@ def test_priority3_mapping_matrix_reverse_charge_and_tax_exemption() -> None:
     assert "<cbc:EndpointID schemeID=\"EM\">rechnung@steinbau-real.de</cbc:EndpointID>" in xml
     assert "<cbc:TaxExemptionReason>Reverse charge</cbc:TaxExemptionReason>" in xml
     assert "<cbc:TaxExemptionReasonCode>VATEX-EU-132</cbc:TaxExemptionReasonCode>" in xml
+    for classified_tax_category in xml.split("<cac:ClassifiedTaxCategory>")[1:]:
+        line_tax_category = classified_tax_category.split("</cac:ClassifiedTaxCategory>", 1)[0]
+        assert "TaxExemptionReason" not in line_tax_category
 
 
 def test_priority3_mapping_matrix_base_quantity_shipping_rounding_and_multiple_tax_rates() -> None:

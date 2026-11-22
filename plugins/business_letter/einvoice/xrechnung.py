@@ -300,8 +300,6 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
             unit_price = str(position.get("price_net") or "0.00").strip() or "0.00"
             vat_rate = str(position.get("vat_rate") or "0").strip() or "0"
             category = str(position.get("vat_category") or "S").strip() or "S"
-            tax_exemption_reason = str(position.get("tax_exemption_reason") or "").strip()
-            tax_exemption_reason_code = str(position.get("tax_exemption_reason_code") or "").strip()
 
             line_amount = raw_line_amount
             if not line_amount:
@@ -321,8 +319,6 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
                     "      <cac:ClassifiedTaxCategory>",
                     f"        <cbc:ID>{escape(category)}</cbc:ID>",
                     f"        <cbc:Percent>{escape(vat_rate)}</cbc:Percent>",
-                    *([f"        <cbc:TaxExemptionReasonCode>{escape(tax_exemption_reason_code)}</cbc:TaxExemptionReasonCode>"] if tax_exemption_reason_code else []),
-                    *([f"        <cbc:TaxExemptionReason>{escape(tax_exemption_reason)}</cbc:TaxExemptionReason>"] if tax_exemption_reason else []),
                     "        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>",
                     "      </cac:ClassifiedTaxCategory>",
                     "    </cac:Item>",
