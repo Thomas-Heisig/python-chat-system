@@ -2336,6 +2336,7 @@ class BusinessLetterPlugin:
             "recipient_email": {"type": "string", "description": "E-Mail-Adresse des Empfängers"},
             "buyer_electronic_address": {"type": "string", "description": "Elektronische Adresse des Empfängers"},
             "buyer_electronic_address_scheme": {"type": "string", "description": "schemeID der elektronischen Empfängeradresse"},
+            "buyer_vat_id": {"type": "string", "description": "USt-IdNr. des Rechnungsempfängers"},
             "seller_electronic_address": {"type": "string", "description": "Elektronische Adresse des Verkäufers"},
             "seller_electronic_address_scheme": {"type": "string", "description": "schemeID der elektronischen Verkäuferadresse"},
             "cc": {"type": "array", "items": {"type": "string"}, "description": "CC-Empfänger"},

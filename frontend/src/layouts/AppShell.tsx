@@ -755,6 +755,10 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
   const selectedProjectIdForLabel = selectedChatProjectId ?? selectedProjectId ?? -1;
   const selectedProject = projects.find((project) => project.id === selectedProjectIdForLabel) ?? null;
   const selectedProjectLabel = selectedProject != null ? buildProjectDisplayName(selectedProject.id) : "Kein Projekt";
+  const selectedChatProject = selectedChatProjectId == null ? null : projectById.get(selectedChatProjectId);
+  const selectedChatProjectLabel = selectedChatProject != null
+    ? buildProjectDisplayName(selectedChatProject.id)
+    : "Kein Projekt";
   const selectedChatScope = useMemo(() => {
     const lineage: number[] = [];
     const seen = new Set<number>();
@@ -2687,15 +2691,15 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
     }
   };
 
-  const handleAssignConversationProject = async (projectId: number | null) => {
-    if (selectedConversation == null) {
-      pushToast("error", "Waehle zuerst einen Chat aus.");
+  const handleAssignConversationProject = async (conversationId: number, projectId: number | null): Promise<void> => {
+    if (!conversations.some((conversation) => conversation.id === conversationId)) {
+      pushToast("error", "Chat existiert nicht mehr oder ist nicht sichtbar.");
       return;
     }
 
     try {
-      await assignConversationProject(selectedConversation.id, projectId, currentUser.id);
-      await reloadConversationData(selectedConversation.id);
+      await assignConversationProject(conversationId, projectId, currentUser.id);
+      await reloadConversationData(activeConversationId);
       pushToast("success", projectId == null ? "Projektzuordnung entfernt." : "Chat wurde Projekt zugeordnet.");
     } catch (error) {
       if (errorContainsStatus(error, 404)) {
@@ -3616,19 +3620,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
           onSelectChat={setActiveConversationId}
           onSelectProject={handleSelectProject}
           onAssignConversationProject={(conversationId, projectId) => {
-            const targetConversation = conversations.find((conversation) => conversation.id === conversationId) ?? null;
-            if (targetConversation == null) {
-              return;
-            }
-            void (async () => {
-              try {
-                await assignConversationProject(conversationId, projectId, currentUser.id);
-                await reloadConversationData(activeConversationId);
-                pushToast("success", projectId == null ? "Projektzuordnung entfernt." : "Chat wurde Projekt zugeordnet.");
-              } catch (error) {
-                pushToast("error", `Projektzuordnung konnte nicht gespeichert werden: ${extractErrorMessage(error)}`);
-              }
-            })();
+            void handleAssignConversationProject(conversationId, projectId);
           }}
           onMoveConversation={(conversationId, parentConversationId) => {
             void handleMoveConversation(conversationId, parentConversationId);
@@ -3706,7 +3698,7 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
                 }
               }}
               sources={chatSources}
-              activeProjectLabel={selectedProjectLabel}
+              activeProjectLabel={selectedChatProjectLabel}
             />
           ) : null}
 
@@ -3747,7 +3739,8 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             collapsed={rightCollapsed}
             activeTab={activeRightTab}
             selectedSourceId={selectedSourceId}
-            sources={sources}
+            sources={chatSources}
+            activeProjectLabel={selectedChatProjectLabel}
             users={presenceUsers}
             currentUserId={currentUser.id}
             currentUserIsAdmin={currentUser.is_admin}
@@ -3809,6 +3802,8 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             activeNav={activeNav}
             selectedConversationId={activeConversationId}
             conversations={conversations}
+            projects={projects}
+            selectedProjectId={selectedProjectId}
             conversationVisibilityMap={conversationVisibilityMap}
             conversationTree={conversationTree}
             appointments={appointments}
@@ -3827,6 +3822,10 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
               setActiveConversationId(conversationId);
               setActiveNav("Chats");
               setLeftOverlayOpen(false);
+            }}
+            onSelectProject={handleSelectProject}
+            onAssignConversationProject={(conversationId, projectId) => {
+              void handleAssignConversationProject(conversationId, projectId);
             }}
             onMoveConversation={(conversationId, parentConversationId) => {
               void handleMoveConversation(conversationId, parentConversationId);
@@ -3865,7 +3864,8 @@ export function AppShell({ currentUser, onLogout }: { currentUser: AuthUser; onL
             collapsed={false}
             activeTab={activeRightTab}
             selectedSourceId={selectedSourceId}
-            sources={sources}
+            sources={chatSources}
+            activeProjectLabel={selectedChatProjectLabel}
             users={presenceUsers}
             currentUserId={currentUser.id}
             currentUserIsAdmin={currentUser.is_admin}

@@ -98,7 +98,6 @@ class TransformersPeftBackend(ModelBackend):
         repetition_penalty = float(config.get("repetition_penalty", 1.1))
         do_sample = bool(config.get("do_sample", True))
         stop_sequences = config.get("stop", ["<end_of_turn>", "<eos>"])
-        seed = int(config.get("seed", 42))
         chat_messages_raw = config.get("chat_messages")
 
         chat_messages: list[dict[str, str]] = []
