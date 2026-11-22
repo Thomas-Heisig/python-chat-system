@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 sys.stdout.reconfigure(encoding='utf-8')
 base = 'f:/symple chat/python-chat-system/plugins'
 for x in os.listdir(base):

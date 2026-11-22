@@ -47,7 +47,13 @@ def build_cii_xml(
 
     profile_id = "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0"
     customization_id = "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"
-    invoice_id = str(customer_visible.get("document_kind") or commercial_document.get("document_kind") or "INVOICE").strip() or "INVOICE"
+    invoice_id = str(
+        customer_visible.get("document_number")
+        or commercial_document.get("document_number")
+        or customer_visible.get("document_kind")
+        or commercial_document.get("document_kind")
+        or "INVOICE"
+    ).strip() or "INVOICE"
     issue_date = _cii_date(str(customer_visible.get("issue_date") or commercial_document.get("issue_date") or "").strip())
     due_date = _cii_date(str(customer_visible.get("payment_due_date") or "").strip())
     buyer_reference = str(validation.get("buyer_reference") or customer_visible.get("buyer_reference") or commercial_document.get("buyer_reference") or "").strip()

@@ -45,7 +45,13 @@ def build_xrechnung_xml(commercial_document: dict[str, Any], company: dict[str, 
     totals = _as_dict(commercial_document.get("totals"))
     syntax = str(validation.get("syntax") or "UBL").strip().upper() or "UBL"
     tax_breakdown = _as_list(validation.get("tax_breakdown"))
-    invoice_id = str(customer_visible.get("document_kind") or commercial_document.get("document_kind") or "INVOICE").strip() or "INVOICE"
+    invoice_id = str(
+        customer_visible.get("document_number")
+        or commercial_document.get("document_number")
+        or customer_visible.get("document_kind")
+        or commercial_document.get("document_kind")
+        or "INVOICE"
+    ).strip() or "INVOICE"
     buyer_reference = str(validation.get("buyer_reference") or customer_visible.get("buyer_reference") or commercial_document.get("buyer_reference") or "").strip()
     issue_date = str(customer_visible.get("issue_date") or commercial_document.get("issue_date") or "").strip()
     payable_amount = str(totals.get("payable_amount") or "0.00").strip() or "0.00"

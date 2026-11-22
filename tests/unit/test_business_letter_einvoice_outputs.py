@@ -20,8 +20,8 @@ FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "business_lette
 
 def _payload() -> dict[str, Any]:
     return {
-        "letter_type": "angebot",
-        "subject": "Angebot fuer Steinplatte",
+        "letter_type": "rechnung",
+        "subject": "Rechnung fuer Steinplatte",
         "communication_channel": "email",
         "customer_company": "Kunde GmbH",
         "customer_first_name": "Anna",

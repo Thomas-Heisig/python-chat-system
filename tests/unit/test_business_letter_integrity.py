@@ -52,6 +52,10 @@ def _base_payload() -> dict[str, Any]:
     }
 
 
+def _invoice_payload() -> dict[str, Any]:
+    return {**_base_payload(), "letter_type": "rechnung"}
+
+
 def _execute(payload: dict[str, Any]) -> dict[str, Any]:
     plugin = BusinessLetterPlugin()
     return asyncio.run(plugin.execute(payload))
@@ -299,7 +303,7 @@ def test_persistence_applies_retention_hash_and_archive_group(monkeypatch: pytes
     monkeypatch.setattr(business_letter_module, "DEFAULT_PERSISTENCE", persistence)
 
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "document_number": "DOC-ARCHIVE-1",
         "persist_to_database": True,
         "einvoice": {"enabled": True, "standard": "xrechnung"},
@@ -407,7 +411,7 @@ def test_released_documents_become_immutable(monkeypatch: pytest.MonkeyPatch, tm
 
 
 def test_xrechnung_output_includes_xml_and_validation() -> None:
-    result = _execute({**_base_payload(), "einvoice": {"enabled": True, "standard": "xrechnung"}})
+    result = _execute({**_invoice_payload(), "einvoice": {"enabled": True, "standard": "xrechnung"}})
 
     assert "error" not in result
     assert result["einvoice"]["standard"] == "XRechnung"
@@ -417,7 +421,7 @@ def test_xrechnung_output_includes_xml_and_validation() -> None:
 
 
 def test_zugferd_output_requires_pdfa3_and_wraps_xrechnung() -> None:
-    result = _execute({**_base_payload(), "einvoice": {"enabled": True, "standard": "zugferd"}})
+    result = _execute({**_invoice_payload(), "einvoice": {"enabled": True, "standard": "zugferd"}})
 
     assert "error" not in result
     assert result["einvoice"]["standard"] == "ZUGFeRD"
@@ -426,7 +430,7 @@ def test_zugferd_output_requires_pdfa3_and_wraps_xrechnung() -> None:
 
 
 def test_xrechnung_validation_reports_missing_buyer_reference() -> None:
-    result = _execute({**_base_payload(), "buyer_reference": "", "einvoice": {"enabled": True, "standard": "xrechnung"}})
+    result = _execute({**_invoice_payload(), "buyer_reference": "", "einvoice": {"enabled": True, "standard": "xrechnung"}})
 
     errors = result["einvoice"]["validation"]["errors"]
     assert any(entry["code"] == "BR-DE-001" for entry in errors)
@@ -483,7 +487,7 @@ def test_sensitive_plugin_settings_are_masked_in_resolved_settings(monkeypatch: 
 
 def test_runtime_defaults_from_settings_are_applied_to_commercial_document() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "currency": "",
         "payment_terms": "",
         "payment_method_code": "",
@@ -507,7 +511,7 @@ def test_runtime_defaults_from_settings_are_applied_to_commercial_document() -> 
 
 def test_priority3_mapping_matrix_reverse_charge_and_tax_exemption() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "buyer_electronic_address": "leitweg-4711",
         "buyer_electronic_address_scheme": "0204",
         "seller_electronic_address": "rechnung@steinbau-real.de",
@@ -552,7 +556,7 @@ def test_priority3_mapping_matrix_reverse_charge_and_tax_exemption() -> None:
 
 def test_priority3_mapping_matrix_base_quantity_shipping_rounding_and_multiple_tax_rates() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "purchase_order_reference": "PO-2026-77",
         "contract_reference": "CTR-2026-12",
         "project_reference": "PRJ-ALPHA",
@@ -749,7 +753,7 @@ def test_priority3_mapping_matrix_final_invoice_uses_prepayment() -> None:
 
 
 def test_cii_output_includes_root_and_validation() -> None:
-    result = _execute({**_base_payload(), "einvoice": {"enabled": True, "standard": "xrechnung", "syntax": "CII"}})
+    result = _execute({**_invoice_payload(), "einvoice": {"enabled": True, "standard": "xrechnung", "syntax": "CII"}})
 
     assert "error" not in result
     assert result["einvoice"]["syntax"] == "CII"
@@ -760,7 +764,7 @@ def test_cii_output_includes_root_and_validation() -> None:
 
 def test_priority3_mapping_matrix_cii_parity_for_references_and_base_quantity() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "buyer_electronic_address": "leitweg-4711",
         "buyer_electronic_address_scheme": "0204",
         "seller_electronic_address": "rechnung@steinbau-real.de",
@@ -803,7 +807,7 @@ def test_priority3_mapping_matrix_cii_parity_for_references_and_base_quantity() 
 
 def test_priority3_mapping_matrix_cii_reverse_charge_and_exemption() -> None:
     payload = {
-        **_base_payload(),
+        **_invoice_payload(),
         "buyer_electronic_address": "leitweg-4711",
         "buyer_electronic_address_scheme": "0204",
         "seller_electronic_address": "rechnung@steinbau-real.de",
