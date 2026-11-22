@@ -5,11 +5,13 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 import sqlite3
+import subprocess
 from typing import Any
 
 import pytest
 
 from plugins.business_letter import plugin as business_letter_module
+from plugins.business_letter.einvoice import official_validation
 from plugins.business_letter.plugin import BusinessLetterPlugin
 from plugins.business_letter.services.numbering import NumberSequenceStore
 from plugins.business_letter.services.persistence import BusinessLetterPersistence
@@ -794,6 +796,51 @@ def test_cii_output_includes_root_and_validation() -> None:
     assert "<ram:URIID>rechnung@steinbau-real.de</ram:URIID>" in xml
     assert "<ram:CountryID>DE</ram:CountryID>" in xml
     assert xml.index("<ram:ApplicableTradeTax>") < xml.index("<ram:SpecifiedTradePaymentTerms>")
+
+
+@pytest.mark.parametrize(
+    ("report_valid", "recommendation", "expected_valid"),
+    [(True, "reject", True), (False, "accept", False)],
+)
+def test_kosit_report_validity_is_not_its_acceptance_recommendation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    report_valid: bool,
+    recommendation: str,
+    expected_valid: bool,
+) -> None:
+    report = (
+        '<report xmlns="http://www.xoev.de/de/validator/varl/1" '
+        f'valid="{str(report_valid).lower()}">'
+        '<scenarioMatched>'
+        '<validationStepResult id="val-xml" valid="true"/>'
+        '<validationStepResult id="val-sch.1" valid="true"/>'
+        '</scenarioMatched>'
+        f'<assessment><{recommendation}/></assessment>'
+        '</report>'
+    )
+    monkeypatch.setattr(official_validation.shutil, "which", lambda _: "java")
+    monkeypatch.setattr(
+        official_validation.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, stdout=report, stderr=""),
+    )
+
+    result = official_validation._validate_with_kosit_cli(
+        "<Invoice />",
+        validator_jar=tmp_path / "validator.jar",
+        config_root=tmp_path,
+        report_prefix="invoice",
+        report_dir=None,
+        xsd_path=None,
+        schematron_path=None,
+        syntax="UBL",
+    )
+
+    assert result["valid"] is expected_valid
+    assert result["report_valid"] is report_valid
+    if not expected_valid:
+        assert [issue["code"] for issue in result["errors"]] == ["XR-OFFICIAL-REPORT"]
 
 
 def test_priority3_mapping_matrix_cii_parity_for_references_and_base_quantity() -> None:

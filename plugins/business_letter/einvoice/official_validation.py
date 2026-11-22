@@ -150,14 +150,8 @@ def _validate_with_kosit_cli(
     schematron_steps = [step for step in steps if str(step.get("id", "")).startswith("val-sch.")]
     schema_valid = bool(schema_steps) and all(step.get("valid") == "true" for step in schema_steps)
     schematron_valid = bool(schematron_steps) and all(step.get("valid") == "true" for step in schematron_steps)
-    accepted = bool(
-        report is not None
-        and any(
-            element.tag == f"{{{namespace}}}accept"
-            for element in report.iter()
-        )
-    )
-    valid = completed.returncode == 0 and accepted and schema_valid and schematron_valid
+    report_valid = report is not None and report.get("valid") == "true"
+    valid = completed.returncode == 0 and report_valid and schema_valid and schematron_valid
 
     schema_output = "\n".join(ET.tostring(step, encoding="unicode") for step in schema_steps)
     schematron_output = "\n".join(ET.tostring(step, encoding="unicode") for step in schematron_steps)
@@ -175,6 +169,7 @@ def _validate_with_kosit_cli(
                 "schematron_path": str(schematron_path) if schematron_path else "",
                 "validator": str(validator_jar),
                 "returncode": completed.returncode,
+                "report_valid": report_valid,
                 "validator_output": raw_output[:4000] if report is None else "",
                 "report_parse_error": parse_error,
             },
@@ -195,6 +190,8 @@ def _validate_with_kosit_cli(
     elif completed.returncode != 0 and not issues:
         details = (completed.stderr or "").strip() or "KoSIT validator rejected the invoice."
         issues.append(_issue("XR-OFFICIAL-CLI", "xml", details))
+    elif report is not None and not report_valid and not issues:
+        issues.append(_issue("XR-OFFICIAL-REPORT", "xml", "KoSIT report marked the invoice invalid."))
 
     classification = _classify_outputs(schema_output, schematron_output)
     classification["xsd"] = not schema_valid
@@ -206,6 +203,7 @@ def _validate_with_kosit_cli(
         "executed": True,
         "valid": valid,
         "status": "passed" if valid else "failed",
+        "report_valid": report_valid,
         "rule_ids": _extract_rule_ids(report_text),
         "classification": classification,
         "schema": {
